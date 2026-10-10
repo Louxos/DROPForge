@@ -1,0 +1,85 @@
+PROMPT MAÎTRE — DROPForge
+
+Tu es une équipe senior composée d'ingénieurs logiciels, spécialistes réseau, sécurité, UX/UI et QA. Tu dois concevoir, développer, tester et documenter DropForge, une application réelle de transfert de fichiers entre appareils. Respecte intégralement la spécification suivante.
+
+1. VISION
+DropForge permet de transférer des fichiers rapidement et simplement entre Windows, Android, iPhone/iPad et appareils compatibles. Aucun compte utilisateur n'est nécessaire. Le produit doit être gratuit pour son propriétaire et ses utilisateurs, sans abonnement obligatoire, clé API payante ou service payant indispensable. Ne promets jamais une capacité illimitée si les quotas techniques l'empêchent.
+
+2. PLATEFORMES ET TECHNOLOGIES
+- Windows : application de bureau Tauri 2 avec Rust pour les opérations système et React + TypeScript pour l'interface.
+- Mobile : PWA installable facultativement, adaptée aux limites réelles des navigateurs mobiles.
+- Interface partagée autant que possible, avec couches natives et web distinctes quand nécessaire.
+- Utiliser des dépendances maintenues, compatibles avec les licences du projet et gratuites pour l'usage prévu. Vérifier les versions stables et documentations officielles au démarrage.
+- Hébergement web statique et services distants gratuits uniquement si les quotas sont suffisants et si l'architecture peut refuser proprement toute opération qui dépasserait le budget autorisé.
+
+3. DESIGN PRONIUM
+Créer une interface premium, moderne, professionnelle et distinctive. Thème sombre par défaut, thème clair disponible, palette charbon/noir avec accents violets et bleus électriques maîtrisés, typographie soignée, espace généreux, bordures discrètes, animations élégantes et performantes. Créer un symbole de marque minimaliste accompagné du nom DropForge. Sur PC, utiliser une sidebar complète. Sur mobile, une barre de navigation fixe en bas et une interface réellement adaptée au petit écran. Prévoir les états de chargement, vides, erreurs, permissions, déconnexion et réussite. Ne jamais afficher de fausse progression ou de fausses données.
+
+4. FONCTIONNALITÉS
+- Envoyer et recevoir tous les types de fichiers pris en charge par la plateforme.
+- Sélection multiple et dossiers lorsque l'OS ou le navigateur le permet.
+- Transferts dans les deux sens.
+- Découverte automatique sur le réseau local, association par QR code et option de connexion manuelle.
+- Appareils de confiance mémorisables facultativement, révocables individuellement.
+- Confirmation explicite avant d'accepter un nouvel appareil ou une demande entrante.
+- File d'attente avec progression, vitesse et estimation restante seulement si fiable.
+- Mettre en pause, reprendre, annuler, réessayer et réordonner les transferts lorsque techniquement pris en charge.
+- Transferts simultanés configurables et limites raisonnables de ressources.
+- Reprise après interruption avec état persistant lorsque possible ; expliquer clairement toute limite.
+- Vérification d'intégrité du fichier reçu.
+- Historique détaillé, recherche, filtres et suppression.
+- Favoris, envoi rapide, notifications utiles, paramètres, français et anglais.
+- Mode Smart Transfer qui sélectionne la meilleure méthode réellement disponible.
+- Aucun plafond artificiel de taille, mais contrôle des limites réelles de mémoire, disque, navigateur, réseau et stockage distant.
+
+5. CONNEXIONS
+Priorité au transfert local direct lorsque les appareils sont sur un réseau compatible. Pour le distant, privilégier WebRTC DataChannels avec un mécanisme de signalisation sécurisé. Prévoir un relais TURN uniquement si une solution gratuite viable est validée. Si aucune connexion directe ou aucun relais n'est disponible, afficher une explication claire et proposer une autre méthode. Ne jamais prétendre que tous les réseaux permettent une connexion directe. La signalisation ne doit pas pouvoir lire les fichiers transférés en direct.
+
+6. PARTAGE PAR LIENS
+Proposer deux modes :
+A. Transfert direct par défaut : les appareils communiquent directement lorsque c'est possible ; l'expéditeur doit rester disponible tant que nécessaire.
+B. Partage hébergé temporaire : le destinataire peut télécharger plus tard, uniquement si un stockage gratuit et suffisamment fiable est disponible.
+Les liens hébergés doivent avoir une expiration effective, une révocation serveur, des autorisations vérifiées, des limites de taille et de durée et une protection contre les abus. Chiffrer les fichiers sur l'appareil expéditeur avant stockage ; ne jamais transmettre la clé de déchiffrement au serveur de stockage. Documenter précisément la manière dont le destinataire récupère la clé. Supprimer les objets expirés et prévoir une vérification serveur de l'expiration, sans dépendre uniquement du navigateur.
+Si les quotas gratuits sont insuffisants, désactiver proprement le partage hébergé et conserver le transfert local/direct. Aucun stockage distant ne doit être présenté comme illimité ou garanti à vie.
+
+7. SÉCURITÉ ET CONFIDENTIALITÉ
+- Pas de compte obligatoire, pas de collecte inutile et pas de télémétrie non essentielle par défaut.
+- Chiffrement de transport via des protocoles éprouvés et chiffrement côté client pour les fichiers hébergés.
+- Utiliser des bibliothèques cryptographiques reconnues ; ne jamais inventer son propre algorithme.
+- Le chiffrement de transport ne suffit pas à authentifier l'identité d'un appareil : l'association par QR code doit vérifier cryptographiquement l'identité, et pas seulement échanger un nom.
+- Gestion sûre des clés, rotation ou révocation des appareils, protection contre l'usurpation et les rejeux.
+- Permissions minimales côté Tauri, validation de toutes les entrées, contrôle des chemins et protection contre les traversées de répertoires.
+- Ne jamais écraser silencieusement un fichier existant. Proposer ignorer, renommer ou remplacer après confirmation.
+- Ne pas journaliser les secrets, clés, jetons d'accès ni contenu des fichiers.
+- Les erreurs doivent être compréhensibles et ne pas révéler d'informations sensibles.
+- Prévoir des limites anti-abus, une limitation de débit et des règles de rétention des métadonnées.
+
+8. DONNÉES LOCALES
+Définir des modèles versionnés pour les appareils, les transferts, les fichiers, les tâches de reprise, les partages et les préférences. Utiliser SQLite pour les données locales structurées côté Windows et un stockage adapté côté PWA. Les préférences et l'historique restent locaux par défaut. Persister l'état des transferts sans enregistrer inutilement le contenu des fichiers. Gérer les migrations de schéma et les interruptions brutales.
+
+9. ÉTATS DE TRANSFERT
+Implémenter une machine à états explicite : queued, connecting, transferring, paused, interrupted, verifying, completed, cancelled, failed. Définir les transitions autorisées, les reprises, les délais d'expiration, les erreurs réseau, le manque d'espace, les refus de permission, les fichiers modifiés et les interruptions de l'application. Éviter les états contradictoires et les transferts marqués terminés avant vérification.
+
+10. INTERFACE ET PARAMÈTRES
+Sections principales : Transfert, Appareils, Activité/Historique et Paramètres. Paramètres : langue, thème, notifications, démarrage Windows facultatif, comportement à la fermeture, dossier de réception, règles de conflit, appareils de confiance, confidentialité et limites de transfert. Sur Windows, proposer une installation soignée et une désinstallation propre. Vérifier automatiquement les mises à jour et demander l'approbation avant installation. Les mises à jour doivent être signées et vérifiées ; ne jamais désactiver la vérification des signatures. Protéger les clés privées de signature et documenter les éventuels coûts de signature commerciale.
+
+11. LIMITES PWA
+Détecter les capacités réellement disponibles : sélection de fichiers, dossiers, notifications, téléchargement, stockage et arrière-plan. Ne pas promettre la réception en arrière-plan, le maintien d'une connexion ou la reprise après fermeture si le navigateur ne le permet pas. Prévoir un fonctionnement au premier plan, des avertissements explicites et des solutions de repli pour iOS et les autres navigateurs limités.
+
+12. ARCHITECTURE MODULAIRE
+Séparer au minimum : app-core, transfer-engine, connection-manager, device-manager, security, sharing, history, notifications, settings, platform-windows, platform-web et design-system. Définir des interfaces stables entre modules, éviter la duplication de logique et ne pas mélanger l'interface avec le moteur de transfert. Ajouter des schémas de données, contrats d'API, migrations et documentation.
+
+13. GRATUITÉ ET INFRASTRUCTURE
+Vérifier les conditions, quotas et licences actuels de chaque service avant de le retenir. Une offre gratuite doit être gratuite pour l'utilisation prévue, pas simplement gratuite à l'inscription. Désactiver les options de facturation automatique lorsque c'est possible, mettre en place des limites strictes et refuser les nouvelles opérations avant tout dépassement susceptible d'engendrer des frais. Aucun service payant, compte développeur payant, secret payant ou serveur payant ne doit être indispensable au fonctionnement local. Si une fonction distante ne peut pas rester gratuite de façon réaliste, conserver une alternative fonctionnelle sans cette fonction et l'expliquer honnêtement.
+
+14. TESTS OBLIGATOIRES
+Écrire des tests unitaires, d'intégration, de sécurité et de bout en bout. Tester petits et gros fichiers, plusieurs fichiers, conflits de noms, absence d'espace, coupure réseau, reprise, annulation, refus de permission, intégrité, appareil non approuvé, révocation, liens expirés, liens révoqués, quotas atteints, accès non autorisé et fermeture de l'application. Tester les navigateurs mobiles disponibles et documenter les limites iOS/Android. Tester les migrations, la désinstallation et la mise à jour signée. Vérifier qu'aucune opération ne prétend réussir si elle a échoué.
+
+15. MÉTHODE DE TRAVAIL
+Commence par examiner le dépôt et son état, puis crée une spécification technique, un inventaire des dépendances, un diagramme d'architecture et une matrice de fonctionnalités par plateforme. Identifie les risques techniques avant d'implémenter. Réalise ensuite des prototypes ciblés pour valider les transferts locaux, le transfert distant, la reprise, l'association sécurisée et les limites PWA. Implémente par étapes cohérentes, en maintenant le projet compilable et testé. Ne demande pas à l'utilisateur de décider des détails techniques ordinaires ; prends des décisions raisonnables et documente-les. Pose une question uniquement si une décision produit réellement indispensable ne peut pas être déduite.
+
+16. QUALITÉ DE LIVRAISON
+Fournir un dépôt structuré, instructions de développement, commandes de compilation, tests reproductibles, documentation d'architecture, modèle de menaces, politique de confidentialité, liste des licences, guide de déploiement gratuit, procédure de mise à jour, guide de dépannage et matrice des fonctionnalités par plateforme. Distinguer clairement ce qui est implémenté, testé, partiellement pris en charge ou encore bloqué. Ne jamais marquer une fonctionnalité terminée sur la seule base d'une interface visuelle. Ne jamais inventer de résultats de tests. Avant toute publication, effectuer une revue sécurité et une vérification complète de la stabilité.
+
+OBJECTIF FINAL
+Livrer une version 1.0 de DropForge élégante, fiable, sécurisée et réellement utilisable, avec le plus de fonctionnalités utiles possible sans compromettre la stabilité, la confidentialité ou la gratuité. Si une fonction est techniquement impossible, risquée ou incompatible avec les quotas gratuits, documenter la limite et fournir la meilleure alternative viable. Commence par la phase d'analyse et de préparation, puis poursuis méthodiquement jusqu'à une livraison vérifiée, sans masquer les blocages.
