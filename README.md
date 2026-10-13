@@ -1,80 +1,222 @@
-DropForge
+# DropForge
 
-Transférez vos fichiers simplement, rapidement et en toute sécurité.
+**Transférez vos fichiers simplement, rapidement, et en toute sécurité.**
 
-DropForge est un projet open source en cours de développement visant à faciliter le transfert de fichiers entre différents appareils, notamment Windows, Android et iOS.
+DropForge envoie des fichiers entre vos appareils — Windows, Android, iOS, n'importe
+quel navigateur — sans compte obligatoire, sans service payant, et en privilégiant le
+transfert direct d'un appareil à l'autre. Quand un serveur est utilisé, il ne voit
+jamais le contenu des fichiers.
 
-L'objectif est de proposer une solution moderne, élégante et accessible, sans compte obligatoire et en privilégiant les technologies et services gratuits.
+<p align="center">
+  <em>Un seul nom, deux coques : une application Windows (Tauri 2 + Rust) et une
+  application web progressive (PWA) partageant exactement la même interface.</em>
+</p>
 
-«🚧 Statut : en cours de développement. Les fonctionnalités prévues ne sont pas nécessairement toutes implémentées ou fonctionnelles. Le projet n'est pas encore considéré comme une version stable.»
+---
 
-✨ Fonctionnalités prévues
+## État réel du projet
 
-- 📁 Transfert de fichiers dans les deux sens.
-- 📱 Compatibilité prévue avec Windows, Android et iOS.
-- 🔗 Connexion entre appareils par découverte automatique, QR code ou connexion manuelle.
-- ⚡ Transferts directs lorsque les conditions réseau le permettent.
-- 📊 Suivi de progression, vitesse et état des transferts.
-- ⏸️ Mise en pause, reprise et annulation lorsque prises en charge.
-- 🔒 Sécurité renforcée, chiffrement et vérification de l'intégrité des fichiers.
-- 🌐 Liens de partage temporaires, si une solution d'hébergement gratuite viable est disponible.
-- 🕘 Historique des transferts et gestion des appareils de confiance.
-- 🎨 Interface moderne avec thèmes clair et sombre.
-- 🇫🇷 Interface en français et en anglais.
+DropForge n'est **pas** encore une version 1.0. Ce tableau dit exactement où en est
+chaque partie — pas d'estimation optimiste. La matrice détaillée, fonctionnalité par
+fonctionnalité, est dans [`docs/PLATFORM-MATRIX.md`](docs/PLATFORM-MATRIX.md).
 
-Cette liste présente les objectifs du projet et non une garantie de disponibilité immédiate.
+| Partie | Statut |
+| --- | --- |
+| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** (328 tests automatisés) |
+| Interface partagée React/TypeScript (FR/EN, thème sombre/clair) | ✅ Implémentée et **testée** au niveau du contrôleur d'application |
+| Application web progressive (PWA) installable | ✅ Implémentée et **testée** (pas encore testée sur téléphone réel) |
+| Serveur de signalisation / relais aveugle | ✅ Implémenté et **testé** (Node) |
+| Application Windows (Tauri + Rust) | ⚠️ Écrite et vérifiée en TypeScript, **jamais compilée** : aucune chaîne d'outils Rust dans l'environnement de développement utilisé |
+| Installateur Windows signé, mises à jour signées | ❌ Non produits (nécessitent un certificat et Windows) |
+| Tests navigateur E2E, tests sur appareils mobiles réels | ❌ Non exécutés |
+| Liens de partage hébergés | ⚠️ Code client implémenté et testé ; nécessite un hébergement (optionnel) |
 
-🖥️ Plateformes et technologies
+## Comment DropForge se connecte
 
-L'architecture envisagée comprend :
+Dans l'ordre, la première méthode qui fonctionne réellement :
 
-- Windows : application de bureau avec Tauri et Rust.
-- Mobile : application web progressive (PWA), installable lorsque la plateforme le permet.
-- Interface : React et TypeScript.
-- Transferts distants : WebRTC lorsque compatible.
-- Données locales : stockage adapté à chaque plateforme.
+1. **Réseau local** — les deux appareils sont sur le même réseau : le transfert ne
+   sort jamais du réseau local.
+2. **Direct (WebRTC)** — les deux appareils sont derrière des réseaux différents : un
+   canal chiffré de bout en bout est négocié avec l'aide d'un serveur de signalisation
+   qui ne voit passer que des messages de négociation et des données déjà chiffrées.
+3. **Relais aveugle** — quand la connexion directe est impossible : le serveur relaie
+   des octets chiffrés sans pouvoir les lire.
 
-Les technologies définitives pourront évoluer pendant le développement en fonction des tests, de la sécurité et des contraintes techniques.
+Si aucune méthode ne fonctionne, DropForge le dit clairement et propose une
+alternative. **Il n'affirme jamais qu'un réseau autorise la connexion directe.**
 
-💸 Philosophie du projet
+## Fonctionnalités
 
-DropForge est conçu pour privilégier :
+**Transferts** — tous types de fichiers ; sélection multiple et dossiers là où le
+système le permet ; envoi et réception ; file d'attente avec pause, reprise,
+annulation, réessai et réordonnancement ; limité en parallèle par un réglage (1 à 8) ;
+reprise après coupure quand la plateforme expose l'écriture aléatoire ; vérification
+d'intégrité SHA-256 avant tout état « terminé » ; aucun plafond de taille artificiel.
 
-- La gratuité et les solutions accessibles.
-- L'absence de compte obligatoire.
-- La confidentialité et la collecte minimale de données.
-- La sécurité des transferts.
-- La compatibilité entre plateformes.
-- La transparence sur les limitations techniques.
+**Appareils** — découverte sur le réseau local, appairage par QR code, connexion
+manuelle par code de salle, appareils de confiance révocables, confirmation explicite
+avant d'accepter un nouvel appareil. L'appairage **vérifie l'identité
+cryptographique** (un code à 6 chiffres dérivé du secret partagé), pas seulement un
+nom.
 
-Certaines fonctionnalités distantes peuvent dépendre des capacités réseau et des quotas des services gratuits disponibles. Aucun transfert illimité ni service distant permanent n'est garanti.
+**Historique et réglages** — historique détaillé, cherchable et filtrable, avec
+suppression ; favoris et envoi rapide ; notifications ; langue, thème, dossier de
+réception, règles de conflit, confidentialité, limites.
 
-🚧 État du développement
+**Sécurité** — aucun compte obligatoire, aucune télémétrie par défaut, aucune
+collection inutile ; cryptographie par les bibliothèques reconnues du navigateur
+(WebCrypto) et `@noble/hashes` ; jamais d'écrasement silencieux d'un fichier existant ;
+aucun secret, aucune clé et aucun contenu de fichier dans les journaux.
 
-Le projet est actuellement en phase de préparation et de développement.
+**Ce que DropForge ne fait pas** (et le dit) — voir
+[`docs/THREAT-MODEL.md`](docs/THREAT-MODEL.md) §4 : protection contre un appareil
+cassé par un logiciel malveillant, garantie de fonctionnement derrière un réseau qui
+bloque tout, réception en arrière-plan dans un navigateur mobile.
 
-Les priorités sont de définir une architecture solide, d'implémenter les transferts, de sécuriser les connexions et de tester le fonctionnement sur les différentes plateformes.
+## Démarrage rapide (développement)
 
-DropForge n'est pas encore une version stable destinée à un usage en production. Les fonctionnalités, l'architecture et les interfaces peuvent évoluer.
+Prérequis : **Node 22+** et npm. Rust n'est nécessaire que pour compiler l'application
+Windows.
 
-🤝 Contributions
+```bash
+npm install
 
-Les contributions, idées, suggestions et retours sont les bienvenus !
+npm run dev:web        # application web  → http://localhost:5173
+npm run dev:signaling  # serveur de signalisation → http://localhost:8787
+```
 
-Avant de contribuer, consultez les instructions de contribution si elles sont disponibles. Pour proposer une amélioration ou signaler un problème, vous pouvez ouvrir une issue sur GitHub.
+Pour utiliser DropForge entre deux appareils, ouvrez l'application sur les deux. Le
+serveur de signalisation n'est nécessaire que pour les transferts **distants** :
+sur le même réseau local, l'application fonctionne sans lui.
 
-Merci de vérifier l'état réel du projet avant de proposer une modification dépendant d'une fonctionnalité qui n'est pas encore disponible.
+```bash
+npm run dev:desktop    # application Windows (nécessite Rust + Windows)
+```
 
-🔐 Sécurité
+## Construire
 
-Si vous découvrez une vulnérabilité, évitez de publier des détails permettant de l'exploiter dans une issue publique. Privilégiez un moyen de signalement privé lorsqu'il est disponible.
+```bash
+npm run build:web      # interface + service worker → apps/web/dist
+npm run build:desktop  # installateur + mise à jour signée → apps/desktop/src-tauri/target
+npm run icons          # régénère les icônes (aucune dépendance externe)
+npm run licences       # régénère docs/LICENCES.md depuis les dépendances installées
+```
 
-📄 Licence
+## Tests
 
-La licence du projet reste à définir. Tant qu'aucune licence open source n'a été ajoutée au dépôt, ne considérez pas automatiquement le code comme librement réutilisable, modifiable ou redistribuable.
+```bash
+npm run verify           # typecheck + tous les tests
+npm test                 # 30 fichiers, 328 tests
+npm run test:unit        # paquets et application
+npm run test:integration # transferts réels en mémoire, reprise, sécurité, relais
+```
 
-⭐ Soutenir le projet
+Ce qui est couvert — et surtout **ce qui ne l'est pas** — est détaillé dans
+[`docs/TESTING.md`](docs/TESTING.md). Rien n'est marqué comme testé parce que
+l'interface l'affiche.
 
-Vous pouvez soutenir DropForge en suivant son évolution, en partageant vos idées, en signalant les problèmes et en contribuant à son amélioration.
+## Infrastructure 100 % gratuite
 
-Merci de votre intérêt pour DropForge !
+DropForge est conçu pour ne fonctionner **sur aucune ressource payante**. Analyse
+complète, avec les chiffres vérifiés et les limites honnêtes :
+[`docs/FREE-DEPLOYMENT.md`](docs/FREE-DEPLOYMENT.md).
+
+- **Le transfert local ne nécessite aucun service.** Deux appareils sur le même réseau
+  fonctionnent sans serveur, sans compte et sans Internet.
+- **La signalisation est facultative et remplaçable.** Le serveur fourni dans ce dépôt
+  s'auto-héberge ; un hébergement gratuit est documenté pour qui n'a pas de machine
+  disponible.
+- **Aucun paiement ne peut être déclenché par l'application.** Aucune clé d'API
+  facturée n'est utilisée ; les services optionnels sont configurés par celui qui
+  héberge, jamais par DropForge, et l'activation de la facturation automatique n'est
+  **pas** une étape de ce projet.
+- **Les limites sont vérifiées avant l'opération**, pas après : taille des fichiers,
+  durée et nombre de téléchargements d'un lien de partage, quota de trafic. Un refus
+  arrive **avant** toute consommation facturable, jamais sous forme de dépassement.
+- **Aucune limite de taille artificielle** n'est imposée aux transferts directs : les
+  seules limites réelles sont celles du réseau et du disque, et elles sont affichées.
+- **Ce qui ne peut pas rester gratuit est désactivé proprement.** Les liens de partage
+  hébergés nécessitent un service de stockage : sans configuration, la fonctionnalité
+  est absente de l'interface plutôt que facturée. Le transfert direct, lui, reste
+  disponible dans tous les cas.
+- **TURN (relais de secours) n'est pas requis.** Les relais payants ne sont pas une
+  dépendance : quand la connexion directe échoue, DropForge le dit et propose une
+  alternative, au lieu de facturer un relais à quelqu'un.
+
+## Structure du dépôt
+
+```
+packages/
+  protocol/           format des trames, chemins sûrs, catalogue d'erreurs
+  app-core/           types partagés, machine à états, ports (fichiers, horloge, journaux)
+  security/           identité, handshake authentifié, sessions chiffrées, appairage
+  transfer-engine/    envoi, réception, plages, reprise, file d'attente, vérification
+  connection-manager/ choix de la méthode de connexion (local → direct → relais)
+  device-manager/     appareils connus, confiance, révocation
+  history/            historique des transferts (stockage clé-valeur)
+  sharing/            liens de partage (chiffrés côté client, expiration, quotas)
+  notifications/      notifications système avec anti-doublon
+  settings/           préférences versionnées et validées
+  design-system/      jetons de thème, formats, styles
+apps/
+  web/                l'interface + la PWA (React, TypeScript, Vite)
+  desktop/            la coque Windows (Tauri 2 + Rust) réutilisant l'interface
+  signaling/          serveur de signalisation et relais aveugle (Node, WebSocket)
+docs/                 architecture, modèle de données, sécurité, tests, dépannage…
+tests/                transferts de bout en bout en mémoire, reprise, sécurité
+scripts/              icônes, liste des licences
+```
+
+L'interface ne contient **aucune** logique de transfert : elle pilote un contrôleur
+d'application qui s'appuie sur les paquets. Le même code sert la PWA et Windows.
+
+## Documentation
+
+| Document | Contenu |
+| --- | --- |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Modules, dépendances, flux d'un transfert |
+| [`docs/SPEC.md`](docs/SPEC.md) | Comportement attendu, états, erreurs |
+| [`docs/DATA-MODEL.md`](docs/DATA-MODEL.md) | Données locales, schémas, migrations |
+| [`docs/THREAT-MODEL.md`](docs/THREAT-MODEL.md) | Ce qui est protégé — et ce qui ne l'est pas |
+| [`docs/PRIVACY.md`](docs/PRIVACY.md) | Ce qui ne quitte jamais l'appareil |
+| [`docs/FREE-DEPLOYMENT.md`](docs/FREE-DEPLOYMENT.md) | Coûts réels, quotas, alternatives |
+| [`docs/PLATFORM-MATRIX.md`](docs/PLATFORM-MATRIX.md) | Implémenté / testé / partiel / bloqué |
+| [`docs/TESTING.md`](docs/TESTING.md) | Tests, et protocoles à exécuter à la main |
+| [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) | Chaque erreur, sa cause, sa solution |
+| [`docs/UPDATE-PROCEDURE.md`](docs/UPDATE-PROCEDURE.md) | Comment publier une mise à jour signée |
+| [`docs/LICENCES.md`](docs/LICENCES.md) | Licences des dépendances (généré) |
+
+## Sécurité
+
+Le modèle de menace complet est dans
+[`docs/THREAT-MODEL.md`](docs/THREAT-MODEL.md). En résumé : le serveur de
+signalisation ne peut pas lire les fichiers, l'appairage vérifie l'identité
+cryptographique de l'appareil, aucune trame rejouée ne passe, et aucun chemin reçu ne
+peut sortir du dossier de réception.
+
+**Signaler une vulnérabilité** : évitez les détails exploitables dans une issue
+publique ; utilisez un canal de signalement privé lorsque c'est possible. Un rapport
+utile contient le code d'erreur affiché, la plateforme, et la méthode de connexion
+utilisée — aucun fichier.
+
+## Contributions
+
+Les contributions, idées et retours sont bienvenus. Avant de proposer une
+modification, vérifiez l'état réel dans
+[`docs/PLATFORM-MATRIX.md`](docs/PLATFORM-MATRIX.md) : une fonctionnalité marquée
+« bloqué » ou « non testé » ne doit pas être présentée comme terminée.
+
+## Licence
+
+La licence du projet reste à définir. Tant qu'aucune licence n'a été ajoutée au
+dépôt, le code n'est pas automatiquement réutilisable, modifiable ou redistribuable.
+Les licences des dépendances sont listées dans
+[`docs/LICENCES.md`](docs/LICENCES.md).
+
+## Soutenir le projet
+
+En suivant son évolution, en partageant vos idées, en signalant les problèmes et en
+contribuant à son amélioration.
+
+Merci de votre intérêt pour DropForge.

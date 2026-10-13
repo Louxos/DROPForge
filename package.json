@@ -11,7 +11,8 @@
   "workspaces": [
     "packages/*",
     "apps/web",
-    "apps/signaling"
+    "apps/signaling",
+    "apps/desktop"
   ],
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -23,7 +24,12 @@
     "dev:signaling": "npm run dev -w @dropforge/signaling",
     "build:web": "npm run build -w @dropforge/web",
     "start:signaling": "npm run start -w @dropforge/signaling",
-    "verify": "npm run typecheck && npm run test"
+    "verify": "npm run typecheck && npm run typecheck:desktop && npm run test",
+    "dev:desktop": "npm run tauri dev -w @dropforge/desktop",
+    "build:desktop": "npm run tauri build -w @dropforge/desktop",
+    "icons": "node scripts/generate-icons.mjs",
+    "licences": "node scripts/list-licences.mjs",
+    "typecheck:desktop": "tsc -p apps/desktop/tsconfig.json --noEmit"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

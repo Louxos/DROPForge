@@ -14,6 +14,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'apps', 'web', 'public', 'icons');
+/** Where the Windows shell looks for its icons (Tauri bundle configuration). */
+const DESKTOP_OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'apps', 'desktop', 'src-tauri', 'icons');
 
 const VIOLET = [124, 92, 255];
 const BLUE = [56, 156, 255];
@@ -146,3 +148,34 @@ writeFileSync(join(OUT, 'icon-512.png'), draw(512));
 writeFileSync(join(OUT, 'icon-maskable-512.png'), draw(512, { maskable: true }));
 writeFileSync(join(OUT, 'apple-touch-icon.png'), draw(180));
 console.log('Icons written to', OUT);
+
+/* ------------------------------------------------------------------ *
+ * Icônes de l'application Windows (Tauri)
+ * ------------------------------------------------------------------ */
+
+/** Un .ico valide, avec une image PNG encapsulée (accepté depuis Windows Vista). */
+function encodeIco(png, size) {
+  const header = Buffer.alloc(6);
+  header.writeUInt16LE(0, 0); // réservé
+  header.writeUInt16LE(1, 2); // type : icône
+  header.writeUInt16LE(1, 4); // nombre d'images
+  const entry = Buffer.alloc(16);
+  entry[0] = size >= 256 ? 0 : size; // 0 signifie 256
+  entry[1] = size >= 256 ? 0 : size;
+  entry[2] = 0; // palette
+  entry[3] = 0; // réservé
+  entry.writeUInt16LE(1, 4); // plans
+  entry.writeUInt16LE(32, 6); // bits par pixel
+  entry.writeUInt32LE(png.length, 8);
+  entry.writeUInt32LE(header.length + entry.length, 12);
+  return Buffer.concat([header, entry, png]);
+}
+
+mkdirSync(DESKTOP_OUT, { recursive: true });
+const png256 = draw(256);
+writeFileSync(join(DESKTOP_OUT, 'icon.png'), png256);
+writeFileSync(join(DESKTOP_OUT, '32x32.png'), draw(32));
+writeFileSync(join(DESKTOP_OUT, '128x128.png'), draw(128));
+writeFileSync(join(DESKTOP_OUT, '128x128@2x.png'), draw(256));
+writeFileSync(join(DESKTOP_OUT, 'icon.ico'), encodeIco(png256, 256));
+console.log('Icons written to', DESKTOP_OUT);
