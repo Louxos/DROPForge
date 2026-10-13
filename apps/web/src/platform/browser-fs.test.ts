@@ -11,6 +11,7 @@ import {
   pickFiles,
   pickFolder,
   pickReceiveFolder,
+  sourcesFromDataTransfer,
   sourcesFromFileList,
   triggerDownload,
 } from './browser-fs.js';
@@ -382,5 +383,100 @@ describe('picking files and folders', () => {
       (globalThis as { URL: unknown }).URL = originalUrl;
       (globalThis as { document?: unknown }).document = originalDocument;
     }
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * Drag and drop: a fake FileSystemEntry tree
+ * ------------------------------------------------------------------ */
+
+function fileEntry(name: string, text: string, fileThrows = false): FileSystemEntry {
+  return {
+    name,
+    isFile: true,
+    isDirectory: false,
+    fullPath: `/${name}`,
+    file: (resolve: (file: File) => void, reject: (error: unknown) => void) => {
+      if (fileThrows) {
+        reject(new Error('unreadable'));
+        return;
+      }
+      resolve(new File([text], name, { lastModified: 1_700_000_000_000 }));
+    },
+  } as unknown as FileSystemEntry;
+}
+
+function directoryEntry(name: string, children: FileSystemEntry[][]): FileSystemEntry {
+  const batches = [...children];
+  return {
+    name,
+    isFile: false,
+    isDirectory: true,
+    fullPath: `/${name}`,
+    createReader: () => ({
+      // `readEntries` returns batches, exactly like the real API (100 at a time).
+      readEntries: (resolve: (entries: FileSystemEntry[]) => void) => resolve(batches.shift() ?? []),
+    }),
+  } as unknown as FileSystemEntry;
+}
+
+function item(entry: FileSystemEntry | null, kind: 'file' | 'string' = 'file'): DataTransferItem {
+  return { kind, webkitGetAsEntry: () => entry } as unknown as DataTransferItem;
+}
+
+describe('sourcesFromDataTransfer', () => {
+  it('builds one source per dropped file, with the entry name as path', async () => {
+    const { sources, foldersRead } = await sourcesFromDataTransfer({
+      items: [item(fileEntry('rapport.pdf', 'contenu'))],
+      files: [],
+    });
+    expect(foldersRead).toBe(false);
+    expect(sources).toHaveLength(1);
+    expect(sources[0]?.path).toBe('rapport.pdf');
+    expect(sources[0]?.kind).toBe('file');
+    expect(sources[0]?.size).toBe(Buffer.byteLength('contenu'));
+  });
+
+  it('walks a dropped folder and keeps the folder itself in the manifest', async () => {
+    const folder = directoryEntry('Album', [
+      [directoryEntry('2024', [[fileEntry('a.jpg', 'aaa'), fileEntry('b.jpg', 'bb')]])],
+      // Second batch of the same reader call: the reader must be drained.
+      [fileEntry('c.jpg', 'c')],
+    ]);
+    const { sources, foldersRead } = await sourcesFromDataTransfer({ items: [item(folder)], files: [] });
+    expect(foldersRead).toBe(true);
+    expect(sources.map((source) => source.path)).toEqual([
+      'Album',
+      'Album/2024',
+      'Album/2024/a.jpg',
+      'Album/2024/b.jpg',
+      'Album/c.jpg',
+    ]);
+    expect(sources.filter((source) => source.kind === 'directory')).toHaveLength(2);
+  });
+
+  it('skips an entry the browser cannot read instead of failing the whole drop', async () => {
+    const { sources } = await sourcesFromDataTransfer({
+      items: [item(fileEntry('illisible.txt', '', true)), item(fileEntry('bon.txt', 'ok'))],
+      files: [],
+    });
+    expect(sources.map((source) => source.path)).toEqual(['bon.txt']);
+  });
+
+  it('falls back to the flat file list when there is no entry API', async () => {
+    const { sources, foldersRead } = await sourcesFromDataTransfer({
+      items: [{ kind: 'file' } as unknown as DataTransferItem],
+      files: [new File(['abc'], 'photo.png')],
+    });
+    expect(foldersRead).toBe(false);
+    expect(sources.map((source) => source.path)).toEqual(['photo.png']);
+  });
+
+  it('ignores non-file items such as dragged text', async () => {
+    const { sources } = await sourcesFromDataTransfer({
+      items: [item(null, 'string'), item(fileEntry('vrai.txt', 'x'))],
+      files: [],
+    });
+    expect(sources.map((source) => source.path)).toEqual(['vrai.txt']);
   });
 });

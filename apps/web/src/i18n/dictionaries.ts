@@ -29,6 +29,10 @@ export interface Dictionary {
     selectFolder: string;
     selected: string;
     dropHint: string;
+    dropTarget: string;
+    dropNothing: string;
+    quickSend: string;
+    quickSendHint: string;
     clear: string;
     sendTo: string;
     noDevices: string;
@@ -83,6 +87,9 @@ export interface Dictionary {
     fingerprint: string;
     autoAccept: string;
     revokedNotice: string;
+    markFavorite: string;
+    unmarkFavorite: string;
+    unknown: string;
   };
   activity: {
     title: string;
@@ -241,7 +248,11 @@ export const FR: Dictionary = {
     selectFiles: 'Choisir des fichiers',
     selectFolder: 'Choisir un dossier',
     selected: '{{count}} élément(s) sélectionné(s) — {{size}}',
-    dropHint: 'Vous pouvez aussi déposer des fichiers ici.',
+    dropHint: 'Vous pouvez aussi déposer des fichiers ou un dossier ici.',
+    dropTarget: 'Déposez pour ajouter',
+    dropNothing: 'Rien n’a pu être lu dans ce dépôt.',
+    quickSend: 'Envoi rapide',
+    quickSendHint: 'En une seule action : connecte l’appareil si besoin, puis envoie la sélection.',
     clear: 'Vider la sélection',
     sendTo: 'Envoyer vers',
     noDevices: 'Aucun appareil joignable pour le moment.',
@@ -297,6 +308,9 @@ export const FR: Dictionary = {
     fingerprint: 'Empreinte',
     autoAccept: 'Accepter automatiquement',
     revokedNotice: 'Cet appareil devra être approuvé de nouveau avant tout nouveau transfert.',
+    markFavorite: 'Mettre en favori',
+    unmarkFavorite: 'Retirer des favoris',
+    unknown: 'Cet appareil n’est pas connu de cette installation.',
   },
   activity: {
     title: 'Historique',
@@ -503,7 +517,11 @@ export const EN: Dictionary = {
     selectFiles: 'Choose files',
     selectFolder: 'Choose a folder',
     selected: '{{count}} item(s) selected — {{size}}',
-    dropHint: 'You can also drop files here.',
+    dropHint: 'You can also drop files or a folder here.',
+    dropTarget: 'Drop to add',
+    dropNothing: 'Nothing could be read from that drop.',
+    quickSend: 'Quick send',
+    quickSendHint: 'One action: connects the device if needed, then sends the selection.',
     clear: 'Clear selection',
     sendTo: 'Send to',
     noDevices: 'No device is reachable right now.',
@@ -559,6 +577,9 @@ export const EN: Dictionary = {
     fingerprint: 'Fingerprint',
     autoAccept: 'Accept automatically',
     revokedNotice: 'This device will have to be approved again before any new transfer.',
+    markFavorite: 'Mark as favourite',
+    unmarkFavorite: 'Remove from favourites',
+    unknown: 'This installation does not know that device.',
   },
   activity: {
     title: 'Activity',

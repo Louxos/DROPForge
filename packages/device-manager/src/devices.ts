@@ -39,7 +39,12 @@ export class DeviceManager {
     const records = await this.store.list<DeviceRecord>(DEVICE_COLLECTION);
     return records
       .map((entry) => entry.value)
-      .sort((a, b) => b.lastSeenAt - a.lastSeenAt || a.displayName.localeCompare(b.displayName));
+      .sort(
+        (a, b) =>
+          Number(b.favorite ?? false) - Number(a.favorite ?? false) ||
+          b.lastSeenAt - a.lastSeenAt ||
+          a.displayName.localeCompare(b.displayName),
+      );
   }
 
   async trusted(): Promise<DeviceRecord[]> {
@@ -118,6 +123,17 @@ export class DeviceManager {
   async revoke(deviceId: string): Promise<DeviceRecord> {
     const record = await this.require(deviceId);
     const updated: DeviceRecord = { ...record, trusted: false, autoAccept: false, revokedAt: this.now() };
+    await this.store.put(DEVICE_COLLECTION, deviceId, updated);
+    return updated;
+  }
+
+  /**
+   * Marks a device as a favourite (or removes the mark). Favourites are a display
+   * and convenience flag only: they are neither trusted nor authorized by this.
+   */
+  async setFavorite(deviceId: string, favorite: boolean): Promise<DeviceRecord> {
+    const record = await this.require(deviceId);
+    const updated: DeviceRecord = { ...record, favorite };
     await this.store.put(DEVICE_COLLECTION, deviceId, updated);
     return updated;
   }

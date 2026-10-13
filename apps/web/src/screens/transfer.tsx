@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SPACE } from '@dropforge/design-system';
 import { formatBytes } from '@dropforge/design-system';
-import { fileSource, pickFiles, pickFolder } from '../platform/browser-fs.js';
+import { pickFolder, sourcesFromDataTransfer, sourcesFromFileList } from '../platform/browser-fs.js';
 import type { AppController, AppState } from '../app/controller.js';
 import { EmptyState, PageHeader, ProgressView, StateBadge } from '../components/atoms.js';
 import type { SourceFile } from '@dropforge/app-core';
@@ -16,6 +16,7 @@ export function TransferScreen({ controller, state }: { controller: AppControlle
   const locale = i18n.resolvedLanguage === 'en' ? 'en' : 'fr';
   const [pending, setPending] = useState<SourceFile[]>([]);
   const [code, setCode] = useState('');
+  const [dragging, setDragging] = useState(false);
 
   const adopt = (files: SourceFile[]): void => {
     setPending(files);
@@ -24,7 +25,24 @@ export function TransferScreen({ controller, state }: { controller: AppControlle
 
   const onFiles = async (list: FileList | null): Promise<void> => {
     if (!list || list.length === 0) return;
-    adopt(await sourcesFrom(list));
+    adopt(await sourcesFromFileList(list));
+  };
+
+  /**
+   * Dropped content goes through the same checks as picked content: what the browser
+   * could not read is reported, never silently replaced by something else.
+   */
+  const onDrop = async (drop: DataTransfer): Promise<void> => {
+    setDragging(false);
+    const { sources, foldersRead } = await sourcesFromDataTransfer(drop);
+    if (sources.length === 0) {
+      controller.reportNotice('warning', 'transfer.dropNothing');
+      return;
+    }
+    // `foldersRead` is false when the browser has no entry API: the dropped *files*
+    // are still complete, so nothing is announced for them.
+    void foldersRead;
+    adopt(sources);
   };
 
   const connect = async (): Promise<void> => {
@@ -35,7 +53,27 @@ export function TransferScreen({ controller, state }: { controller: AppControlle
     <section>
       <PageHeader titleKey="transfer.title" subtitleKey="transfer.subtitle" />
 
-      <div className="df-card" style={{ marginBottom: SPACE.xl }}>
+      <div
+        className={`df-card df-dropzone${dragging ? ' df-dropzone--active' : ''}`}
+        style={{ marginBottom: SPACE.xl }}
+        onDragEnter={(event) => {
+          event.preventDefault();
+          setDragging(true);
+        }}
+        onDragOver={(event) => {
+          event.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={(event) => {
+          // Leaving for a child element is not leaving the zone.
+          if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+          setDragging(false);
+        }}
+        onDrop={(event) => {
+          event.preventDefault();
+          void onDrop(event.dataTransfer);
+        }}
+      >
         <div className="df-row" style={{ flexWrap: 'wrap' }}>
           <label className="df-button df-button--primary">
             {t('transfer.selectFiles')}
@@ -72,6 +110,40 @@ export function TransferScreen({ controller, state }: { controller: AppControlle
               size: formatBytes(pending.reduce((sum, file) => sum + file.size, 0), locale),
             })}
           </p>
+        ) : null}
+
+        {state.devices.some((device) => device.favorite) ? (
+          <div style={{ marginTop: SPACE.lg }}>
+            <div className="df-label">{t('transfer.quickSend')}</div>
+            <div className="df-row" style={{ flexWrap: 'wrap', marginTop: SPACE.sm }}>
+              {state.devices
+                .filter((device) => device.favorite)
+                .map((device) => (
+                  <button
+                    key={device.id}
+                    type="button"
+                    className="df-button df-button--small"
+                    disabled={pending.length === 0 || state.connecting}
+                    title={device.displayName}
+                    onClick={() =>
+                      void controller
+                        .quickSend(device.id, pending)
+                        .then((transferId) => {
+                          if (!transferId) return;
+                          setPending([]);
+                          controller.clearSelection();
+                        })
+                        .catch(() => undefined)
+                    }
+                  >
+                    {device.displayName}
+                  </button>
+                ))}
+            </div>
+            <p className="df-faint" style={{ marginTop: SPACE.sm }}>
+              {t('transfer.quickSendHint')}
+            </p>
+          </div>
         ) : null}
 
         <div style={{ marginTop: SPACE.lg }}>
@@ -310,8 +382,4 @@ function decisionsFor(
   action: 'skip' | 'rename' | 'overwrite',
 ): Array<{ index: number; action: 'skip' | 'rename' | 'overwrite' }> {
   return (state.incoming?.conflicts ?? []).map((conflict) => ({ index: conflict.index, action }));
-}
-
-async function sourcesFrom(list: FileList): Promise<SourceFile[]> {
-  return [...list].filter((entry): entry is File => entry instanceof File).map((file) => fileSource(file, file.webkitRelativePath || file.name));
 }

@@ -149,6 +149,11 @@ export interface DeviceRecord {
   lastSeenAt: number;
   /** Set when the device was revoked; kept for the history. */
   revokedAt?: number;
+  /**
+   * Chosen by the user, not by the software: favourite devices are shown first and
+   * get a one-action "quick send". It never changes trust.
+   */
+  favorite?: boolean;
 }
 
 export interface TransferFileRecord {

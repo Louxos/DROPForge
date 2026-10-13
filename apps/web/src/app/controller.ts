@@ -376,6 +376,15 @@ export class AppController {
     this.emit();
   }
 
+  /**
+   * Publishes a notice the interface itself decided on (a dropped item that could
+   * not be read, for instance). Keys are translated like every other notice key,
+   * so an unknown key shows the key rather than an invented sentence.
+   */
+  reportNotice(kind: AppNotice['kind'], messageKey: string, extra: Partial<AppNotice> = {}): void {
+    this.notice(kind, messageKey, extra);
+  }
+
   dismissNotice(id: string): void {
     this.state.notices = this.state.notices.filter((notice) => notice.id !== id);
     this.emit();
@@ -468,6 +477,45 @@ export class AppController {
   async forgetDevice(deviceId: string): Promise<void> {
     await this.devices.forget(deviceId);
     await this.refreshDevices();
+  }
+
+  /** Favourite or unfavourite a known device; trust is untouched by design. */
+  async toggleFavorite(deviceId: string): Promise<void> {
+    try {
+      const record = await this.devices.get(deviceId);
+      if (!record) return;
+      await this.devices.setFavorite(deviceId, !(record.favorite ?? false));
+      await this.refreshDevices();
+    } catch (error) {
+      this.reportError(error);
+    }
+  }
+
+  /**
+   * Quick send: connect to a favourite device, then send the selection in one action.
+   *
+   * The connection is the normal, verified one — same handshake, same code to
+   * compare — and nothing is queued when it fails. The sources are passed in rather
+   * than read from a stored selection, because the interface is the only place that
+   * holds readable file handles.
+   */
+  async quickSend(deviceId: string, sources: Parameters<AppController['sendSelection']>[0]): Promise<string | undefined> {
+    const record = await this.devices.get(deviceId);
+    if (!record) {
+      this.reportNotice('error', 'devices.unknown');
+      return undefined;
+    }
+    if (sources.length === 0) return undefined;
+    if (this.connection?.peer.deviceId !== deviceId) {
+      const connected = await this.connect({
+        deviceId: record.id,
+        displayName: record.displayName,
+        fingerprint: record.fingerprint,
+        methods: ['lan', 'webrtc', 'relay'],
+      });
+      if (!connected) return undefined;
+    }
+    return await this.sendSelection(sources);
   }
 
   async renameDevice(deviceId: string, displayName: string): Promise<void> {

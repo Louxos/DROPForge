@@ -47,6 +47,74 @@ export async function sourcesFromFileList(fileList: FileList | readonly File[]):
   return files.map((file) => fileSource(file, relativePathOf(file)));
 }
 
+/**
+ * Files and folders dropped onto the window.
+ *
+ * Drag and drop is the one way to pick a folder that every browser supports at
+ * least partially (`webkitGetAsEntry` exists in Chromium, Firefox and Safari),
+ * so it is used when available and the flat file list is used otherwise —
+ * silently saving less than what was dropped would be worse than saying so.
+ */
+export async function sourcesFromDataTransfer(transfer: {
+  items?: ArrayLike<DataTransferItem> | null;
+  files?: ArrayLike<File> | null;
+}): Promise<{ sources: SourceFile[]; foldersRead: boolean }> {
+  const items = transfer.items ? Array.from(transfer.items) : [];
+  const entries: FileSystemEntry[] = [];
+  for (const item of items) {
+    if (item.kind !== 'file') continue;
+    const entry = typeof item.webkitGetAsEntry === 'function' ? item.webkitGetAsEntry() : null;
+    if (entry) entries.push(entry);
+  }
+  if (entries.length === 0) {
+    // No entry API (or nothing usable): the flat list still carries every dropped
+    // *file*, but not the directories.
+    return { sources: await sourcesFromFileList(Array.from(transfer.files ?? [])), foldersRead: false };
+  }
+  const sources: SourceFile[] = [];
+  let foldersRead = false;
+  for (const entry of entries) {
+    if (entry.isDirectory) foldersRead = true;
+    await collectEntry(entry, '', sources);
+  }
+  return { sources, foldersRead };
+}
+
+async function collectEntry(entry: FileSystemEntry, prefix: string, out: SourceFile[], depth = 0): Promise<void> {
+  const path = prefix === '' ? entry.name : `${prefix}/${entry.name}`;
+  if (entry.isDirectory) {
+    if (depth > 32) return; // A pathological tree must not hang the drop handler.
+    out.push({
+      path: safeRelativePath(path),
+      kind: 'directory',
+      size: 0,
+      lastModified: Date.now(),
+      read: async () => new Uint8Array(0),
+      revalidate: async () => 'unchanged',
+    });
+    const directory = entry as FileSystemDirectoryEntry;
+    for (const child of await readEntries(directory)) await collectEntry(child, path, out, depth + 1);
+    return;
+  }
+  if (!entry.isFile) return; // A dropped socket or symlink is not a readable file.
+  const file = await new Promise<File | null>((resolve) => (entry as FileSystemFileEntry).file(resolve, () => resolve(null)));
+  if (!file) return;
+  out.push(fileSource(file, path));
+}
+
+/** `readEntries` returns at most 100 entries per call: it must be drained. */
+function readEntries(directory: FileSystemDirectoryEntry): Promise<FileSystemEntry[]> {
+  const reader = directory.createReader();
+  const all: FileSystemEntry[] = [];
+  const next = async (): Promise<FileSystemEntry[]> => {
+    const batch = await new Promise<FileSystemEntry[]>((resolve) => reader.readEntries(resolve, () => resolve([])));
+    if (batch.length === 0) return all;
+    all.push(...batch);
+    return await next();
+  };
+  return next();
+}
+
 export async function pickFiles(
   scope: Window & PickerWindow = globalThis as unknown as Window & PickerWindow,
 ): Promise<SourceFile[]> {

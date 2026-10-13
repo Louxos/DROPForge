@@ -29,6 +29,45 @@ describe('DeviceManager', () => {
     expect(await devices.canAutoAccept(peer().deviceId)).toBe(false);
   });
 
+  it('marks a favourite without granting any trust', async () => {
+    const store = new MemoryStore();
+    const devices = new DeviceManager(store, () => 1000);
+    await devices.remember(peer());
+    const updated = await devices.setFavorite(peer().deviceId, true);
+
+    expect(updated.favorite).toBe(true);
+    // A favourite is a convenience flag: it is neither approved nor auto-accepted.
+    expect(updated.trusted).toBe(false);
+    expect(await devices.isTrusted(peer().deviceId)).toBe(false);
+    expect(await devices.canAutoAccept(peer().deviceId)).toBe(false);
+    // And it survives a re-read: it is stored, not kept in memory.
+    expect((await devices.get(peer().deviceId))?.favorite).toBe(true);
+  });
+
+  it('keeps favourites first, then the most recently seen', async () => {
+    const store = new MemoryStore();
+    let now = 1000;
+    const devices = new DeviceManager(store, () => now);
+    await devices.remember(peer({ deviceId: 'device-alice-0001', displayName: 'Alice' }));
+    now = 2000;
+    await devices.remember(peer({ deviceId: 'device-bob-0002', displayName: 'Bob', fingerprint: 'b'.repeat(64) }));
+    now = 3000;
+    await devices.remember(
+      peer({ deviceId: 'device-carol-0003', displayName: 'Carol', fingerprint: 'c'.repeat(64) }),
+    );
+    await devices.setFavorite('device-alice-0001', true);
+
+    expect((await devices.list()).map((record) => record.displayName)).toEqual(['Alice', 'Carol', 'Bob']);
+    await devices.setFavorite('device-alice-0001', false);
+    expect((await devices.list()).map((record) => record.displayName)).toEqual(['Carol', 'Bob', 'Alice']);
+  });
+
+  it('refuses to favourite a device it does not know', async () => {
+    const store = new MemoryStore();
+    const devices = new DeviceManager(store);
+    await expect(devices.setFavorite('device-inconnu-01', true)).rejects.toThrow(/not known on this installation/);
+  });
+
   it('keeps the first-seen date when a known device comes back', async () => {
     const store = new MemoryStore();
     let now = 1000;

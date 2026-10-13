@@ -129,6 +129,14 @@ export function DevicesScreen({ controller, state }: { controller: AppController
                 <button
                   type="button"
                   className="df-button df-button--small"
+                  aria-pressed={device.favorite === true}
+                  onClick={() => void controller.toggleFavorite(device.id)}
+                >
+                  {device.favorite === true ? `★ ${t('devices.unmarkFavorite')}` : `☆ ${t('devices.markFavorite')}`}
+                </button>
+                <button
+                  type="button"
+                  className="df-button df-button--small"
                   onClick={() => {
                     setRenaming(device.id);
                     setDraft(device.displayName);

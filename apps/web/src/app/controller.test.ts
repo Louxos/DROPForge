@@ -478,6 +478,90 @@ describe('AppController: transfer', () => {
  * Updates and history bookkeeping
  * ------------------------------------------------------------------ */
 
+describe('AppController: favourites and quick send', () => {
+  it('keeps a favourite marked across a restart, without granting it trust', async () => {
+    const rig = await makeRig();
+    await rig.host.start();
+    await rig.guest.start();
+    await connectPair(rig);
+
+    const peer = rig.host.state.devices[0];
+    expect(peer).toBeDefined();
+    expect(peer?.trusted).toBe(false);
+
+    await rig.host.toggleFavorite(peer!.id);
+    expect(rig.host.state.devices[0]?.favorite).toBe(true);
+    // A favourite is a bookmark, not an approval.
+    expect(rig.host.state.devices[0]?.trusted).toBe(false);
+
+    const reopened = new AppController({
+      store: rig.hostStore,
+      identities: rig.identities.host,
+      capabilities: rig.host.state.capabilities,
+      links: () => new FakeLinkFactory(rig.relay, fakeInfo(), 'host'),
+      receiveStore: async () => rig.hostReceiveFolder,
+    });
+    started.push(reopened);
+    await reopened.start();
+    expect(reopened.state.devices[0]?.favorite).toBe(true);
+
+    await reopened.toggleFavorite(peer!.id);
+    expect(reopened.state.devices[0]?.favorite).toBe(false);
+  });
+
+  it('sends to a favourite device in one action when it is already connected', async () => {
+    const rig = await makeRig();
+    await rig.host.start();
+    await rig.guest.start();
+    await connectPair(rig);
+
+    const favourite = rig.host.state.devices[0];
+    expect(favourite).toBeDefined();
+    await rig.host.toggleFavorite(favourite!.id);
+
+    const bytes = new TextEncoder().encode('envoi rapide');
+    const answer = answerNextIncoming(rig.guest, () => ({ accepted: true, decisions: [] }));
+    const transferId = await rig.host.quickSend(favourite!.id, [new MemorySource('rapide.txt', bytes)]);
+    expect(transferId).toBeDefined();
+    await answer.answered;
+
+    await waitFor(
+      rig.guest,
+      () => rig.guest.state.history.some((record) => record.id === transferId && record.state === 'completed'),
+      'the receiver to finish the quick send',
+    );
+    expect(rig.guestReceiveFolder.content('rapide.txt')).toEqual(bytes);
+  });
+
+  it('never queues anything and says so when a quick send cannot reach the device', async () => {
+    const rig = await makeRig();
+    await rig.host.start();
+    await rig.guest.start();
+    await connectPair(rig);
+
+    const favourite = rig.host.state.devices[0];
+    await rig.host.toggleFavorite(favourite!.id);
+    // The connection is closed, and the peer is not hosting a room: no reachable path.
+    rig.host.disconnect();
+    const before = rig.host.state.queue.length;
+
+    const transferId = await rig.host.quickSend(favourite!.id, [new MemorySource('rapide.txt', new Uint8Array(4))]);
+    expect(transferId).toBeUndefined();
+    expect(rig.host.state.queue.length).toBe(before);
+    expect(rig.host.state.notices.some((notice) => notice.kind === 'error')).toBe(true);
+  });
+
+  it('refuses to quick send to a device this installation does not know', async () => {
+    const rig = await makeRig();
+    await rig.host.start();
+    const transferId = await rig.host.quickSend('device-inconnu-0001', [
+      new MemorySource('rapide.txt', new Uint8Array(4)),
+    ]);
+    expect(transferId).toBeUndefined();
+    expect(rig.host.state.notices[0]?.messageKey).toBe('devices.unknown');
+  });
+});
+
 describe('AppController: updates', () => {
   it('reports an update as available but never installs it without the user', async () => {
     let installs = 0;

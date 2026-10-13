@@ -432,3 +432,20 @@ select.df-input {
     text-align: center;
   }
 }
+
+/* La zone de dépôt ne change jamais de taille : seule la bordure répond. */
+.df-dropzone {
+  border: 1px dashed transparent;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.df-dropzone--active {
+  border-color: var(--df-accent);
+  background-color: color-mix(in srgb, var(--df-accent) 8%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .df-dropzone {
+    transition: none;
+  }
+}
