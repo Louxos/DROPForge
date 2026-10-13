@@ -248,39 +248,23 @@ export async function runTransfer(r: Rig, options: RunOptions = {}): Promise<Run
       clock: r.clock,
       logger: r.logger,
       streamIndex,
+      store: r.store,
+      policy: options.policy ?? 'ask',
+      ...(options.resume ? { resume: options.resume } : {}),
       offerTimeoutMs: options.timeoutMs ?? 4000,
-      requestDecision: async (request, offer) => {
-        if (options.requestDecision) {
-          const answer = await options.requestDecision({ conflicts: request.conflicts.length, freeSpace: request.freeSpace });
-          return answer;
-        }
-        return { accepted: true, decisions: options.decisions ?? [] };
-      },
-      runReceiver: (offer, answer) => {
-        receiver = new TransferReceiver({
-          session: bobSession,
-          offer,
-          store: r.store,
-          clock: r.clock,
-          streamIndex,
-          policy: options.policy ?? 'ask',
-          logger: r.logger,
-          ...(options.resume ? { resume: options.resume } : {}),
-          progressIntervalMs: options.progressIntervalMs ?? 25,
-          progressThrottleMs: options.progressThrottleMs ?? 250,
-          stallTimeoutMs: options.stallTimeoutMs ?? 1200,
-          requestDecision: async () =>
-            answer.accepted
-              ? { accepted: true, decisions: answer.decisions }
-              : {
-                  accepted: false,
-                  decisions: [],
-                  // 'cancelled' is not a rejection reason a receiver can announce:
-                  // the peer stopped, it did not refuse.
-                  rejectReason: answer.rejectReason === 'cancelled' ? 'declined' : (answer.rejectReason ?? 'declined'),
-                },
+      progressIntervalMs: options.progressIntervalMs ?? 25,
+      progressThrottleMs: options.progressThrottleMs ?? 250,
+      stallTimeoutMs: options.stallTimeoutMs ?? 1200,
+      requestDecision: async (request) => {
+        if (!options.requestDecision) return { accepted: true, decisions: options.decisions ?? [] };
+        const answer = await options.requestDecision({
+          conflicts: request.conflicts.length,
+          freeSpace: request.freeSpace,
         });
-        return receiver;
+        return answer;
+      },
+      onReceiver: (instance) => {
+        receiver = instance;
       },
     });
 

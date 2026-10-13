@@ -73,8 +73,13 @@ describe('transport security', () => {
       }
     };
     const honest = await connect();
-    const attacked = await connect({ tamper: swapKey });
-    expect(attacked.outcomeA.sas).not.toBe(honest.outcomeA.sas);
+    // The tampering is either caught outright (the handshake fails) or it changes
+    // the short authentication string the two users compare — never "nothing".
+    const attacked = await connect({ tamper: swapKey }).then(
+      (result) => result.outcomeA.sas,
+      () => 'refused',
+    );
+    expect(attacked).not.toBe(honest.outcomeA.sas);
   });
 
   it('rejects a tampered identity signature instead of trusting the peer', async () => {
@@ -98,7 +103,7 @@ describe('transport security', () => {
     // Capture a real sealed control frame from Alice…
     const captured: Uint8Array[] = [];
     const stopCapture = alice.transport.onFrame((frame) => captured.push(Uint8Array.from(frame)));
-    await alice.session?.sendControl({ t: 'ping', at: 1 });
+    await alice.session?.sendControl({ t: 'ping', id: 1, at: Date.now() });
     await new Promise((resolve) => setTimeout(resolve, 30));
     stopCapture();
     expect(captured.length).toBeGreaterThan(0);
@@ -171,7 +176,8 @@ describe('receiver defences', () => {
     });
     const outcome = await outcomePromise;
 
-    expect(outcome.refused.some((entry) => entry.index === 0)).toBe(true);
+    // The receiver records the refusal, and the refusal is visible in its result.
+    expect(receiver.refusedEntries.some((entry) => entry.index === 0)).toBe(true);
     // Nothing escaped the receiving folder, and the safe file still arrived.
     expect(store.paths().some((path) => path.includes('..'))).toBe(false);
     expect(store.content('subdir/notes.txt')).not.toBeUndefined();
@@ -220,6 +226,8 @@ describe('receiver defences', () => {
       requestDecision: async () => ({ accepted: true, decisions: [] }),
     });
 
+    // The receiving side is already waiting for the offer.
+    const outcomePromise = receiver.run();
     // The free-space check happens before the accept, so the sender is refused
     // before a single byte is written.
     const sent = await sendTransfer({
@@ -231,9 +239,9 @@ describe('receiver defences', () => {
       acceptTimeoutMs: 2000,
       ackTimeoutMs: 1500,
     });
-    const outcome = await receiver.run();
+    const outcome = await outcomePromise;
 
-    expect(outcome.outcome).toBe('declined');
+    expect(outcome.outcome).toBe('failed');
     expect(outcome.errorCode).toBe(ERROR_CODES.NO_SPACE_LEFT);
     expect(sent.outcome.outcome).not.toBe('completed');
     expect(sent.outcome.errorCode).toBe(ERROR_CODES.NO_SPACE_LEFT);
@@ -258,11 +266,12 @@ describe('receiver defences', () => {
     // is forged by hand with the session keys, exactly like a modified client would.
     const forged = new Uint8Array(DATA_CHUNK_BYTES + 1);
     const inner = encodeInnerData(
-      { streamIndex: 1, fileIndex: 0, chunkIndex: 0, flags: 0, chunkBytes: forged.length },
+      { streamIndex: 1, fileIndex: 0, chunkIndex: 0, lastChunk: true, emptyFile: false },
       forged,
     );
     const sealed = await r.outcomeA.session.sealData(inner);
-    r.bob.transport.send(sealed);
+    // Pushed from Alice's side: Bob is the one that must refuse it.
+    r.alice.transport.send(sealed);
 
     const outcome = await outcomePromise;
     expect(outcome.outcome).toBe('failed');
@@ -293,17 +302,24 @@ describe('receiver defences', () => {
     await r.alice.session?.sendControl({
       t: 'fileDigest',
       transferId: r.offer.transferId,
-      fileIndex: 7,
+      index: 7,
+      algorithm: 'sha-256',
       digest: toHex(sha256Bytes(utf8('nonsense'))),
       size: 8,
     });
     await new Promise((resolve) => setTimeout(resolve, 60));
 
-    const verdict = seen.find((message) => message.t === 'fileDigestResult' && message.fileIndex === 7);
+    const verdict = seen.find((message) => message.t === 'fileDigestResult' && message.index === 7);
     expect(verdict).toBeDefined();
-    if (verdict?.t === 'fileDigestResult') expect(verdict.ok).toBe(false);
-    // The real file was never sent, so the transfer must not claim success.
-    const outcome = await outcomePromise.catch(() => undefined);
-    expect(outcome?.outcome).not.toBe('completed');
+    if (verdict?.t === 'fileDigestResult') {
+      expect(verdict.ok).toBe(false);
+      expect(verdict.action).toBe('reject');
+    }
+    // The file that was announced never arrived, so the receiving side cannot
+    // report success: abandoning it is the honest end of this scenario.
+    await receiver.cancel();
+    const outcome = await outcomePromise;
+    expect(outcome.outcome).not.toBe('completed');
+    expect(outcome.verifiedFiles).toBe(0);
   });
 });

@@ -6,7 +6,7 @@
  * offer/decision/accept exchange exists in exactly one implementation, so the UI
  * cannot invent a shortcut that skips the user's approval or the integrity check.
  */
-import { DropForgeError, ERROR_CODES, type SourceFile } from '@dropforge/app-core';
+import { DropForgeError, ERROR_CODES, type FileSystemPort, type SourceFile } from '@dropforge/app-core';
 import {
   DATA_CHUNK_BYTES,
   HANDSHAKE_TIMEOUT_MS,
@@ -21,7 +21,12 @@ import {
 } from '@dropforge/protocol';
 import type { PeerSession } from './session.js';
 import { TransferSender, type SenderOutcome, type TransferProgress } from './sender.js';
-import { TransferReceiver, type DecisionRequest, type ReceiverOutcome } from './receiver.js';
+import {
+  TransferReceiver,
+  type ConflictAction,
+  type DecisionRequest,
+  type ReceiverOutcome,
+} from './receiver.js';
 import { buildManifest } from './manifest.js';
 
 export interface SendTransferOptions {
@@ -99,16 +104,31 @@ export async function sendTransfer(options: SendTransferOptions): Promise<SendTr
   }
 
   if (!accept) {
+    // The peer refused the offer, or never answered. This is a failure, not a
+    // cancellation by the user: the UI must not say "cancelled" when the other
+    // device said no, and the reason it gave has to survive.
     const reason: TransferReject['reason'] | 'unreachable' = reject?.reason ?? 'unreachable';
+    const code =
+      reason === 'declined'
+        ? ERROR_CODES.TRANSFER_DECLINED
+        : reason === 'noSpace'
+          ? ERROR_CODES.NO_SPACE_LEFT
+          : reason === 'busy'
+            ? ERROR_CODES.BUSY
+            : reason === 'tooLarge'
+              ? ERROR_CODES.TOO_LARGE
+              : reason === 'cancelled'
+                ? ERROR_CODES.TRANSFER_CANCELLED
+                : ERROR_CODES.CONNECTION_LOST;
     return {
       decisions,
       outcome: {
-        outcome: reason === 'declined' ? 'cancelled' : 'failed',
+        outcome: reason === 'cancelled' ? 'cancelled' : 'failed',
         bytesDone: 0,
         verifiedFiles: 0,
         unavailable: [],
         failed: [],
-        errorCode: reason === 'declined' ? ERROR_CODES.TRANSFER_DECLINED : ERROR_CODES.CONNECTION_LOST,
+        errorCode: code,
       },
     };
   }
@@ -135,19 +155,34 @@ export interface ReceiveTransferOptions {
   clock: Clock;
   logger?: Logger;
   streamIndex?: number;
-  /** Called when an offer arrives, with everything the receiving side knows. */
+  /** Where the received bytes are written. */
+  store: FileSystemPort;
+  /** How conflicts are resolved when the user does not answer individually. */
+  policy?: ConflictAction;
+  /** Ranges already durable from a previous session (resume). */
+  resume?: { manifestHash: string; files: Array<{ index: number; ranges: Array<{ start: number; end: number }> }> };
+  /**
+   * Asks the user. Called *after* the receiving side has computed the real
+   * conflicts and the free space it has, never before: the question must always
+   * describe the actual situation (see docs/SPEC.md).
+   */
   requestDecision: (request: DecisionRequest, offer: TransferOffer) => Promise<{
     accepted: boolean;
     decisions: ConflictDecision['decisions'];
-    rejectReason?: TransferReject['reason'];
+    rejectReason?: 'declined' | 'noSpace' | 'busy' | 'unsupported' | 'tooLarge';
   }>;
-  /** Runs the transfer once the user (or the policy) approved it. */
-  runReceiver: (
-    offer: TransferOffer,
-    answer: { accepted: boolean; decisions: ConflictDecision['decisions']; rejectReason?: TransferReject['reason'] },
-  ) => TransferReceiver;
+  /** Free space known by the platform, when it exposes it. */
+  freeSpaceBytes?: number;
+  progressIntervalMs?: number;
+  progressThrottleMs?: number;
+  stallTimeoutMs?: number;
   /** How long to wait for an offer before giving up. */
   offerTimeoutMs?: number;
+  /**
+   * Called the moment the receiver exists, before it runs: the UI needs it to
+   * pause, cancel or inspect the transfer while it is happening.
+   */
+  onReceiver?: (receiver: TransferReceiver) => void;
 }
 
 export interface ReceiveTransferResult {
@@ -158,8 +193,9 @@ export interface ReceiveTransferResult {
 }
 
 /**
- * Waits for an offer on the session and runs the receiving side. Used by the apps
- * so the "accept / refuse" decision always happens before a single byte is written.
+ * Waits for an offer on the session and runs the receiving side. Used by the apps,
+ * so the "accept / refuse" decision always happens before a single byte is written
+ * and always describes the real conflicts.
  */
 export async function receiveTransfer(options: ReceiveTransferOptions): Promise<ReceiveTransferResult> {
   const timeoutMs = options.offerTimeoutMs ?? HANDSHAKE_TIMEOUT_MS;
@@ -185,16 +221,42 @@ export async function receiveTransfer(options: ReceiveTransferOptions): Promise<
     unsubscribe();
   }
 
-  if (!offer) {
+  const received = offer;
+  if (!received) {
     throw new DropForgeError(ERROR_CODES.CONNECTION_TIMEOUT, 'The other device did not send anything to receive', {
       retryable: true,
     });
   }
 
-  const answer = await options.requestDecision({ offer, conflicts: [], freeSpace: undefined }, offer);
-  const receiver = options.runReceiver(offer, answer);
+  const receiver = new TransferReceiver({
+    session: options.session,
+    offer: received,
+    store: options.store,
+    clock: options.clock,
+    streamIndex: options.streamIndex ?? 1,
+    policy: options.policy ?? 'ask',
+    ...(options.logger ? { logger: options.logger } : {}),
+    ...(options.resume ? { resume: options.resume } : {}),
+    ...(options.freeSpaceBytes !== undefined ? { freeSpaceBytes: options.freeSpaceBytes } : {}),
+    ...(options.progressIntervalMs !== undefined ? { progressIntervalMs: options.progressIntervalMs } : {}),
+    ...(options.progressThrottleMs !== undefined ? { progressThrottleMs: options.progressThrottleMs } : {}),
+    ...(options.stallTimeoutMs !== undefined ? { stallTimeoutMs: options.stallTimeoutMs } : {}),
+    requestDecision: async (request) => {
+      // The receiver knows the real conflicts and free space at this point: the
+      // question handed to the user contains those, not guesses.
+      const answer = await options.requestDecision(request, received);
+      return answer.accepted
+        ? { accepted: true, decisions: answer.decisions }
+        : {
+            accepted: false,
+            decisions: answer.decisions,
+            ...(answer.rejectReason ? { rejectReason: answer.rejectReason } : {}),
+          };
+    },
+  });
+  options.onReceiver?.(receiver);
   const outcome = await receiver.run();
-  return { outcome, offer, receiver };
+  return { outcome, offer: received, receiver };
 }
 
 /** Builds an offer plus the map of sources, in one step, for the apps. */
