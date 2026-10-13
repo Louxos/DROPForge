@@ -35,8 +35,18 @@ const WORKSPACE_PACKAGES = [
 /** Where the local signaling service listens during development. */
 const SIGNALING_ORIGIN = process.env['DROPFORGE_SIGNALING_ORIGIN'] ?? 'http://127.0.0.1:8787';
 
+/**
+ * Base path the application is served from.
+ *
+ * `/` for a domain root or a local build; `/DROPForge/` for a GitHub Pages project
+ * site. Everything the manifest refers to is written relative to it, so an
+ * installed application keeps working whatever the path.
+ */
+const BASE = process.env['DROPFORGE_BASE'] ?? '/';
+
 export default defineConfig({
   root: fromHere('.'),
+  base: BASE,
   plugins: [
     react(),
     VitePWA({
@@ -57,20 +67,20 @@ export default defineConfig({
         description:
           'Transférer des fichiers entre vos appareils, chiffrés de bout en bout, sans compte.',
         lang: 'fr',
-        start_url: '/',
-        scope: '/',
+        start_url: BASE,
+        scope: BASE,
         display: 'standalone',
         background_color: '#0b0b0f',
         theme_color: '#0b0b0f',
         categories: ['utilities', 'productivity'],
         icons: [
-          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-          { src: '/icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: `${BASE}icons/icon-192.png`, sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: `${BASE}icons/icon-512.png`, sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: `${BASE}icons/icon-maskable-512.png`, sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
         shortcuts: [
-          { name: 'Transfert', url: '/#route=transfer' },
-          { name: 'Historique', url: '/#route=activity' },
+          { name: 'Transfert', url: `${BASE}#route=transfer` },
+          { name: 'Historique', url: `${BASE}#route=activity` },
         ],
       },
       devOptions: {
@@ -117,6 +127,10 @@ export default defineConfig({
     // The application is meant to run offline from a cold start, so it is served as
     // one bundle rather than split into lazy chunks the user would have to fetch.
     chunkSizeWarningLimit: 800,
+    // The version is compiled in so "À propos" shows the real one, never a guess.
+    define: {
+      'import.meta.env.VITE_APP_VERSION': JSON.stringify(process.env['DROPFORGE_VERSION'] ?? '0.1.0'),
+    },
     target: 'es2022',
     sourcemap: true,
     outDir: 'dist',

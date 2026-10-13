@@ -63,11 +63,10 @@
         "displayLanguageSelector": true
       }
     },
-    "createUpdaterArtifacts": true
+    "createUpdaterArtifacts": false
   },
   "plugins": {
     "updater": {
-      "active": false,
       "dialog": false,
       "pubkey": "",
       "endpoints": [],

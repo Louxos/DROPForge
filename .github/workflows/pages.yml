@@ -1,0 +1,55 @@
+# Publication de l'application web (PWA) sur GitHub Pages.
+#
+# C'est la façon la plus simple de « télécharger » DropForge sans installer quoi que
+# ce soit : l'adresse publiée s'installe comme une application.
+#
+# Prérequis, une seule fois : dépôt → Settings → Pages → Source = « GitHub Actions ».
+# Le chemin de base est celui du dépôt (`/NOM_DU_DEPOT/`), calculé automatiquement.
+name: Application web (GitHub Pages)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Construction
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run verify
+      - name: Compilation avec le chemin du dépôt
+        env:
+          DROPFORGE_BASE: /${{ github.event.repository.name }}/
+        run: npm run build:web
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/web/dist
+
+  deploy:
+    name: Publication
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
