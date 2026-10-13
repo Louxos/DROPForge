@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DARK_COLORS, LIGHT_COLORS, colorsFor } from './tokens.js';
 import { resolveTheme, themeStyleAttribute, themeVariables } from './theme.js';
-import { formatBytes, formatDuration, formatProgress, formatSpeed, formatFilesProgress } from './format.js';
+import { formatBytes, formatDuration, formatProgress, formatSpeed, formatFilesProgress, shortFingerprint } from './format.js';
 
 describe('theme', () => {
   it('follows the system only when asked to', () => {
@@ -82,5 +82,22 @@ describe('formatting', () => {
     expect(formatFilesProgress(2, 5, 'fr')).toBe('2 sur 5 fichiers');
     expect(formatFilesProgress(1, 1, 'fr')).toBe('1 sur 1 fichier');
     expect(formatFilesProgress(1, 2, 'en')).toBe('1 of 2 files');
+  });
+});
+
+describe('shortFingerprint', () => {
+  it('groups the digits and keeps the last group visible', () => {
+    // Truncating in the middle without showing the end would let two different
+    // keys look identical; the last group is always displayed.
+    expect(shortFingerprint('ABCD1234EF567890')).toBe('ABCD 1234 EF56 … 7890');
+  });
+
+  it('returns every group when the fingerprint is already short', () => {
+    expect(shortFingerprint('AABBCC')).toBe('AABB CC');
+  });
+
+  it('is stable for one key and differs for another', () => {
+    expect(shortFingerprint('00112233')).toBe(shortFingerprint('00112233'));
+    expect(shortFingerprint('00112233')).not.toBe(shortFingerprint('00112234'));
   });
 });

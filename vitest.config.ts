@@ -7,7 +7,14 @@ export default defineConfig({
         test: {
           name: 'unit',
           environment: 'node',
-          include: ['packages/*/src/**/*.test.ts', 'packages/*/src/**/*.test.tsx'],
+          include: [
+            'packages/*/src/**/*.test.ts',
+            'packages/*/src/**/*.test.tsx',
+            // The web app's logic (controller, capability detection, i18n) is unit
+            // tested without a DOM; its rendering is exercised by the dev server.
+            'apps/web/src/**/*.test.ts',
+            'apps/web/src/**/*.test.tsx',
+          ],
         },
       },
       {

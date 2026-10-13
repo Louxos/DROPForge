@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>DropForge</title>
+    <meta
+      name="description"
+      content="DropForge — transférer des fichiers entre vos appareils, chiffrés de bout en bout, sans compte."
+    />
+    <meta name="theme-color" content="#0b0b0f" />
+    <!-- No CDN, no external font, no analytics: everything the application needs
+         is served from its own origin, which is what keeps it usable offline. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="DropForge" />
+  </head>
+  <body>
+    <!-- The UI is rendered by React; this text is what a user without JavaScript
+         sees, and it says the truth about what is required. -->
+    <div id="root">
+      <noscript>DropForge a besoin de JavaScript pour chiffrer et transférer vos fichiers.</noscript>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

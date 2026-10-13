@@ -98,6 +98,27 @@ describe('end-to-end transfer', () => {
     expect(new TextDecoder().decode(r.store.content('notes (1).txt'))).toBe('REPLACEMENT');
   });
 
+  it('picks a free name when the receiver answers "rename" without proposing one', async () => {
+    const r = await rig({ seed: { 'notes.txt': 'ORIGINAL' } });
+    plan(r, [new MemorySource('notes.txt', new TextEncoder().encode('REPLACEMENT'))]);
+
+    const result = await runTransfer(r, {
+      // The interface sends the user's choice, not a name: proposing one is the
+      // receiving side's job, since it knows what already exists on its disk.
+      requestDecision: async () => ({
+        accepted: true,
+        decisions: [{ index: 0, action: 'rename' }],
+      }),
+    });
+
+    expect(result.sender.outcome).toBe('completed');
+    expect(result.receiver.outcome).toBe('completed');
+    expect(new TextDecoder().decode(r.store.content('notes.txt'))).toBe('ORIGINAL');
+    expect(new TextDecoder().decode(r.store.content('notes (1).txt'))).toBe('REPLACEMENT');
+    // The sender is told the name that was really used.
+    expect(result.decisions).toEqual([{ index: 0, action: 'rename', newPath: 'notes (1).txt' }]);
+  });
+
   it('skips a conflicting file when asked to ignore it', async () => {
     const r = await rig({ seed: { 'a.txt': 'KEEP' } });
     plan(r, [

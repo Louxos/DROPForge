@@ -179,6 +179,16 @@ export interface ReceiveTransferOptions {
   /** How long to wait for an offer before giving up. */
   offerTimeoutMs?: number;
   /**
+   * An offer already received by the caller.
+   *
+   * Applications normally listen on the session themselves (to show the incoming
+   * request, run the conflict check, write a history entry…), so by the time they
+   * hand the transfer over to this function the offer has already been consumed
+   * and will never be delivered again. Passing it here is what makes that pattern
+   * work; when it is omitted, the offer is awaited on the session as before.
+   */
+  offer?: TransferOffer;
+  /**
    * Called the moment the receiver exists, before it runs: the UI needs it to
    * pause, cancel or inspect the transfer while it is happening.
    */
@@ -199,26 +209,28 @@ export interface ReceiveTransferResult {
  */
 export async function receiveTransfer(options: ReceiveTransferOptions): Promise<ReceiveTransferResult> {
   const timeoutMs = options.offerTimeoutMs ?? HANDSHAKE_TIMEOUT_MS;
-  let offer: TransferOffer | undefined;
-  let resolveOffer: (() => void) | undefined;
-  const arrived = new Promise<void>((resolve) => {
-    resolveOffer = resolve;
-  });
-  const unsubscribe = options.session.events.on('control', (message: ControlMessage) => {
-    if (offer !== undefined || message.t !== 'transferOffer') return;
-    offer = message;
-    resolveOffer?.();
-  });
+  let offer: TransferOffer | undefined = options.offer;
+  if (!offer) {
+    let resolveOffer: (() => void) | undefined;
+    const arrived = new Promise<void>((resolve) => {
+      resolveOffer = resolve;
+    });
+    const unsubscribe = options.session.events.on('control', (message: ControlMessage) => {
+      if (offer !== undefined || message.t !== 'transferOffer') return;
+      offer = message;
+      resolveOffer?.();
+    });
 
-  try {
-    await Promise.race([
-      arrived,
-      new Promise<void>((resolve) => {
-        options.clock.setTimeout(resolve, timeoutMs);
-      }),
-    ]);
-  } finally {
-    unsubscribe();
+    try {
+      await Promise.race([
+        arrived,
+        new Promise<void>((resolve) => {
+          options.clock.setTimeout(resolve, timeoutMs);
+        }),
+      ]);
+    } finally {
+      unsubscribe();
+    }
   }
 
   const received = offer;

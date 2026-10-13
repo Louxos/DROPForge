@@ -68,3 +68,16 @@ export function formatFilesProgress(done: number, total: number, locale: Locale)
 export function stateLabelKey(state: string): string {
   return `states.${state}`;
 }
+
+/**
+ * A fingerprint is long and hostile to read; the UI shows its first groups and
+ * keeps the full value available for the user to compare out of band. It is
+ * never truncated in a way that would make two different keys look alike: the
+ * caller must display the whole value on demand (a `title` attribute, a copy
+ * button, the pairing screen).
+ */
+export function shortFingerprint(fingerprint: string, groups = 3): string {
+  const chunks = fingerprint.toUpperCase().match(/.{1,4}/g) ?? [];
+  if (chunks.length <= groups) return chunks.join(' ');
+  return `${chunks.slice(0, groups).join(' ')} … ${chunks[chunks.length - 1]}`;
+}

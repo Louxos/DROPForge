@@ -478,9 +478,14 @@ export class TransferReceiver {
   }
 
   /**
-   * Turns the caller's answers into a complete decision set. Policies fill in
-   * the gaps; "ask" without an answer stays unanswered on purpose so the caller
-   * is forced to resolve it instead of guessing.
+   * Turns the caller's answers into a complete decision set.
+   *
+   * A rename answer may either propose a name (the user typed one) or ask for a
+   * free one (the user pressed "rename"): the second case is resolved here, because
+   * this is the only place that knows which paths are already taken.
+   *
+   * Policies fill in the gaps; "ask" without an answer stays unanswered on purpose
+   * so the caller is forced to resolve it instead of guessing.
    */
   private resolveDecisions(
     answers: ConflictDecision['decisions'],
@@ -488,7 +493,22 @@ export class TransferReceiver {
     occupied: Set<string>,
   ): ConflictDecision['decisions'] {
     const policy = this.options.policy;
-    const out: ConflictDecision['decisions'] = [...answers.filter((a) => a.action !== 'ask' as never)];
+    const out: ConflictDecision['decisions'] = [];
+    for (const answer of answers) {
+      if ((answer.action as string) === 'ask') continue;
+      if (answer.action === 'rename' && !answer.newPath) {
+        // "Rename" with no proposed name means "give it a free name". Only the
+        // receiving side can do that: it is the side that knows what is already
+        // on its disk, and the answer travels over the wire where a name invented
+        // by the sender would be worthless.
+        const conflict = conflicts.find((candidate) => candidate.index === answer.index);
+        const candidate = uniqueName(conflict?.path ?? '', (path) => occupied.has(path));
+        occupied.add(candidate);
+        out.push({ index: answer.index, action: 'rename', newPath: candidate });
+        continue;
+      }
+      out.push(answer);
+    }
     for (const conflict of conflicts) {
       if (out.some((d) => d.index === conflict.index)) continue;
       if (policy === 'overwrite') out.push({ index: conflict.index, action: 'overwrite' });
