@@ -116,6 +116,7 @@ téléchargeable, valeur par défaut de `npm run package`), `/<dépôt>/` (GitHu
 | Le relais est un serveur Node autonome | Il peut être hébergé n'importe où (y compris chez le propriétaire) sans dépendre d'une API payante |
 | Les alias `@dropforge/*` pointent vers les sources TypeScript | Un seul `tsc` vérifie tout le dépôt ; pas d'étape de construction intermédiaire à maintenir |
 | Aucune ressource externe (police, CDN, script) | L'application doit fonctionner hors ligne, installée, sans fuite de requêtes vers un tiers |
+| Rust ne fait que ce que le système exige, le menu de l'icône compris | Protocole, chiffrement et transfert restent en TypeScript, testés sans système d'exploitation ; depuis Tauri 2.2 le menu de l'icône ne peut plus être déclaré en configuration, il est donc construit dans `lib.rs` |
 
 ## Flux d'un transfert
 

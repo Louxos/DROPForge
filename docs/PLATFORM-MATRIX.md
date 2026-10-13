@@ -43,6 +43,7 @@ Statut exact, sans arrondi optimiste. Quatre niveaux :
 | Configuration (fenêtre, CSP, bundle MSI/NSIS, capacités) | ✅ Écrite | `tauri.conf.json`, `capabilities/default.json` |
 | Icônes | ✅ Générées (dont un `.ico`) | `apps/desktop/src-tauri/icons/` |
 | **Compilation Rust** | ⚠️ **Automatisée, non vérifiée ici** | Aucune chaîne d'outils Rust dans l'environnement de développement utilisé : la compilation est faite par `.github/workflows/release.yml` sur une machine Windows, à chaque tag |
+| Configuration (fenêtre, CSP, bundle, icône de notification, permissions) | ✅ **Validée** contre le schéma officiel de Tauri 2 | `npm run check:desktop` — c'est ce contrôle qui a corrigé le menu de l'icône (désormais construit en Rust, la configuration ne l'acceptant plus depuis Tauri 2.2) |
 | **Installateur** | ⚠️ **Produit par la chaîne d'intégration** | Par utilisateur, non signé « éditeur » (certificat payant) ; mises à jour signées si la clé est configurée — voir `docs/DOWNLOAD.md` |
 | **Exécution réelle sur Windows** | ❌ **Non testée** | Idem |
 

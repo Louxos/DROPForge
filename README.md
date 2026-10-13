@@ -41,8 +41,8 @@ fonctionnalité, est dans [`docs/PLATFORM-MATRIX.md`](docs/PLATFORM-MATRIX.md).
 | Interface partagée React/TypeScript (FR/EN, thème sombre/clair) | ✅ Implémentée et **testée** au niveau du contrôleur d'application |
 | Application web progressive (PWA) installable | ✅ Implémentée et **testée** (pas encore testée sur téléphone réel) |
 | Serveur de signalisation / relais aveugle | ✅ Implémenté et **testé** (Node) |
-| Application Windows (Tauri + Rust) | ⚠️ Écrite et vérifiée en TypeScript, **jamais compilée** : aucune chaîne d'outils Rust dans l'environnement de développement utilisé |
-| Installateur Windows signé, mises à jour signées | ❌ Non produits (nécessitent un certificat et Windows) |
+| Application Windows (Tauri + Rust) | ⚠️ Écrite et vérifiée en TypeScript, **jamais compilée ici** : aucune chaîne d'outils Rust dans cet environnement. Sa configuration est validée contre le schéma officiel de Tauri 2 par `npm run check:desktop` |
+| Installateur Windows signé, mises à jour signées | ⚠️ **Produits par la chaîne d'intégration** sur un tag (`.github/workflows/release.yml`), jamais commités ; non signés « éditeur » (certificat payant) |
 | Tests dans un vrai navigateur (E2E), tests sur appareils mobiles réels | ❌ Non exécutés — le rendu de l'interface est vérifié dans un DOM simulé |
 | Liens de partage hébergés | ⚠️ Code client implémenté et testé ; nécessite un hébergement (optionnel) |
 

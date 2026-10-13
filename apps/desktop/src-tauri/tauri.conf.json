@@ -29,13 +29,7 @@
       "id": "dropforge",
       "iconPath": "icons/icon.png",
       "tooltip": "DropForge",
-      "menuOnLeftClick": false,
-      "menu": [
-        { "id": "show", "text": "Ouvrir DropForge" },
-        { "id": "send", "text": "Envoyer un dossier…" },
-        { "id": "separator", "text": "-" },
-        { "id": "quit", "text": "Quitter" }
-      ]
+      "showMenuOnLeftClick": true
     },
     "security": {
       "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' ws: wss: http: https:; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'",

@@ -15,7 +15,9 @@
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use tauri::{Manager, WindowEvent};
+use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconEvent};
+use tauri::{Emitter, Manager, WindowEvent};
 use tauri_plugin_autostart::MacosLauncher;
 
 /// Préférences que le côté système doit connaître.
@@ -209,7 +211,47 @@ pub fn run() {
             // L'icône de la zone de notification existe toujours : c'est elle qui
             // permet de continuer à recevoir quand la fenêtre est fermée, si
             // l'utilisateur a choisi ce comportement.
-            let _ = app.tray_by_id("dropforge");
+            //
+            // Le menu est construit ici, pas dans `tauri.conf.json` : depuis Tauri 2.2
+            // la configuration ne porte plus de menu d'icône (vérifié contre le schéma
+            // officiel, `npm run check:desktop`). Les entrées sont celles que la
+            // personne attend, sans sous-menu inventé.
+            if let Some(tray) = app.tray_by_id("dropforge") {
+                let show = MenuItem::with_id(app, "show", "Ouvrir DropForge", true, None::<&str>)?;
+                let quit = MenuItem::with_id(app, "quit", "Quitter", true, None::<&str>)?;
+                let separator = PredefinedMenuItem::separator(app)?;
+                let menu = Menu::with_items(app, &[&show, &separator, &quit])?;
+                tray.set_menu(Some(menu))?;
+
+                // « Quitter » quitte vraiment : un transfert en cours est interrompu,
+                // et l'application le dira au prochain démarrage (état persisté).
+                tray.on_menu_event(|app, event| match event.id().as_ref() {
+                    "show" => show_main_window(app.clone()),
+                    "quit" => app.exit(0),
+                    _ => {}
+                });
+
+                // Clic gauche : ramener la fenêtre. Dépôt de fichiers sur l'icône :
+                // prévenir l'interface, qui met ces fichiers en file d'attente.
+                tray.on_tray_icon_event(|tray, event| {
+                    let app = tray.app_handle();
+                    match event {
+                        TrayIconEvent::Click {
+                            button: MouseButton::Left,
+                            button_state: MouseButtonState::Up,
+                            ..
+                        } => show_main_window(app.clone()),
+                        TrayIconEvent::Drop { paths, .. } => {
+                            let paths: Vec<String> = paths
+                                .iter()
+                                .map(|path| path.to_string_lossy().to_string())
+                                .collect();
+                            let _ = app.emit("tray:send-files", paths);
+                        }
+                        _ => {}
+                    }
+                });
+            }
             // Le vérificateur de mise à jour n'est installé que s'il y a une clé
             // publique : sans clé, aucune mise à jour ne serait vérifiable, donc
             // aucune ne doit être acceptée.

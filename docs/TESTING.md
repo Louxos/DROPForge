@@ -8,8 +8,17 @@ npm run typecheck           # TypeScript, tout le dépôt
 npm test                    # unitaires + intégration
 npm run test:unit           # paquets + application web + interface
 npm run test:integration    # transferts, reprise, sécurité, relais
-npm run verify              # typecheck + tests
+npm run verify              # typecheck + tests + configuration Tauri
+npm run check:desktop       # tauri.conf.json contre le schéma officiel de Tauri 2
+npm run smoke:release       # les archives téléchargeables (après npm run package)
 ```
+
+`npm run check:desktop` mérite une explication : la partie bureau ne peut pas être
+compilée ici (aucun Rust), mais son fichier de configuration, lui, peut être vérifié
+par la CLI officielle. Ce contrôle a déjà servi — il a montré que le menu de l'icône
+de la zone de notification était déclaré dans une forme que Tauri 2.12 n'accepte plus
+(le menu doit être construit en Rust). Une erreur de ce genre ne se serait vue que sur
+une machine Windows, au moment de la compilation.
 
 ## Ce qui est couvert, et par quoi
 
