@@ -1,9 +1,9 @@
 # Application Windows de DropForge.
 #
-# Ce fichier n'a pas pu être compilé dans l'environnement de développement utilisé
-# pour écrire ce dépôt (aucune chaîne d'outils Rust disponible) : voir
-# docs/PLATFORM-MATRIX.md. Sur une machine avec Rust, `npm run tauri build -w
-# @dropforge/desktop` produit l'installateur signé.
+# Ce fichier a été compilé pour la première fois par la chaîne d'intégration, sur une
+# machine Windows (`.github/workflows/release.yml`), faute de chaîne d'outils Rust dans
+# l'environnement de développement utilisé : voir docs/PLATFORM-MATRIX.md. Localement,
+# `npm run build:windows` (à la racine du dépôt) fait la même chose.
 [package]
 name = "dropforge"
 version = "0.1.0"
@@ -11,7 +11,9 @@ description = "Transfert de fichiers entre appareils, sans compte, chiffré de b
 authors = ["DropForge"]
 edition = "2021"
 rust-version = "1.77"
-license = "SEE LICENSE IN docs/LICENSES.md"
+# Licence du projet : pas encore choisie (voir docs/LICENCES.md pour les licences des
+# dépendances). Aucun champ `license` ni `license-file` n'est renseigné : Cargo n'a
+# donc rien à valider, et rien ne pointe vers un fichier inexistant.
 
 [lib]
 # Nécessaire pour que la logique soit testable sans lancer de fenêtre.
