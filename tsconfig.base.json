@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "moduleDetection": "force",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": false,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "allowJs": false,
+    "noEmit": true,
+    "types": ["node"],
+    "paths": {
+      "@dropforge/protocol": ["./packages/protocol/src/index.ts"],
+      "@dropforge/security": ["./packages/security/src/index.ts"],
+      "@dropforge/app-core": ["./packages/app-core/src/index.ts"],
+      "@dropforge/transfer-engine": ["./packages/transfer-engine/src/index.ts"],
+      "@dropforge/connection-manager": ["./packages/connection-manager/src/index.ts"],
+      "@dropforge/device-manager": ["./packages/device-manager/src/index.ts"],
+      "@dropforge/sharing": ["./packages/sharing/src/index.ts"],
+      "@dropforge/history": ["./packages/history/src/index.ts"],
+      "@dropforge/settings": ["./packages/settings/src/index.ts"],
+      "@dropforge/notifications": ["./packages/notifications/src/index.ts"],
+      "@dropforge/design-system": ["./packages/design-system/src/index.ts"]
+    }
+  }
+}

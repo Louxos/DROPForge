@@ -1,0 +1,50 @@
+# Vérification de chaque changement : types, tests, compilation des trois cibles.
+#
+# Rien n'est publié ici : c'est le rôle de `release.yml` (sur un tag). Ce workflow
+# existe pour qu'une branche ne puisse pas être fusionnée avec des tests rouges ou
+# une compilation cassée.
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Types, tests et compilations
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - name: Dépendances
+        run: npm ci --no-audit --no-fund
+      - name: Types et tests (web + bureau)
+        run: npm run verify
+      - name: Compilation des trois cibles
+        # Base relative : l'archive publiée doit fonctionner depuis n'importe quel
+        # dossier, pas seulement depuis la racine d'un domaine.
+        run: DROPFORGE_BASE=./ npm run build
+      - name: Paquets téléchargeables
+        run: npm run package -- --no-build
+      - name: Vérification des sommes de contrôle
+        run: cd release && sha256sum -c SHA256SUMS
+      - name: Test des paquets téléchargeables
+        # Extrait les archives, les sert, démarre le serveur : ce que la personne
+        # qui télécharge fera, avant qu'elle ne le fasse.
+        run: npm run smoke:release
+      - name: Archive de l'application web
+        uses: actions/upload-artifact@v7
+        with:
+          name: dropforge-pwa
+          path: release/dropforge-pwa-*.zip
+          if-no-files-found: error
+          retention-days: 14

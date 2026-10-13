@@ -1,0 +1,536 @@
+/*
+ * DropForge base stylesheet.
+ *
+ * Everything is driven by the CSS custom properties written by `theme.ts`, so a
+ * theme change is one attribute swap and no re-render. Class names are prefixed
+ * `df-` so they never collide with anything a host page brings along.
+ */
+
+:root {
+  --df-font: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --df-font-mono: ui-monospace, 'Cascadia Mono', monospace;
+  --df-space-xs: 4px;
+  --df-space-sm: 8px;
+  --df-space-md: 12px;
+  --df-space-lg: 16px;
+  --df-space-xl: 24px;
+  --df-space-xxl: 32px;
+  --df-space-xxxl: 48px;
+  --df-radius-sm: 6px;
+  --df-radius-md: 10px;
+  --df-radius-lg: 14px;
+  --df-radius-pill: 999px;
+  --df-motion-fast: 120ms;
+  --df-motion-base: 180ms;
+  --df-motion-slow: 260ms;
+  --df-motion-easing: cubic-bezier(0.22, 1, 0.36, 1);
+  --df-layout-sidebar-width: 236px;
+  --df-layout-bottom-nav-height: 58px;
+  --df-layout-content-max-width: 1180px;
+  --df-text-xs: 11px;
+  --df-text-sm: 12px;
+  --df-text-md: 13px;
+  --df-text-base: 14px;
+  --df-text-lg: 16px;
+  --df-text-xl: 20px;
+  --df-text-xxl: 26px;
+  --df-text-display: 34px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--df-background);
+  color: var(--df-text);
+  font-family: var(--df-font);
+  font-size: var(--df-text-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Accessible by default: a visible focus ring on every interactive element. */
+:focus-visible {
+  outline: 2px solid var(--df-blue);
+  outline-offset: 2px;
+  border-radius: var(--df-radius-sm);
+}
+
+/* ---------------------------------------------------------------- *
+ * Layout: sidebar on desktop, fixed bottom navigation on mobile
+ * ---------------------------------------------------------------- */
+
+.df-app {
+  display: grid;
+  grid-template-columns: var(--df-layout-sidebar-width) 1fr;
+  min-height: 100vh;
+}
+
+.df-sidebar {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: var(--df-space-xl);
+  padding: var(--df-space-xl) var(--df-space-lg);
+  border-right: 1px solid var(--df-border);
+  background: var(--df-surface);
+}
+
+.df-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--df-space-md);
+  font-size: var(--df-text-lg);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.df-brand__mark {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--df-radius-md);
+  background: linear-gradient(140deg, var(--df-accent), var(--df-blue));
+  color: var(--df-on-accent);
+  font-weight: 700;
+}
+
+.df-nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--df-space-xs);
+}
+
+.df-nav__item {
+  display: flex;
+  align-items: center;
+  gap: var(--df-space-md);
+  padding: var(--df-space-md) var(--df-space-md);
+  border: 1px solid transparent;
+  border-radius: var(--df-radius-md);
+  background: transparent;
+  color: var(--df-text-muted);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--df-motion-fast) var(--df-motion-easing),
+    color var(--df-motion-fast) var(--df-motion-easing);
+}
+
+.df-nav__item:hover {
+  background: var(--df-surface-elevated);
+  color: var(--df-text);
+}
+
+.df-nav__item[aria-current='page'] {
+  background: var(--df-accent-soft);
+  border-color: var(--df-border-strong);
+  color: var(--df-text);
+}
+
+.df-bottom-nav {
+  display: none;
+}
+
+.df-main {
+  padding: var(--df-space-xxl) var(--df-space-xxl) var(--df-space-xxxl);
+  max-width: var(--df-layout-content-max-width);
+  width: 100%;
+}
+
+@media (max-width: 860px) {
+  .df-app {
+    grid-template-columns: 1fr;
+  }
+
+  .df-sidebar {
+    display: none;
+  }
+
+  .df-main {
+    padding: var(--df-space-lg) var(--df-space-lg)
+      calc(var(--df-layout-bottom-nav-height) + var(--df-space-xxl));
+  }
+
+  .df-bottom-nav {
+    position: fixed;
+    inset: auto 0 0 0;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    height: var(--df-layout-bottom-nav-height);
+    background: color-mix(in srgb, var(--df-surface) 92%, transparent);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--df-border);
+    z-index: 20;
+  }
+
+  .df-bottom-nav__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    border: none;
+    background: none;
+    color: var(--df-text-faint);
+    font: inherit;
+    font-size: var(--df-text-xs);
+    cursor: pointer;
+  }
+
+  .df-bottom-nav__item[aria-current='page'] {
+    color: var(--df-accent);
+  }
+}
+
+/* ---------------------------------------------------------------- *
+ * Typography and headings
+ * ---------------------------------------------------------------- */
+
+.df-page-title {
+  margin: 0 0 var(--df-space-xs);
+  font-size: var(--df-text-xxl);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.df-page-subtitle {
+  margin: 0 0 var(--df-space-xl);
+  color: var(--df-text-muted);
+  font-size: var(--df-text-base);
+}
+
+.df-section-title {
+  margin: var(--df-space-xl) 0 var(--df-space-md);
+  font-size: var(--df-text-lg);
+  font-weight: 600;
+}
+
+.df-muted {
+  color: var(--df-text-muted);
+}
+
+.df-faint {
+  color: var(--df-text-faint);
+  font-size: var(--df-text-sm);
+}
+
+.df-mono {
+  font-family: var(--df-font-mono);
+  font-size: var(--df-text-sm);
+}
+
+/* ---------------------------------------------------------------- *
+ * Surfaces
+ * ---------------------------------------------------------------- */
+
+.df-card {
+  background: var(--df-surface);
+  border: 1px solid var(--df-border);
+  border-radius: var(--df-radius-lg);
+  padding: var(--df-space-xl);
+}
+
+.df-card--tight {
+  padding: var(--df-space-lg);
+}
+
+.df-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--df-space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.df-row {
+  display: flex;
+  align-items: center;
+  gap: var(--df-space-md);
+}
+
+.df-row--between {
+  justify-content: space-between;
+}
+
+.df-grid {
+  display: grid;
+  gap: var(--df-space-lg);
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+/* ---------------------------------------------------------------- *
+ * Buttons
+ * ---------------------------------------------------------------- */
+
+.df-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--df-space-sm);
+  padding: var(--df-space-md) var(--df-space-lg);
+  border-radius: var(--df-radius-md);
+  border: 1px solid var(--df-border-strong);
+  background: var(--df-surface-elevated);
+  color: var(--df-text);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform var(--df-motion-fast) var(--df-motion-easing),
+    background var(--df-motion-fast) var(--df-motion-easing);
+}
+
+.df-button:hover:not(:disabled) {
+  background: var(--df-surface);
+  border-color: var(--df-accent);
+}
+
+.df-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.df-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.df-button--primary {
+  background: linear-gradient(140deg, var(--df-accent), var(--df-accent-strong));
+  border-color: transparent;
+  color: #fff;
+}
+
+.df-button--primary:hover:not(:disabled) {
+  background: linear-gradient(140deg, var(--df-accent-strong), var(--df-accent));
+}
+
+.df-button--ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--df-text-muted);
+}
+
+.df-button--danger {
+  border-color: var(--df-danger);
+  color: var(--df-danger);
+  background: transparent;
+}
+
+.df-button--small {
+  padding: var(--df-space-sm) var(--df-space-md);
+  font-size: var(--df-text-md);
+}
+
+/* ---------------------------------------------------------------- *
+ * Progress
+ * ---------------------------------------------------------------- */
+
+.df-progress {
+  position: relative;
+  height: 6px;
+  border-radius: var(--df-radius-pill);
+  background: var(--df-surface-elevated);
+  overflow: hidden;
+}
+
+.df-progress__bar {
+  height: 100%;
+  border-radius: var(--df-radius-pill);
+  background: linear-gradient(90deg, var(--df-accent), var(--df-blue));
+  transition: width var(--df-motion-base) var(--df-motion-easing);
+}
+
+.df-progress--indeterminate .df-progress__bar {
+  width: 35%;
+  animation: df-slide 1.4s ease-in-out infinite;
+}
+
+@keyframes df-slide {
+  0% {
+    transform: translateX(-40%);
+  }
+  100% {
+    transform: translateX(280%);
+  }
+}
+
+/* ---------------------------------------------------------------- *
+ * Badges and states
+ * ---------------------------------------------------------------- */
+
+.df-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--df-space-xs);
+  padding: 2px var(--df-space-sm);
+  border-radius: var(--df-radius-pill);
+  border: 1px solid var(--df-border);
+  background: var(--df-surface-elevated);
+  color: var(--df-text-muted);
+  font-size: var(--df-text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.df-badge--ok {
+  color: var(--df-success);
+  border-color: color-mix(in srgb, var(--df-success) 40%, transparent);
+}
+
+.df-badge--warn {
+  color: var(--df-warning);
+  border-color: color-mix(in srgb, var(--df-warning) 40%, transparent);
+}
+
+.df-badge--error {
+  color: var(--df-danger);
+  border-color: color-mix(in srgb, var(--df-danger) 40%, transparent);
+}
+
+.df-badge--busy {
+  color: var(--df-blue);
+  border-color: color-mix(in srgb, var(--df-blue) 40%, transparent);
+}
+
+.df-empty,
+.df-error,
+.df-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--df-space-sm);
+  padding: var(--df-space-xxxl) var(--df-space-xl);
+  border: 1px dashed var(--df-border-strong);
+  border-radius: var(--df-radius-lg);
+  color: var(--df-text-muted);
+  text-align: center;
+}
+
+.df-error {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--df-danger) 45%, transparent);
+  color: var(--df-danger);
+}
+
+.df-skeleton {
+  height: 14px;
+  border-radius: var(--df-radius-sm);
+  background: linear-gradient(90deg, var(--df-surface), var(--df-surface-elevated), var(--df-surface));
+  background-size: 200% 100%;
+  animation: df-shimmer 1.6s linear infinite;
+}
+
+@keyframes df-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ---------------------------------------------------------------- *
+ * Forms
+ * ---------------------------------------------------------------- */
+
+.df-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--df-space-xs);
+  margin-bottom: var(--df-space-lg);
+}
+
+.df-label {
+  font-size: var(--df-text-md);
+  color: var(--df-text-muted);
+}
+
+.df-input,
+.df-select {
+  padding: var(--df-space-md);
+  border-radius: var(--df-radius-md);
+  border: 1px solid var(--df-border-strong);
+  background: var(--df-background);
+  color: var(--df-text);
+  font: inherit;
+}
+
+.df-switch {
+  display: flex;
+  align-items: center;
+  gap: var(--df-space-md);
+  cursor: pointer;
+}
+
+/* ---------------------------------------------------------------- *
+ * Dialogs
+ * ---------------------------------------------------------------- */
+
+.df-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--df-scrim);
+  display: grid;
+  place-items: center;
+  padding: var(--df-space-lg);
+  z-index: 40;
+}
+
+.df-dialog {
+  width: min(520px, 100%);
+  background: var(--df-surface);
+  border: 1px solid var(--df-border-strong);
+  border-radius: var(--df-radius-lg);
+  padding: var(--df-space-xl);
+  animation: df-rise var(--df-motion-base) var(--df-motion-easing);
+}
+
+@keyframes df-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.df-sas {
+  display: flex;
+  gap: var(--df-space-md);
+  font-family: var(--df-font-mono);
+  font-size: var(--df-text-xxl);
+  letter-spacing: 0.08em;
+}
+
+/* Respect the operating system's motion preference: no animation at all. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Scrollbars: subtle, theme-aware, never a bright white bar in a dark app. */
+* {
+  scrollbar-color: var(--df-border-strong) transparent;
+  scrollbar-width: thin;
+}

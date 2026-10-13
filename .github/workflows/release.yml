@@ -1,0 +1,233 @@
+# Publication d'une version : c'est le moyen officiel de télécharger DropForge.
+#
+#   git tag v0.1.0 && git push origin v0.1.0
+#
+# Produit, attaches à la Release GitHub du tag :
+#   - DropForge_<version>_x64-setup.exe  (installateur NSIS, par utilisateur)
+#   - DropForge_<version>_x64_en-US.msi  (paquet MSI)
+#   - l'archive de mise à jour signée + son fichier .sig, et `latest.json`
+#   - dropforge-pwa-<version>.zip        (application web, servable partout)
+#   - dropforge-signaling-<version>.zip  (serveur optionnel, Node pur)
+#   - SHA256SUMS
+#
+# Les mises à jour signées nécessitent deux secrets de dépôt :
+#   DROPFORGE_UPDATER_KEY           clé privée (contenu de la paire générée par
+#                                   `npm run tauri signer generate`)
+#   DROPFORGE_UPDATER_KEY_PASSWORD  mot de passe de cette clé (vide si non protégée)
+#   DROPFORGE_UPDATER_PUBKEY        clé publique correspondante
+# Sans eux, l'installateur est produit **non signé pour les mises à jour** : il
+# fonctionne, mais l'application ne proposera pas de mise à jour automatique.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version à publier (ex. 0.1.0)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    name: Types et tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run verify
+
+  web:
+    name: Application web et serveur
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Compilation et paquets
+        env:
+          # L'archive distribuée doit fonctionner servie depuis n'importe quel
+          # dossier : les chemins sont donc relatifs.
+          DROPFORGE_BASE: ./
+        run: npm run package
+      - name: Sommes de contrôle
+        run: cd release && sha256sum -c SHA256SUMS
+      - name: Test des paquets avant publication
+        run: npm run smoke:release
+      - uses: actions/upload-artifact@v7
+        with:
+          name: paquets-web
+          path: |
+            release/*.zip
+            release/SHA256SUMS
+          if-no-files-found: error
+
+  windows:
+    name: Application Windows (installateur)
+    needs: verify
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      # La clé *publique* est exposée au niveau du travail : c'est la seule façon pour
+      # un `if:` d'étape de savoir si les mises à jour signées sont configurées (les
+      # secrets ne sont pas lisibles dans un `if`, et l'`env` propre à une étape n'y est
+      # pas encore évalué au moment du test). La clé privée, elle, ne quitte jamais son
+      # étape de compilation.
+      DROPFORGE_UPDATER_PUBKEY: ${{ secrets.DROPFORGE_UPDATER_PUBKEY }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - name: Chaîne d'outils Rust
+        shell: bash
+        run: |
+          rustc --version || rustup default stable
+          rustc --version
+          cargo --version
+      - run: npm ci --no-audit --no-fund
+
+      - name: Version
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Version du paquet : $VERSION"
+
+      - name: Configuration de mise à jour signée
+        id: updater
+        if: env.DROPFORGE_UPDATER_PUBKEY != ''
+        shell: bash
+        run: |
+          # Le fichier n'est pas versionné : il contient la clé publique réellement
+          # utilisée pour cette publication, et l'URL du manifeste de mise à jour.
+          cat > apps/desktop/src-tauri/tauri.updater.conf.json <<JSON
+          {
+            "bundle": { "createUpdaterArtifacts": true },
+            "plugins": {
+              "updater": {
+                "pubkey": "$DROPFORGE_UPDATER_PUBKEY",
+                "endpoints": [
+                  "https://github.com/${{ github.repository }}/releases/latest/download/latest.json"
+                ],
+                "windows": { "installMode": "passive" }
+              }
+            }
+          }
+          JSON
+          echo "signed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Compilation de l'installateur (signé pour les mises à jour)
+        if: steps.updater.outputs.signed == 'true'
+        working-directory: apps/desktop
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.DROPFORGE_UPDATER_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.DROPFORGE_UPDATER_KEY_PASSWORD }}
+        run: npm run tauri:build -- --config src-tauri/tauri.updater.conf.json
+
+      - name: Compilation de l'installateur (mises à jour non configurées)
+        if: steps.updater.outputs.signed != 'true'
+        working-directory: apps/desktop
+        run: |
+          echo "::warning::Aucune clé de mise à jour configurée : l'installateur sera produit sans artefacts de mise à jour."
+          npm run tauri:build
+
+      - name: Rassembler les fichiers publiés
+        shell: bash
+        run: |
+          mkdir -p dist-release
+          # Les noms produits par Tauri contiennent la version et l'architecture.
+          find apps/desktop/src-tauri/target/release/bundle -maxdepth 2 -type f \
+            \( -name '*.exe' -o -name '*.msi' -o -name '*.zip' -o -name '*.sig' \) \
+            -exec cp {} dist-release/ \;
+          ls -la dist-release
+
+      - name: Manifeste de mise à jour
+        if: steps.updater.outputs.signed == 'true'
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ github.ref_type == 'tag' && github.ref_name || format('v{0}', inputs.version) }}
+        run: |
+          set -euo pipefail
+          ARCHIVE=$(ls dist-release/*.nsis.zip 2>/dev/null | head -1 || true)
+          if [ -z "$ARCHIVE" ]; then
+            echo "::error::archive de mise à jour introuvable"
+            exit 1
+          fi
+          SIGNATURE=$(cat "$ARCHIVE.sig")
+          NAME=$(basename "$ARCHIVE")
+          cat > dist-release/latest.json <<JSON
+          {
+            "version": "$VERSION",
+            "notes": "DropForge $VERSION — voir la page de la version pour le détail des changements.",
+            "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "platforms": {
+              "windows-x86_64": {
+                "signature": "$SIGNATURE",
+                "url": "https://github.com/${{ github.repository }}/releases/download/$TAG/$NAME"
+              }
+            }
+          }
+          JSON
+          cat dist-release/latest.json
+
+      - name: Sommes de contrôle (Windows)
+        shell: bash
+        run: |
+          cd dist-release
+          # Seuls les fichiers réellement téléchargeables sont listés.
+          sha256sum *.exe *.msi > SHA256SUMS-windows.txt 2>/dev/null || true
+          cat SHA256SUMS-windows.txt
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: paquets-windows
+          path: dist-release/*
+          if-no-files-found: error
+
+  publish:
+    name: Publication de la version
+    needs: [web, windows]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          path: assets
+          merge-multiple: true
+      - name: Publication
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_type == 'tag' && github.ref_name || format('v{0}', inputs.version) }}
+        run: |
+          set -euo pipefail
+          # Une version dont le tag contient un tiret (v0.1.0-preview) est publiée
+          # comme pré-version : elle ne sera pas proposée comme « dernière version ».
+          case "$TAG" in *-*) FLAGS="--prerelease" ;; *) FLAGS="" ;; esac
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" assets/* --clobber
+          else
+            gh release create "$TAG" \
+              --title "DropForge ${TAG#v}" \
+              --notes "Installateurs Windows, application web et serveur optionnel. Vérifiez les sommes de contrôle avec \`sha256sum -c SHA256SUMS\`." \
+              $FLAGS \
+              assets/*
+          fi
+          gh release view "$TAG" --json assets --jq '.assets[].name'

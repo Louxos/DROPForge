@@ -1,0 +1,167 @@
+# Mises à jour
+
+DropForge se met à jour de deux façons, selon l'installation. Dans les deux cas :
+**rien ne s'installe sans une action de la personne qui utilise l'application.**
+
+| Installation | Mécanisme | Ce qui est vérifié |
+| --- | --- | --- |
+| Application Windows (Tauri) | Plugin Tauri Updater, mise à jour signée | Signature de la mise à jour contre la clé publique compilée dans l'application |
+| Application web installée (PWA) | Service worker généré au build | L'intégrité vient du mode `prompt` : la nouvelle version attend, l'utilisateur décide |
+
+## Application Windows
+
+### Ce qui existe déjà dans le dépôt
+
+- `apps/desktop/src/platform/tauri-updater.ts` — vérification, téléchargement,
+  installation **seulement** si l'appelant le demande explicitement, puis
+  redémarrage.
+- `apps/desktop/src-tauri/src/lib.rs` — le plugin de mise à jour n'est **enregistré
+  que si** une clé publique non vide est présente dans la configuration.
+- `tauri.conf.json` → `plugins.updater` : `pubkey` vide, `endpoints` vide, et
+  `bundle.createUpdaterArtifacts: false`.
+- `tauri.release.conf.json` (fusionné seulement quand on le demande, ou écrit par la
+  chaîne d'intégration) : `createUpdaterArtifacts: true`. Cette séparation évite
+  qu'une compilation locale sans clé échoue ou produise un artefact inutilisable.
+
+Tant que la clé est vide, la fonction `updater_configured()` renvoie `false`,
+l'interface affiche « aucune mise à jour n'est configurée » et **rien n'est tenté**.
+C'est ce qui est livré aujourd'hui.
+
+### Mettre en place les mises à jour signées (à faire pour publier)
+
+1. **Créer une paire de clés** :
+
+   ```bash
+   npm run tauri signer generate -w ~/.dropforge/updater.key
+   ```
+
+   Garder la clé privée **hors du dépôt**, avec les droits les plus stricts
+   (`chmod 600`). La clé publique peut être publiée.
+
+2. **Publier la clé publique par les secrets du dépôt — ou la compiler en dur.**
+
+   Voie recommandée (aucune clé dans le dépôt) : créez trois secrets dans
+   *Settings → Secrets and variables → Actions* :
+
+   | Secret | Contenu |
+   | --- | --- |
+   | `DROPFORGE_UPDATER_KEY` | le contenu de la clé **privée** (`updater.key`) |
+   | `DROPFORGE_UPDATER_KEY_PASSWORD` | son mot de passe (chaîne vide si aucune) |
+   | `DROPFORGE_UPDATER_PUBKEY` | la clé **publique** (`updater.key.pub`) |
+
+   La chaîne d'intégration écrit alors `plugins.updater.pubkey` et `endpoints` dans
+   une configuration temporaire, visible dans `.gitignore`
+   (`apps/desktop/src-tauri/tauri.updater.conf.json`), jamais commitée.
+
+   Sinon, renseignez `pubkey` à la main dans `apps/desktop/src-tauri/tauri.conf.json`.
+   Dans les deux cas : une mise à jour dont la signature ne correspond pas est
+   **rejetée**. C'est le comportement voulu — ne jamais désactiver cette vérification
+   pour « faire passer » une version.
+
+3. **Le manifeste est écrit par la chaîne d'intégration** : `latest.json` sur la page
+   de la version (URL de l'archive, signature, empreinte). L'URL est indiquée dans
+   `endpoints`, jamais découverte dynamiquement. DropForge interroge cette URL au
+   démarrage — le résultat est présenté, l'installation attend un accord.
+
+4. **Produire la mise à jour** :
+
+   ```bash
+   npm run build:windows
+   ```
+
+   `createUpdaterArtifacts` vaut `false` dans `tauri.conf.json` : sans clé configurée,
+   une compilation non signée n'a pas à produire d'artefact de mise à jour. Il passe à
+   `true` par `src-tauri/tauri.release.conf.json` (voie locale) ou par la configuration
+   temporaire écrite par la chaîne d'intégration (voie automatisée) ; c'est alors la
+   compilation qui produit l'installateur **et** l'artefact signé. Le manifeste doit
+   être mis à jour avec les empreintes et les signatures réellement produites, jamais
+   recopiées à la main d'une version précédente.
+
+5. **Vérifier, sur une machine différente** : une version ancienne propose la
+   nouvelle ; l'installation ne démarre qu'après accord ; une signature volontairement
+   fausse est refusée ; une version identique ou plus ancienne n'est pas proposée.
+
+### Ce qui n'est pas fourni
+
+- Aucune clé, aucun certificat, aucun hébergement. Ces éléments sont propres à chaque
+  publication et ne doivent pas figurer dans un dépôt public.
+- Le coût d'un certificat de signature de code Windows est documenté dans
+  `docs/FREE-DEPLOYMENT.md` : cette signature concerne l'installation, les mises à
+  jour signées ci-dessus sont indépendantes et gratuites.
+
+## Application web (PWA)
+
+- `vite-plugin-pwa` en mode `prompt` : la nouvelle version est téléchargée, l'ancienne
+  reste active, et l'interface propose « Redémarrer pour mettre à jour ».
+- Aucun rechargement automatique au milieu d'un transfert.
+- Comme il n'y a pas de vérification cryptographique côté navigateur, l'intégrité
+  repose sur HTTPS et sur l'origine qui sert l'application : ne pas héberger
+  l'application depuis une origine non maîtrisée.
+
+## Publication automatisée (recommandé)
+
+La publication part de la branche par défaut (`main`) : c'est là que GitHub découvre
+les chaînes d'intégration. La version publiée doit donc être un commit de `main`.
+
+```bash
+git tag v0.1.0 && git push origin v0.1.0
+```
+
+Avant de pousser le tag : `npm run verify` et `npm run package` doivent passer, et
+l'exécution de `ci.yml` sur le commit visé doit être **verte** — publier est un acte
+définitif, une version dont les tests ont échoué ne doit pas être proposée.
+
+`.github/workflows/release.yml` fait alors, sur une machine Windows pour la partie
+bureau :
+
+1. vérifie les types et exécute les tests ;
+2. compile les paquets web et serveur (`dropforge-pwa-<v>.zip`,
+   `dropforge-signaling-<v>.zip`, `SHA256SUMS`) ;
+3. compile l'installateur Windows et **l'archive de mise à jour signée** si les
+   secrets `DROPFORGE_UPDATER_KEY`, `DROPFORGE_UPDATER_KEY_PASSWORD` et
+   `DROPFORGE_UPDATER_PUBKEY` sont configurés, puis écrit `latest.json` (URL de
+   l'archive + signature) ;
+4. attache le tout à la version publiée.
+
+Sans ces secrets, l'installateur est produit quand même : l'application fonctionne,
+mais aucune mise à jour automatique n'est proposée — et l'écran « À propos » le dit.
+
+## Versions et compatibilité
+
+- La version de l'application est lue depuis `package.json` ; elle apparaît dans
+  « À propos ».
+- Les données locales ont un numéro de schéma. Une version plus ancienne de
+  l'application **refuse de démarrer** sur une base écrite par une version plus
+  récente (plutôt que de la corrompre) ; le message indique la marche à suivre.
+- Les migrations sont additives et testées (`indexed-db-store.test.ts`, et côté
+  Windows la même logique dans `tauri-store.ts`).
+
+## Politique de version
+
+- `1.0.0` = première version publiée, stable sur le périmètre de
+  `docs/PLATFORM-MATRIX.md`.
+- Les versions `0.x` restent possibles tant que la compilation Rust et un
+  installateur signé n'ont pas été validés sur Windows.
+
+## Installation et désinstallation
+
+Ce que DropForge écrit sur une machine Windows, et où :
+
+| Élément | Emplacement | Supprimé à la désinstallation |
+| --- | --- | --- |
+| Application et ressources | dossier d'installation choisi par l'installateur | ✅ |
+| Base locale (historique, appareils, réglages) | `%APPDATA%\<identifiant de l'application>` | ✅ (l'installateur supprime les données de l'application, pas les fichiers reçus) |
+| Fichiers reçus | dossier de réception choisi par la personne, ou Téléchargements | ❌ **jamais** : ce sont vos fichiers |
+| Démarrage automatique | clé `Run` de l'utilisateur, posée **uniquement** si le réglage est activé | ✅ (et désactivée aussitôt que l'interrupteur est éteint) |
+| Identité et appareils de confiance | dans la base locale | ✅ |
+
+Points vérifiés par conception, à confirmer à l'installation (voir `docs/TESTING.md`) :
+
+- **Installation par utilisateur** : aucun droit administrateur demandé pour
+  l'installation courante.
+- **Aucun service ni tâche planifiée** n'est créé : DropForge ne démarre que parce
+  que l'utilisateur l'a lancé, ou parce qu'il a activé le démarrage automatique.
+- **Aucun pilote, aucune extension de l'explorateur** : le désinstallateur n'a rien
+  d'autre à retirer que les fichiers listés ci-dessus.
+- **Les fichiers reçus sont hors de portée du désinstallateur** : supprimer
+  l'application ne peut pas supprimer vos données.

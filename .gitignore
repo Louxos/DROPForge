@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+out/
+dev-dist/
+*.tsbuildinfo
+
+# Compiled leftovers next to sources: every package is consumed as TypeScript, so a
+# stray .js would silently shadow the source it was compiled from.
+packages/*/src/**/*.js
+packages/*/src/**/*.js.map
+apps/*/src/**/*.js.map
+
+# Tauri / Rust
+apps/desktop/src-tauri/target/
+target/
+
+# Release artifacts produced by `npm run package` (never committed)
+release/
+out/
+deploy/.env
+dist/
+apps/desktop/src-tauri/tauri.updater.conf.json
+
+# Test & coverage artifacts
+coverage/
+.vitest/
+test-results/
+
+# Environment & local secrets
+.env
+.env.*
+!.env.example
+*.local
+*.pem
+*.key
+!docs/**/*.key.md
+
+# Editor / OS noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Local runtime data (transfer spool, dev storage)
+.data/
+.local-storage/
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal

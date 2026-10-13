@@ -1,0 +1,49 @@
+# Application Windows de DropForge.
+#
+# Ce fichier n'a pas pu être compilé dans l'environnement de développement utilisé
+# pour écrire ce dépôt (aucune chaîne d'outils Rust disponible) : voir
+# docs/PLATFORM-MATRIX.md. Sur une machine avec Rust, `npm run tauri build -w
+# @dropforge/desktop` produit l'installateur signé.
+[package]
+name = "dropforge"
+version = "0.1.0"
+description = "Transfert de fichiers entre appareils, sans compte, chiffré de bout en bout."
+authors = ["DropForge"]
+edition = "2021"
+rust-version = "1.77"
+license = "SEE LICENSE IN docs/LICENSES.md"
+
+[lib]
+# Nécessaire pour que la logique soit testable sans lancer de fenêtre.
+name = "dropforge_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-sql = { version = "2", features = ["sqlite"] }
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
+tauri-plugin-autostart = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["fs", "macros", "rt-multi-thread"] }
+
+[features]
+# La distribution par défaut n'embarque pas les outils de développement.
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
+
+[profile.release]
+# Une application qui transfère des fichiers ne doit pas être plus grosse que
+# nécessaire : la taille du binaire compte pour un installateur Windows.
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

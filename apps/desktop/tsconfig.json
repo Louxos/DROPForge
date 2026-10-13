@@ -1,0 +1,24 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["node"],
+    "paths": {
+      "@dropforge/web": ["../web/src/index.ts"],
+      "@dropforge/web/*": ["../web/src/*"],
+      "@dropforge/app-core": ["../../packages/app-core/src/index.ts"],
+      "@dropforge/connection-manager": ["../../packages/connection-manager/src/index.ts"],
+      "@dropforge/design-system": ["../../packages/design-system/src/index.ts"],
+      "@dropforge/device-manager": ["../../packages/device-manager/src/index.ts"],
+      "@dropforge/history": ["../../packages/history/src/index.ts"],
+      "@dropforge/notifications": ["../../packages/notifications/src/index.ts"],
+      "@dropforge/protocol": ["../../packages/protocol/src/index.ts"],
+      "@dropforge/security": ["../../packages/security/src/index.ts"],
+      "@dropforge/settings": ["../../packages/settings/src/index.ts"],
+      "@dropforge/sharing": ["../../packages/sharing/src/index.ts"],
+      "@dropforge/transfer-engine": ["../../packages/transfer-engine/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts", "../web/src/vite-env.d.ts"]
+}
