@@ -20,6 +20,21 @@ de la zone de notification était déclaré dans une forme que Tauri 2.12 n'acce
 (le menu doit être construit en Rust). Une erreur de ce genre ne se serait vue que sur
 une machine Windows, au moment de la compilation.
 
+Ce contrôle statique ne remplace pas la compilation, et la première publication l'a
+prouvé : la chaîne d'intégration a rejeté **deux défauts qu'aucun test d'ici ne pouvait
+voir** —
+
+1. `TrayIconEvent::Drop` n'existe pas dans l'API de Tauri 2.12 : le dépôt de fichiers
+   sur l'icône de la zone de notification n'est pas exposé du tout. La fonction a été
+   retirée de l'interface, du Rust et de la documentation, plutôt que d'être annoncée ;
+2. la permission `process:allow-relaunch` n'existe pas : le greffon n'expose que `exit`
+   et `restart`, donc `relaunch()` côté JavaScript demande `process:allow-restart`.
+   Au passage, `fs:allow-exists` a reçu la portée qui lui manquait — sans elle, l'appel
+   aurait été refusé à l'exécution, sur Windows, à l'usage.
+
+C'est la raison d'être de la chaîne de publication : compiler et empaqueter pour de
+vrai, sur la plateforme visée, à chaque version.
+
 ## Ce qui est couvert, et par quoi
 
 | Suite | Fichiers | Tests | Ce qu'elle prouve |
@@ -39,7 +54,7 @@ une machine Windows, au moment de la compilation.
 | Relais | `apps/signaling/src/server.test.ts` | 11 | Salles, quotas, relais aveugle, expiration |
 | Paquets de publication | `tests/packaging.test.ts` | 9 | Écriture **et relecture** des archives ZIP : CRC de référence, structure du répertoire central, choix stocké/déflaté, refus d’une entrée sans nom, refus d’une archive corrompue ou étrangère |
 
-Total vérifié le 13 octobre 2026 : **384 tests, 35 fichiers**, tous au vert.
+Total vérifié le 13 octobre 2026 : **388 tests, 36 fichiers**, tous au vert.
 
 Le test d'interface a une histoire : il a été écrit pour vérifier que l'écran suivait
 réellement le moteur, et il a immédiatement échoué sur un défaut grave — le contrôleur

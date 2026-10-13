@@ -30,7 +30,10 @@ Statut exact, sans arrondi optimiste. Quatre niveaux :
 
 ## Windows (application Tauri 2 + Rust)
 
-**État : écrit, typechecké côté TypeScript, *non compilé* dans cet environnement.**
+**État : compilé et empaqueté par la chaîne d'intégration** (version 0.1.0 publiée :
+`DropForge_0.1.0_x64-setup.exe`, 3,4 Mo). Le TypeScript est vérifié et testé ici, mais
+**aucune compilation Rust n'est possible dans cet environnement** : chaque correction
+du code Rust a été trouvée par une compilation réelle, sur une machine Windows.
 
 | Élément | État | Détail |
 | --- | --- | --- |
@@ -43,22 +46,21 @@ Statut exact, sans arrondi optimiste. Quatre niveaux :
 | Icône de la zone de notification | ✅ Menu (ouvrir / quitter) et clic gauche | Menu **construit en Rust** : la configuration de Tauri 2.2+ ne porte plus de menu d'icône. Le dépôt de fichiers **sur l'icône** n'est pas proposé : `TrayIconEvent` (2.12) n'expose que Click, DoubleClick, Enter, Move, Leave — glisser-déposer dans la **fenêtre**, oui |
 | Configuration (fenêtre, CSP, bundle MSI/NSIS, capacités) | ✅ Écrite | `tauri.conf.json`, `capabilities/default.json` |
 | Icônes | ✅ Générées (dont un `.ico`) | `apps/desktop/src-tauri/icons/` |
-| **Compilation Rust** | ⚠️ **Automatisée, non vérifiée ici** | Aucune chaîne d'outils Rust dans l'environnement de développement utilisé : la compilation est faite par `.github/workflows/release.yml` sur une machine Windows, à chaque tag |
+| **Compilation Rust** | ✅ **Faite par la chaîne d'intégration** | `.github/workflows/release.yml`, à chaque tag. Elle a servi deux fois : elle a rejeté une API de tray inexistante puis une permission mal nommée, défauts invisibles ici |
 | Configuration (fenêtre, CSP, bundle, icône de notification, permissions) | ✅ **Validée** contre le schéma officiel de Tauri 2 | `npm run check:desktop` — c'est ce contrôle qui a corrigé le menu de l'icône (désormais construit en Rust, la configuration ne l'acceptant plus depuis Tauri 2.2) |
 | **Installateur** | ⚠️ **Produit par la chaîne d'intégration** | Par utilisateur, non signé « éditeur » (certificat payant) ; mises à jour signées si la clé est configurée — voir `docs/DOWNLOAD.md` |
-| **Exécution réelle sur Windows** | ❌ **Non testée** | Idem |
+| **Exécution réelle sur Windows** | ❌ **Jamais lancée** | L'installateur est publié et vérifié, mais personne n'a encore ouvert l'application sur Windows : à faire en premier |
 
-Ce qui reste à faire, dans l'ordre, sur une machine Windows avec Rust et Node :
+Ce qui reste à faire, sur une machine Windows :
 
-1. `npm install`, puis `npm run build:windows` (ou un tag : la chaîne d'intégration
-   s'en charge et publie le résultat) ;
-2. corriger ce que le compilateur Rust signale. La première compilation réelle (chaîne
-   d'intégration) a déjà servi : elle a montré qu'aucun événement de dépôt de fichiers
-   sur l'icône n'existe dans l'API de Tauri 2.12 — la fonction a été retirée plutôt que
-   documentée comme existante ;
-3. renseigner `plugins.updater.pubkey` et les `endpoints` pour activer les mises à
-   jour signées, puis republier ;
-4. exécuter le protocole de test de `docs/TESTING.md` (« À faire sur Windows »).
+1. **Lancer l'application installée** et dérouler le protocole de test de
+   `docs/TESTING.md` (« À faire sur Windows »). C'est la seule chose que la chaîne
+   d'intégration ne peut pas faire : elle compile et empaquette, elle ne clique pas ;
+2. configurer les secrets `DROPFORGE_UPDATER_*` pour que les mises à jour soient
+   signées, vérifiées et proposées — sans eux, l'application le dit et propose de
+   retélécharger ;
+3. si l'avertissement SmartScreen doit disparaître, acheter un certificat d'éditeur
+   (payant, annuel) et le configurer dans la chaîne d'intégration.
 
 ## PWA (navigateur)
 

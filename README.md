@@ -19,8 +19,8 @@ jamais le contenu des fichiers.
 | Vous êtes sur | Prenez | Comment |
 | --- | --- | --- |
 | **Windows** | l'installateur de la dernière version | page **[Releases](../../releases)** → `DropForge_<version>_x64-setup.exe` (par utilisateur, sans droits administrateur) |
-| **Téléphone, tablette, autre ordinateur** | l'application web | ouvrez la page hébergée (GitHub Pages) et choisissez « Installer l'application » / « Sur l'écran d'accueil » |
-| **N'importe où, sans réseau** | l'archive de l'application web | `dropforge-pwa-<version>.zip` de la dernière version, servable depuis n'importe quel dossier |
+| **Téléphone, tablette, autre ordinateur** | l'application web | `dropforge-pwa-<version>.zip` de la dernière version, servi en **HTTPS**, puis « Installer l'application » / « Sur l'écran d'accueil ». La page hébergée (GitHub Pages) n'existe pas encore : elle demande une activation manuelle dans les réglages du dépôt |
+| **N'importe où, sans réseau** | le même dossier, hors ligne | une fois le service worker installé, l'application fonctionne sans réseau ; l'archive se sert depuis n'importe quel dossier |
 | **Deux réseaux différents** | le serveur optionnel | `dropforge-signaling-<version>.zip` : `npm install --omit=dev && npm start` |
 | **Un serveur à vous** | les conteneurs | `cd deploy && docker compose up -d --build` → `http://localhost:8080` |
 
@@ -37,12 +37,12 @@ fonctionnalité, est dans [`docs/PLATFORM-MATRIX.md`](docs/PLATFORM-MATRIX.md).
 
 | Partie | Statut |
 | --- | --- |
-| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** (384 tests automatisés) |
+| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** (388 tests automatisés) |
 | Interface partagée React/TypeScript (FR/EN, thème sombre/clair) | ✅ Implémentée et **testée** au niveau du contrôleur d'application |
 | Application web progressive (PWA) installable | ✅ Implémentée et **testée** (pas encore testée sur téléphone réel) |
 | Serveur de signalisation / relais aveugle | ✅ Implémenté et **testé** (Node) |
-| Application Windows (Tauri + Rust) | ⚠️ Écrite et vérifiée en TypeScript, **jamais compilée ici** : aucune chaîne d'outils Rust dans cet environnement. Sa configuration est validée contre le schéma officiel de Tauri 2 par `npm run check:desktop` |
-| Installateur Windows signé, mises à jour signées | ⚠️ **Produits par la chaîne d'intégration** sur un tag (`.github/workflows/release.yml`), jamais commités ; non signés « éditeur » (certificat payant) |
+| Application Windows (Tauri + Rust) | ✅ **Compilée et empaquetée** par la chaîne d'intégration (version 0.1.0 : `DropForge_0.1.0_x64-setup.exe` et `.msi` publiés). Aucune chaîne d'outils Rust dans l'environnement de développement utilisé : deux défauts invisibles ici n'ont été trouvés que par une compilation réelle — et l'application n'a **pas encore été lancée** sur Windows |
+| Installateur Windows, sommes de contrôle | ✅ **Publiés** avec la version 0.1.0, vérifiés par la chaîne d'intégration ; non signés « éditeur » (certificat commercial), et les mises à jour signées demandent une clé à configurer |
 | Tests dans un vrai navigateur (E2E), tests sur appareils mobiles réels | ❌ Non exécutés — le rendu de l'interface est vérifié dans un DOM simulé |
 | Liens de partage hébergés | ⚠️ Code client implémenté et testé ; nécessite un hébergement (optionnel) |
 
@@ -134,7 +134,7 @@ fonctionne sans lui.
 
 ```bash
 npm run verify           # typecheck + tous les tests
-npm test                 # 35 fichiers, 384 tests
+npm test                 # 36 fichiers, 388 tests
 npm run test:unit        # paquets et application
 npm run test:integration # transferts réels en mémoire, reprise, sécurité, relais
 ```

@@ -37,7 +37,12 @@ retélécharger l'installateur.
 ### a) Depuis la page hébergée (le plus simple)
 
 Si le dépôt publie sa page GitHub Pages
-(`https://<utilisateur>.github.io/DROPForge/`), ouvrez-la :
+(`https://<utilisateur>.github.io/DROPForge/`), ouvrez-la.
+
+> **Activation, une seule fois** : dépôt → *Settings* → *Pages* → *Source* =
+> « GitHub Actions ». Sans cette activation, la chaîne d'intégration s'arrête à
+> l'étape `configure-pages` et aucune page n'est publiée — l'archive ci-dessous reste
+> alors le moyen d'obtenir l'application web.
 
 - **Android / Chrome / Edge** : menu ⋮ → « Installer l'application » ;
 - **iPhone / iPad** : bouton Partager → « Sur l'écran d'accueil » ;
