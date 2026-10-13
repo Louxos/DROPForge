@@ -11,7 +11,7 @@ import { spawn } from 'node:child_process';
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 
 const services = [
-  { name: 'signaling', args: ['run', 'dev -w', '@dropforge/signaling'], color: '\u001b[36m' },
+  { name: 'signaling', args: ['run', 'dev', '-w', '@dropforge/signaling'], color: '\u001b[36m' },
   { name: 'web', args: ['run', 'dev:web'], color: '\u001b[35m' },
 ];
 
