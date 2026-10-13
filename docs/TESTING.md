@@ -27,8 +27,34 @@ npm run verify              # typecheck + tests
 | Sécurité (bout en bout) | `tests/security-integration.test.ts` | 11 | Relais incapable de lire, SAS falsifié, signature falsifiée, trame rejouée, traversée de chemin, écrasement refusé, disque plein, trame forgée |
 | Connexion | `tests/connection-manager.test.ts` | 7 | Choix de méthode, échecs cumulés, changement d'identité = arrêt |
 | Relais | `apps/signaling/src/server.test.ts` | 11 | Salles, quotas, relais aveugle, expiration |
+| Paquets de publication | `tests/packaging.test.ts` | 9 | Écriture **et relecture** des archives ZIP : CRC de référence, structure du répertoire central, choix stocké/déflaté, refus d’une entrée sans nom, refus d’une archive corrompue ou étrangère |
 
-Total vérifié le 13 octobre 2026 : **369 tests, 33 fichiers**, tous au vert.
+Total vérifié le 13 octobre 2026 : **378 tests, 34 fichiers**, tous au vert.
+
+### Les paquets téléchargeables sont testés eux aussi
+
+Les tests ci-dessus vérifient le code. Le paquet est vérifié séparément, parce qu'un
+paquet peut être cassé même quand tout le code est vert — c'est arrivé pendant le
+développement : l'archive du serveur déclarait `ws` mais importait `zod`, et ne
+démarrait donc pas sur une machine vierge.
+
+```bash
+npm run package         # construit release/*.zip + SHA256SUMS
+npm run smoke:release   # extrait, sert, démarre — puis échoue si ce n'est pas bon
+```
+
+`scripts/smoke-release.mjs` fait exactement ce que fera la personne qui télécharge :
+
+- il lit les archives avec le lecteur ZIP du dépôt (`scripts/lib/unzip.mjs`) et vérifie
+  les sommes de contrôle du fichier `SHA256SUMS` ;
+- il sert l'application web **depuis un sous-dossier**, comme après un dézip, et
+  vérifie que la page, la feuille de style, le script, le manifeste, les icônes et le
+  service worker répondent, octet pour octet, avec des chemins relatifs ;
+- il installe l'archive du serveur dans un dossier temporaire (`npm install
+  --omit=dev`, les dépendances déclarées et rien d'autre), le démarre avec `node
+  dist/main.js` comme l'indique son `RUN.md`, et lit `/health`.
+
+Ce test est exécuté par la chaîne d'intégration avant chaque publication.
 
 ## Ce qui n'est PAS couvert (à ne pas confondre avec « testé »)
 
@@ -43,7 +69,7 @@ Total vérifié le 13 octobre 2026 : **369 tests, 33 fichiers**, tous au vert.
 
 ## Protocole à exécuter sur une machine Windows (à faire)
 
-1. **Compilation** : `npm run tauri build -w @dropforge/desktop`, corriger les erreurs
+1. **Compilation** : `npm run build:windows`, corriger les erreurs
    de compilation Rust, relancer.
 2. **Installation** : installer le MSI/NSIS produit, vérifier qu'il n'y a pas de
    demande de droits administrateur (installation par utilisateur).

@@ -127,6 +127,12 @@ elle ne promet pas une fonction qu'elle ne peut pas tenir.
   Les certificats OV coûtent quelques centaines d'euros par an ; les certificats EV
   davantage, et certains organismes demandent une vérification d'entreprise. À
   documenter dans `docs/UPDATE-PROCEDURE.md` au moment de distribuer.
+- **Hébergement maison** : `deploy/docker-compose.yml` sert l'application web et
+  relaie la signalisation sur une seule origine (nginx + Node). Aucun service tiers,
+  aucun quota, aucune facturation possible.
+- **Publication** : GitHub Actions construit l'installateur Windows et les paquets
+  (`release.yml`) et publie l'application web (`pages.yml`). Gratuit pour un dépôt
+  public ; aucune carte bancaire n'est demandée.
 - **Mises à jour signées** : la signature **Tauri** (paire de clés Ed25519) est
   gratuite et indépendante de la signature de code Windows. Elle est obligatoire pour
   que l'auto-mise à jour fonctionne : la clé publique est intégrée à l'application et

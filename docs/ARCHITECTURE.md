@@ -86,6 +86,24 @@ un nonce et du chiffré. Voir `docs/THREAT-MODEL.md`.
 | Débit | 20 messages/s par pair, 64 Kio par message de contrôle |
 | Trames binaires | relayées telles quelles, seulement après accord des deux pairs (`relay-ready`) |
 
+## Construire, publier, distribuer
+
+| Élément | Rôle |
+| --- | --- |
+| `npm run dev` (`scripts/dev.mjs`) | Application web + signalisation, un seul Ctrl-C pour tout arrêter |
+| `npm run build` | Les trois cibles compilables sans Rust : web, signalisation, interface bureau |
+| `npm run build:windows` | Installateur Windows (Rust requis ; la chaîne d'intégration le fait sur `windows-latest`) |
+| `scripts/package.mjs` + `scripts/lib/zip.mjs` | Écrit `release/*.zip` (application web, serveur) et `SHA256SUMS` sans aucune dépendance |
+| `scripts/smoke-release.mjs` + `scripts/lib/unzip.mjs` | Extrait les archives publiées, les sert, démarre le serveur : vérifie ce qui sera téléchargé |
+| `deploy/` | nginx, Dockerfiles et compose : application web + signalisation sur une seule origine |
+| `.github/workflows/ci.yml` | Types, tests, compilations, paquets, test des paquets |
+| `.github/workflows/pages.yml` | Publication de l'application web sur GitHub Pages |
+| `.github/workflows/release.yml` | Sur un tag : installateur Windows, paquets, sommes de contrôle, version publiée |
+
+`DROPFORGE_BASE` choisit la base des chemins de l'application web : `./` (archive
+téléchargeable, valeur par défaut de `npm run package`), `/<dépôt>/` (GitHub Pages) ou
+`/` (racine d'un domaine).
+
 ## Décisions techniques et leurs raisons
 
 | Décision | Raison |

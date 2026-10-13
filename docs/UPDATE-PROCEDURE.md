@@ -17,8 +17,11 @@ DropForge se met à jour de deux façons, selon l'installation. Dans les deux ca
   redémarrage.
 - `apps/desktop/src-tauri/src/lib.rs` — le plugin de mise à jour n'est **enregistré
   que si** une clé publique non vide est présente dans la configuration.
-- `tauri.conf.json` → `plugins.updater` : `pubkey` vide, `endpoints` vide,
-  `createUpdaterArtifacts: true`.
+- `tauri.conf.json` → `plugins.updater` : `pubkey` vide, `endpoints` vide, et
+  `bundle.createUpdaterArtifacts: false`.
+- `tauri.release.conf.json` (fusionné seulement quand on le demande, ou écrit par la
+  chaîne d'intégration) : `createUpdaterArtifacts: true`. Cette séparation évite
+  qu'une compilation locale sans clé échoue ou produise un artefact inutilisable.
 
 Tant que la clé est vide, la fonction `updater_configured()` renvoie `false`,
 l'interface affiche « aucune mise à jour n'est configurée » et **rien n'est tenté**.
@@ -35,20 +38,35 @@ C'est ce qui est livré aujourd'hui.
    Garder la clé privée **hors du dépôt**, avec les droits les plus stricts
    (`chmod 600`). La clé publique peut être publiée.
 
-2. **Compiler la clé publique dans l'application** : renseigner `pubkey` dans
-   `apps/desktop/src-tauri/tauri.conf.json` avec le contenu de la clé publique.
-   À partir de cet instant, une mise à jour dont la signature ne correspond pas est
-   **rejetée** : c'est le comportement voulu, ne jamais désactiver cette vérification
+2. **Publier la clé publique par les secrets du dépôt — ou la compiler en dur.**
+
+   Voie recommandée (aucune clé dans le dépôt) : créez trois secrets dans
+   *Settings → Secrets and variables → Actions* :
+
+   | Secret | Contenu |
+   | --- | --- |
+   | `DROPFORGE_UPDATER_KEY` | le contenu de la clé **privée** (`updater.key`) |
+   | `DROPFORGE_UPDATER_KEY_PASSWORD` | son mot de passe (chaîne vide si aucune) |
+   | `DROPFORGE_UPDATER_PUBKEY` | la clé **publique** (`updater.key.pub`) |
+
+   La chaîne d'intégration écrit alors `plugins.updater.pubkey` et `endpoints` dans
+   une configuration temporaire, visible dans `.gitignore`
+   (`apps/desktop/src-tauri/tauri.updater.conf.json`), jamais commitée.
+
+   Sinon, renseignez `pubkey` à la main dans `apps/desktop/src-tauri/tauri.conf.json`.
+   Dans les deux cas : une mise à jour dont la signature ne correspond pas est
+   **rejetée**. C'est le comportement voulu — ne jamais désactiver cette vérification
    pour « faire passer » une version.
 
-3. **Publier un fichier de manifeste** (JSON) accessible en HTTPS, par exemple sur
-   GitHub Releases, et renseigner son URL dans `endpoints`. DropForge interroge cette
-   URL au démarrage (et à la demande), jamais un domaine découvert dynamiquement.
+3. **Le manifeste est écrit par la chaîne d'intégration** : `latest.json` sur la page
+   de la version (URL de l'archive, signature, empreinte). L'URL est indiquée dans
+   `endpoints`, jamais découverte dynamiquement. DropForge interroge cette URL au
+   démarrage — le résultat est présenté, l'installation attend un accord.
 
 4. **Produire la mise à jour** :
 
    ```bash
-   npm run tauri build -w @dropforge/desktop
+   npm run build:windows
    ```
 
    Avec `createUpdaterArtifacts: true`, la compilation produit l'installateur **et**
@@ -76,6 +94,27 @@ C'est ce qui est livré aujourd'hui.
 - Comme il n'y a pas de vérification cryptographique côté navigateur, l'intégrité
   repose sur HTTPS et sur l'origine qui sert l'application : ne pas héberger
   l'application depuis une origine non maîtrisée.
+
+## Publication automatisée (recommandé)
+
+```bash
+git tag v0.1.0 && git push origin v0.1.0
+```
+
+`.github/workflows/release.yml` fait alors, sur une machine Windows pour la partie
+bureau :
+
+1. vérifie les types et exécute les tests ;
+2. compile les paquets web et serveur (`dropforge-pwa-<v>.zip`,
+   `dropforge-signaling-<v>.zip`, `SHA256SUMS`) ;
+3. compile l'installateur Windows et **l'archive de mise à jour signée** si les
+   secrets `DROPFORGE_UPDATER_KEY`, `DROPFORGE_UPDATER_KEY_PASSWORD` et
+   `DROPFORGE_UPDATER_PUBKEY` sont configurés, puis écrit `latest.json` (URL de
+   l'archive + signature) ;
+4. attache le tout à la version publiée.
+
+Sans ces secrets, l'installateur est produit quand même : l'application fonctionne,
+mais aucune mise à jour automatique n'est proposée — et l'écran « À propos » le dit.
 
 ## Versions et compatibilité
 

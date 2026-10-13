@@ -1,0 +1,35 @@
+# DropForge chez soi, en deux conteneurs : l'application web et le service de
+# signalisation (facultatif, mais nécessaire pour les transferts à distance).
+#
+#   cd deploy
+#   docker compose up -d --build
+#   → ouvrez http://localhost:8080
+#
+# Ce qui n'est PAS ici, volontairement : aucune base de données, aucun stockage de
+# fichiers, aucune télémétrie. Le service de signalisation ne voit que des messages
+# de négociation et des octets déjà chiffrés.
+services:
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.web
+    ports:
+      - '8080:80'
+    depends_on:
+      - signaling
+    restart: unless-stopped
+
+  signaling:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.signaling
+    environment:
+      PORT: '8787'
+      HOST: '0.0.0.0'
+      # Durée de vie d'une salle d'appairage : au-delà, le code n'est plus valable.
+      DF_ROOM_TTL_MS: '600000'
+      # Messages de contrôle par seconde et par connexion (limitation d'abus).
+      DF_MAX_MSG_PER_SEC: '20'
+    expose:
+      - '8787'
+    restart: unless-stopped

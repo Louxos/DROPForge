@@ -14,6 +14,21 @@ jamais le contenu des fichiers.
 
 ---
 
+## Télécharger
+
+| Vous êtes sur | Prenez | Comment |
+| --- | --- | --- |
+| **Windows** | l'installateur de la dernière version | page **[Releases](../../releases)** → `DropForge_<version>_x64-setup.exe` (par utilisateur, sans droits administrateur) |
+| **Téléphone, tablette, autre ordinateur** | l'application web | ouvrez la page hébergée (GitHub Pages) et choisissez « Installer l'application » / « Sur l'écran d'accueil » |
+| **N'importe où, sans réseau** | l'archive de l'application web | `dropforge-pwa-<version>.zip` de la dernière version, servable depuis n'importe quel dossier |
+| **Deux réseaux différents** | le serveur optionnel | `dropforge-signaling-<version>.zip` : `npm install --omit=dev && npm start` |
+| **Un serveur à vous** | les conteneurs | `cd deploy && docker compose up -d --build` → `http://localhost:8080` |
+
+Détail complet, vérification des sommes de contrôle et construction soi-même :
+[`docs/DOWNLOAD.md`](docs/DOWNLOAD.md).
+
+---
+
 ## État réel du projet
 
 DropForge n'est **pas** encore une version 1.0. Ce tableau dit exactement où en est
@@ -22,7 +37,7 @@ fonctionnalité, est dans [`docs/PLATFORM-MATRIX.md`](docs/PLATFORM-MATRIX.md).
 
 | Partie | Statut |
 | --- | --- |
-| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** (369 tests automatisés) |
+| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** (378 tests automatisés) |
 | Interface partagée React/TypeScript (FR/EN, thème sombre/clair) | ✅ Implémentée et **testée** au niveau du contrôleur d'application |
 | Application web progressive (PWA) installable | ✅ Implémentée et **testée** (pas encore testée sur téléphone réel) |
 | Serveur de signalisation / relais aveugle | ✅ Implémenté et **testé** (Node) |
@@ -84,9 +99,13 @@ Windows.
 ```bash
 npm install
 
-npm run dev:web        # application web  → http://localhost:5173
-npm run dev:signaling  # serveur de signalisation → http://localhost:8787
+npm run dev            # application web + signalisation (une seule commande)
+npm run dev:web        # application web seule → http://localhost:5173
+npm run dev:signaling  # signalisation seule → http://localhost:8787
 ```
+
+`npm run dev` affiche les journaux des deux processus avec un préfixe, et un seul
+Ctrl-C arrête l'ensemble.
 
 Pour utiliser DropForge entre deux appareils, ouvrez l'application sur les deux. Le
 serveur de signalisation n'est nécessaire que pour les transferts **distants** :
@@ -99,17 +118,23 @@ npm run dev:desktop    # application Windows (nécessite Rust + Windows)
 ## Construire
 
 ```bash
-npm run build:web      # interface + service worker → apps/web/dist
-npm run build:desktop  # installateur + mise à jour signée → apps/desktop/src-tauri/target
+npm run build          # les trois cibles compilables ici (web, serveur, interface bureau)
+npm run package        # → release/ : archives téléchargeables + SHA256SUMS
+npm run smoke:release  # vérifie ces archives comme le ferait un téléchargement
+npm run build:windows  # installateur Windows (nécessite Windows + Rust)
 npm run icons          # régénère les icônes (aucune dépendance externe)
 npm run licences       # régénère docs/LICENCES.md depuis les dépendances installées
 ```
+
+`npm run dev` lance l'application et le service de signalisation ensemble. Le
+serveur de signalisation est facultatif : sur un même réseau, l'application
+fonctionne sans lui.
 
 ## Tests
 
 ```bash
 npm run verify           # typecheck + tous les tests
-npm test                 # 33 fichiers, 369 tests
+npm test                 # 34 fichiers, 378 tests
 npm run test:unit        # paquets et application
 npm run test:integration # transferts réels en mémoire, reprise, sécurité, relais
 ```
@@ -165,6 +190,8 @@ apps/
   web/                l'interface + la PWA (React, TypeScript, Vite)
   desktop/            la coque Windows (Tauri 2 + Rust) réutilisant l'interface
   signaling/          serveur de signalisation et relais aveugle (Node, WebSocket)
+deploy/               déploiement maison (nginx, Docker, compose)
+.github/workflows/    intégration continue, publication de l'application, versions
 docs/                 architecture, modèle de données, sécurité, tests, dépannage…
 tests/                transferts de bout en bout en mémoire, reprise, sécurité
 scripts/              icônes, liste des licences
@@ -187,6 +214,8 @@ d'application qui s'appuie sur les paquets. Le même code sert la PWA et Windows
 | [`docs/TESTING.md`](docs/TESTING.md) | Tests, et protocoles à exécuter à la main |
 | [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) | Chaque erreur, sa cause, sa solution |
 | [`docs/UPDATE-PROCEDURE.md`](docs/UPDATE-PROCEDURE.md) | Comment publier une mise à jour signée |
+| [`docs/DOWNLOAD.md`](docs/DOWNLOAD.md) | Télécharger, vérifier, installer, construire |
+| [`deploy/README.md`](deploy/README.md) | Déployer soi-même (statique, conteneurs, Internet) |
 | [`docs/LICENCES.md`](docs/LICENCES.md) | Licences des dépendances (généré) |
 
 ## Sécurité

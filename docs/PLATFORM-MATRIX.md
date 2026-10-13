@@ -42,13 +42,14 @@ Statut exact, sans arrondi optimiste. Quatre niveaux :
 | Rust : fenêtre, tray, fermeture, autostart, espace libre | ✅ Écrit | `apps/desktop/src-tauri/src/lib.rs` |
 | Configuration (fenêtre, CSP, bundle MSI/NSIS, capacités) | ✅ Écrite | `tauri.conf.json`, `capabilities/default.json` |
 | Icônes | ✅ Générées (dont un `.ico`) | `apps/desktop/src-tauri/icons/` |
-| **Compilation Rust** | ❌ **Non vérifiée** | Aucune chaîne d'outils Rust dans l'environnement de développement utilisé |
-| **Installateur signé** | ❌ **Non produit** | Nécessite Windows + un certificat (voir `docs/UPDATE-PROCEDURE.md`) |
+| **Compilation Rust** | ⚠️ **Automatisée, non vérifiée ici** | Aucune chaîne d'outils Rust dans l'environnement de développement utilisé : la compilation est faite par `.github/workflows/release.yml` sur une machine Windows, à chaque tag |
+| **Installateur** | ⚠️ **Produit par la chaîne d'intégration** | Par utilisateur, non signé « éditeur » (certificat payant) ; mises à jour signées si la clé est configurée — voir `docs/DOWNLOAD.md` |
 | **Exécution réelle sur Windows** | ❌ **Non testée** | Idem |
 
 Ce qui reste à faire, dans l'ordre, sur une machine Windows avec Rust et Node :
 
-1. `npm install`, puis `npm run tauri build -w @dropforge/desktop` ;
+1. `npm install`, puis `npm run build:windows` (ou un tag : la chaîne d'intégration
+   s'en charge et publie le résultat) ;
 2. corriger ce que le compilateur Rust signale (le code n'a jamais été compilé : des
    ajustements d'API sont probables) ;
 3. renseigner `plugins.updater.pubkey` et les `endpoints` pour activer les mises à
