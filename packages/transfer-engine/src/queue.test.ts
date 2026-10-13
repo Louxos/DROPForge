@@ -237,6 +237,23 @@ describe('TransferQueue', () => {
     expect(queue.retry('waiting')).toBe(false);
   });
 
+  it('tells the caller whether a cancelled job had already started', async () => {
+    const clock = new FakeClock();
+    const queue = new TransferQueue({ clock, concurrency: 1 });
+    const running = controlledJob('running');
+    const waiting = controlledJob('waiting');
+    queue.enqueue(running.job);
+    queue.enqueue(waiting.job);
+    await idle();
+
+    // A job that never started will never write its own outcome: the caller must
+    // finish its record itself, and that is exactly what the return value says.
+    expect(queue.cancel('waiting')).toBe('not-started');
+    // A running job reports its own outcome, so the caller must keep its hands off.
+    expect(queue.cancel('running')).toBe('started');
+    expect(queue.cancel('inconnu')).toBe('unknown');
+  });
+
   it('pauseAll() stops new jobs and resumeAll() starts them again', async () => {
     const clock = new FakeClock();
     const queue = new TransferQueue({ clock, concurrency: 2 });

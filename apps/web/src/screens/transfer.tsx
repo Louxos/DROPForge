@@ -398,7 +398,7 @@ export function TransferScreen({ controller, state }: { controller: AppControlle
                   type="button"
                   className="df-button df-button--small"
                   disabled={entry.state === 'completed' || entry.state === 'cancelled'}
-                  onClick={() => controller.cancelTransfer(entry.id)}
+                  onClick={() => void controller.cancelTransfer(entry.id)}
                 >
                   {t('transfer.cancel')}
                 </button>

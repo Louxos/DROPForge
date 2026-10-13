@@ -95,6 +95,10 @@ affiche la traduction du code, jamais le message brut d'une exception.
 - `retry` ne ré-enqueue que les échecs réellement réessayables (3 essais maximum).
 - Un élément en pause n'est pas « en cours » : l'interface le montre comme en pause,
   même si la machine à états n'a pas encore bougé.
+- Annuler un élément qui n'a pas encore démarré **termine son enregistrement**
+  (`cancelled`) au lieu de le laisser indéfiniment « en file d'attente » : la file
+  dit à l'appelant si le travail avait commencé, et l'appelant en tire la
+  conséquence. Aucun transfert ne reste dans un état non terminal une fois annulé.
 
 ## 6. Progression, vitesse, temps restant
 
@@ -127,7 +131,24 @@ révocation côté serveur, autorisation vérifiée, ≤ 512 Mio, ≤ 200 fichie
 envoyée au serveur : elle voyage dans le fragment du lien, connu du seul
 destinataire, et l'interface explique comment l'utilisateur doit transmettre le lien.
 
-## 9. Réglages
+## 9. Notifications
+
+Une notification système n'est envoyée que pour une conclusion qui mérite
+d'interrompre la personne :
+
+| Situation | Notification |
+| --- | --- |
+| Envoi terminé et vérifié | « Envoi terminé » avec le nombre de fichiers et le destinataire |
+| Réception terminée et vérifiée | « Réception terminée » de la même façon |
+| Échec | « Transfert échoué » **avec la raison**, tirée du code d'erreur réel |
+| Connexion perdue | « Transfert interrompu », la reprise est expliquée |
+| Annulation par l'utilisateur | **aucune** : la personne vient de le faire elle-même |
+| Échec sans raison rapportée par le moteur | la notification le dit, au lieu d'inventer une cause |
+
+Le service applique de lui-même la préférence, la permission et la limitation de
+débit ; aucun de ces contrôles ne peut être contourné par un appelant.
+
+## 10. Réglages
 
 Langue (fr/en), thème (système/sombre/clair), notifications, démarrage automatique
 Windows, comportement à la fermeture, dossier de réception, politique de conflit,
@@ -137,7 +158,7 @@ Une valeur inventée est **refusée** (`UNSUPPORTED_OPERATION`) et les valeurs
 numériques sont bornées ; un réglage non applicable à la plateforme est désactivé
 avec son explication.
 
-## 10. Mises à jour
+## 11. Mises à jour
 
 - Vérification à la demande, jamais d'installation silencieuse.
 - L'application Windows n'applique qu'une mise à jour **signée** vérifiée contre la

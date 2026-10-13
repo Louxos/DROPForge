@@ -197,15 +197,28 @@ export class TransferQueue {
     this.pump();
   }
 
-  cancel(id: string): void {
+  /**
+   * Cancels a job. Returns whether the job had already started:
+   *  - `started`: the running job was asked to stop and will report its own
+   *    outcome, so the caller must not write the final state itself;
+   *  - `not-started`: nothing was running, the entry is cancelled here, and the
+   *    caller is responsible for finishing whatever record it keeps for it. Without
+   *    this distinction a cancelled-but-never-started transfer would stay
+   *    "queued" forever in the history;
+   *  - `unknown`: there was no such job.
+   */
+  cancel(id: string): 'started' | 'not-started' | 'unknown' {
     const entry = this.entries.get(id);
-    if (!entry) return;
+    if (!entry) return 'unknown';
     entry.cancelRequested = true;
-    if (entry.control) entry.control.cancel();
-    else {
-      entry.state = 'cancelled';
+    if (entry.control) {
+      entry.control.cancel();
+      this.publish();
+      return 'started';
     }
+    entry.state = 'cancelled';
     this.publish();
+    return 'not-started';
   }
 
   /**

@@ -65,7 +65,7 @@ Ce qui reste à faire, dans l'ordre, sur une machine Windows avec Rust et Node :
 | Dossier de réception mémorisé | ✅ Testé (8 tests) | `receive-folder.test.ts` |
 | Base locale + migration v1→v2 | ✅ Testé (9 tests) | `indexed-db-store.test.ts` |
 | Mises à jour (service worker) | ✅ Testé (8 tests) | `updater.test.ts` |
-| Contrôleur d'application (bout en bout, deux appareils) | ✅ Testé (24 tests) | `apps/web/src/app/controller.test.ts` |
+| Contrôleur d'application (bout en bout, deux appareils) | ✅ Testé (27 tests) | `apps/web/src/app/controller.test.ts` |
 | QR code d'appairage | ✅ Testé (7 tests de structure) | `apps/web/src/components/qr.test.ts` |
 | Installation réelle sur téléphone | ⚠️ À faire | Voir « À tester à la main » |
 

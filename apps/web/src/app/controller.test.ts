@@ -9,6 +9,7 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { systemClock, type Transport } from '@dropforge/protocol';
+import type { NotificationChannel, NotificationPermission } from '@dropforge/notifications';
 import type { ConnectionTarget, TransportMethod } from '@dropforge/connection-manager';
 import { DropForgeError, ERROR_CODES, type FileSystemPort, type MetaStore, type SourceFile } from '@dropforge/app-core';
 import { DEFAULT_PREFERENCES, type Preferences } from '@dropforge/settings';
@@ -101,6 +102,28 @@ class FakeLinkFactory implements LinkFactory {
   }
 }
 
+/** Records what would have been shown, without a browser notification API. */
+class RecordingChannel implements NotificationChannel {
+  readonly shown: Array<{ title: string; body: string; tag?: string }> = [];
+  readonly supported = true;
+
+  async permission(): Promise<NotificationPermission> {
+    return 'granted';
+  }
+
+  async requestPermission(): Promise<NotificationPermission> {
+    return 'granted';
+  }
+
+  async show(request: { title: string; body: string; tag?: string }): Promise<void> {
+    this.shown.push(request);
+  }
+
+  onActivated(): () => void {
+    return () => {};
+  }
+}
+
 /** Controllers started by a test, stopped afterwards so no timer keeps the suite alive. */
 const started: AppController[] = [];
 
@@ -111,6 +134,7 @@ afterEach(() => {
 interface Rig {
   host: AppController;
   guest: AppController;
+  channels: { host: RecordingChannel; guest: RecordingChannel };
   hostStore: MemoryStore;
   guestStore: MemoryStore;
   relay: FakeRelay;
@@ -128,6 +152,7 @@ async function makeRig(options: { capabilities?: Partial<PlatformCapabilities>; 
   const guestReceiveFolder = new MemoryFileSystem();
 
   const capabilities = { ...detectCapabilities({ navigator: undefined, window: undefined }), ...options.capabilities };
+  const channels = { host: new RecordingChannel(), guest: new RecordingChannel() };
 
   const controllerFor = (
     store: MetaStore,
@@ -141,6 +166,10 @@ async function makeRig(options: { capabilities?: Partial<PlatformCapabilities>; 
       capabilities,
       links: (info) => new FakeLinkFactory(relay, info, mode),
       receiveStore: async () => folder,
+      channel: mode === 'host' ? channels.host : channels.guest,
+      // The real application translates through i18next; tests read the key back so
+      // they assert *which* message is announced, not its wording.
+      translate: (key, values) => `${key}${values ? ` ${JSON.stringify(values)}` : ''}`,
       updateSource: options.updateSource ?? noUpdateSource,
       appVersion: '9.9.9-test',
       deviceName: mode === 'host' ? 'Poste fixe' : 'Téléphone',
@@ -149,7 +178,7 @@ async function makeRig(options: { capabilities?: Partial<PlatformCapabilities>; 
   const host = controllerFor(hostStore, identities.host, hostReceiveFolder, 'host');
   const guest = controllerFor(guestStore, identities.guest, guestReceiveFolder, 'dial');
   started.push(host, guest);
-  return { host, guest, hostStore, guestStore, relay, hostReceiveFolder, guestReceiveFolder, identities };
+  return { host, guest, channels, hostStore, guestStore, relay, hostReceiveFolder, guestReceiveFolder, identities };
 }
 
 /** Connects both sides and answers the two trust questions the way a user would. */
@@ -559,6 +588,89 @@ describe('AppController: favourites and quick send', () => {
     ]);
     expect(transferId).toBeUndefined();
     expect(rig.host.state.notices[0]?.messageKey).toBe('devices.unknown');
+  });
+});
+
+describe('AppController: notifications', () => {
+  it('announces a completed send to the sender and a completed receive to the receiver', async () => {
+    const rig = await makeRig();
+    await rig.host.start();
+    await rig.guest.start();
+    await connectPair(rig);
+
+    const answer = answerNextIncoming(rig.guest, () => ({ accepted: true, decisions: [] }));
+    const transferId = await rig.host.sendSelection([new MemorySource('photo.jpg', new Uint8Array(64))]);
+    await answer.answered;
+    await waitFor(
+      rig.host,
+      () => rig.host.state.history.some((record) => record.id === transferId && record.state === 'completed'),
+      'the transfer to complete',
+    );
+
+    const sent = rig.channels.host.shown.find((entry) => entry.tag === transferId);
+    const received = rig.channels.guest.shown.find((entry) => entry.tag === transferId);
+    expect(sent?.title).toContain('notify.sentTitle');
+    expect(sent?.body).toContain('notify.sentBody');
+    expect(received?.title).toContain('notify.receivedTitle');
+    expect(received?.body).toContain('notify.receivedBody');
+    // Neither side is told the other's direction.
+    expect(rig.channels.host.shown.some((entry) => entry.title.includes('receivedTitle'))).toBe(false);
+  });
+
+  it('says nothing about a transfer the user cancelled themselves', async () => {
+    const rig = await makeRig();
+    await rig.host.start();
+    await rig.guest.start();
+    await connectPair(rig);
+
+    // The receiver is deliberately never asked to answer: the transfer stays in
+    // flight, which is the only moment a cancel can be observed reliably.
+    const transferId = await rig.host.sendSelection([new MemorySource('gros.bin', new Uint8Array(400_000))]);
+    expect(transferId).toBeDefined();
+    await settle(4);
+
+    await rig.host.cancelTransfer(transferId!);
+    await waitFor(
+      rig.host,
+      () => rig.host.state.history.some((record) => record.id === transferId && record.state === 'cancelled'),
+      'the cancellation to be recorded',
+    );
+
+    // Cancelling is the user's own decision: telling them about it afterwards would
+    // be noise, and the record already says what happened.
+    expect(rig.channels.host.shown.some((entry) => entry.tag === transferId)).toBe(false);
+    expect(rig.channels.guest.shown.some((entry) => entry.tag === transferId)).toBe(false);
+  });
+
+  it('announces a failure with its reason, without inventing success', async () => {
+    const rig = await makeRig();
+    await rig.host.start();
+    await rig.guest.start();
+    await connectPair(rig);
+
+    // A file whose contents changed after it was offered: the engine must fail it.
+    const bytes = new TextEncoder().encode('contenu initial');
+    const changed: SourceFile = {
+      path: 'mouvant.txt',
+      kind: 'file',
+      size: bytes.length,
+      lastModified: 1,
+      read: async (offset: number, length: number) => bytes.subarray(offset, offset + length),
+      revalidate: async () => 'changed',
+    };
+
+    const answer = answerNextIncoming(rig.guest, () => ({ accepted: true, decisions: [] }));
+    const transferId = await rig.host.sendSelection([changed]);
+    await answer.answered;
+    await waitFor(
+      rig.host,
+      () => rig.host.state.history.some((record) => record.id === transferId && record.state === 'failed'),
+      'the failure to be recorded',
+    );
+
+    const failure = rig.channels.host.shown.find((entry) => entry.tag === transferId);
+    expect(failure?.title).toContain('notify.failedTitle');
+    expect(failure?.body).toContain(`errors.${ERROR_CODES.SOURCE_CHANGED}`);
   });
 });
 

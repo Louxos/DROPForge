@@ -38,6 +38,7 @@ import { HistoryStore } from '@dropforge/history';
 import { NotificationService, unsupportedChannel, type NotificationChannel } from '@dropforge/notifications';
 import { DEFAULT_PREFERENCES, SettingsService, type Preferences } from '@dropforge/settings';
 import { createHostedShare, readShareUrl, type CreatedShare, type ShareBackend } from '@dropforge/sharing';
+import { i18n } from '../i18n/index.js';
 import {
   PeerSession,
   TransferQueue,
@@ -114,6 +115,11 @@ export interface ControllerOptions {
   deviceName?: string;
   shareBackend?: ShareBackend;
   shareOrigin?: string;
+  /**
+   * Turns a dictionary key into text. Defaults to the application's i18n instance;
+   * injectable so tests can read what a notification would really say.
+   */
+  translate?: (key: string, options?: Record<string, unknown>) => string;
   /** Update mechanism: service worker on the web, signed Tauri updater on desktop. */
   updateSource?: UpdateSource;
   /** Version shown in the settings; reported by the build, never invented. */
@@ -215,6 +221,7 @@ export class AppController {
   private readonly settings: SettingsService;
   private readonly notifications: NotificationService;
   private readonly discovery: DiscoveryCache;
+  private readonly translate: (key: string, options?: Record<string, unknown>) => string;
   private identity: StoredIdentity | undefined;
   private connection: Connection | undefined;
   private connectionManager: ConnectionManager | undefined;
@@ -239,6 +246,7 @@ export class AppController {
       ...(options.logger ? { logger: options.logger } : {}),
       enabled: () => this.state.settings.notifications,
     });
+    this.translate = options.translate ?? ((key, options) => String(i18n.t(key, options as never)));
     this.discovery = new DiscoveryCache({ now: () => this.clock.now() });
     this.queue = new TransferQueue({
       clock: this.clock,
@@ -943,16 +951,17 @@ export class AppController {
       },
     });
     this.activeSender = undefined;
+    const failureCode = result.outcome.errorCode ?? senderFailureCode(result.outcome);
     const saved = await this.finishRecord(transferId, {
       state: mapSenderState(result.outcome.outcome),
       bytesDone: result.outcome.bytesDone,
       verifiedFiles: result.outcome.verifiedFiles,
-      ...(result.outcome.errorCode ? { errorCode: result.outcome.errorCode } : {}),
+      ...(failureCode ? { errorCode: failureCode } : {}),
     });
     await this.notifyOutcome('send', saved, result.outcome.outcome);
     return {
       outcome: result.outcome.outcome,
-      ...(result.outcome.errorCode ? { errorCode: result.outcome.errorCode } : {}),
+      ...(failureCode ? { errorCode: failureCode } : {}),
       bytesDone: result.outcome.bytesDone,
       verifiedFiles: result.outcome.verifiedFiles,
     };
@@ -1111,8 +1120,19 @@ export class AppController {
     this.queue.resume(id);
   }
 
-  cancelTransfer(id: string): void {
-    this.queue.cancel(id);
+  async cancelTransfer(id: string): Promise<void> {
+    const result = this.queue.cancel(id);
+    if (result !== 'not-started') return;
+    // Nothing was running, so no job will ever write the outcome: the record is
+    // finished here, as cancelled, with its real byte count.
+    const record = await this.history.get(id);
+    if (!record || isTerminal(record.state)) return;
+    await this.finishRecord(id, {
+      state: 'cancelled',
+      bytesDone: record.bytesDone,
+      verifiedFiles: 0,
+      errorCode: ERROR_CODES.TRANSFER_CANCELLED,
+    });
   }
 
   retryTransfer(id: string): void {
@@ -1413,11 +1433,30 @@ export class AppController {
             ? undefined
             : 'transfer-failed';
     if (!kind) return;
+    const values = {
+      count: record.files.filter((file) => file.kind !== 'directory').length,
+      peer: record.peerName,
+      reason: this.translate(record.lastErrorCode ? `errors.${record.lastErrorCode}` : 'notify.interruptedBody', {
+        peer: record.peerName,
+      }),
+    };
+    const text =
+      direction === 'send'
+        ? outcome === 'completed'
+          ? { title: 'notify.sentTitle', body: 'notify.sentBody' }
+          : outcome === 'interrupted'
+            ? { title: 'notify.interruptedTitle', body: 'notify.interruptedBody' }
+            : { title: 'notify.failedTitle', body: 'notify.failedBody' }
+        : outcome === 'completed'
+          ? { title: 'notify.receivedTitle', body: 'notify.receivedBody' }
+          : outcome === 'interrupted'
+            ? { title: 'notify.interruptedTitle', body: 'notify.interruptedBody' }
+            : { title: 'notify.failedTitle', body: 'notify.failedBody' };
     await this.notifications
       .notify({
         kind,
-        title: direction === 'send' ? 'DropForge' : 'DropForge',
-        body: `${record.peerName} · ${record.files.length} fichier(s)`,
+        title: this.translate(text.title, values),
+        body: this.translate(text.body, values),
         tag: record.id,
         route: '/activity',
         ...(outcome === 'completed' ? {} : { priority: 'high' as const }),
@@ -1439,6 +1478,30 @@ export class AppController {
 /* ------------------------------------------------------------------ *
  * Helpers
  * ------------------------------------------------------------------ */
+
+/**
+ * Names the reason of a send that did not deliver everything.
+ *
+ * The engine reports *why* per file (`failed` / `unavailable`); without this the
+ * history and the notification would say "failed" with no reason at all, which is
+ * exactly the kind of useless message this project refuses to show. Nothing is
+ * invented: when no file carries a reason, the code stays `undefined`.
+ */
+export function senderFailureCode(outcome: {
+  failed: Array<{ reason: 'digestMismatch' | 'writeFailed' | 'noSpace' }>;
+  unavailable: Array<{ reason: 'skipped' | 'unreadable' | 'changed' | 'cancelled' | 'refused' }>;
+}): string | undefined {
+  const firstFailed = outcome.failed[0]?.reason;
+  if (firstFailed === 'noSpace') return ERROR_CODES.NO_SPACE_LEFT;
+  if (firstFailed === 'digestMismatch') return ERROR_CODES.INTEGRITY_FAILED;
+  if (firstFailed === 'writeFailed') return ERROR_CODES.WRITE_FAILED;
+  const reason = outcome.unavailable.find((file) => file.reason !== 'skipped')?.reason;
+  if (reason === 'changed') return ERROR_CODES.SOURCE_CHANGED;
+  if (reason === 'unreadable') return ERROR_CODES.READ_FAILED;
+  if (reason === 'refused') return ERROR_CODES.TRANSFER_DECLINED;
+  if (reason === 'cancelled') return ERROR_CODES.TRANSFER_CANCELLED;
+  return undefined;
+}
 
 export function mapSenderState(outcome: SenderOutcome['outcome']): TransferState {
   switch (outcome) {

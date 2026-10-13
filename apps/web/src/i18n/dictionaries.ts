@@ -16,6 +16,16 @@ export interface Dictionary {
     installPrompt: string;
     installAction: string;
   };
+  notify: {
+    sentTitle: string;
+    sentBody: string;
+    receivedTitle: string;
+    receivedBody: string;
+    failedTitle: string;
+    failedBody: string;
+    interruptedTitle: string;
+    interruptedBody: string;
+  };
   nav: {
     transfer: string;
     devices: string;
@@ -242,6 +252,16 @@ export const FR: Dictionary = {
     offline: 'Le relais est injoignable : seuls les transferts sur le réseau local fonctionneront.',
     installPrompt: 'Installer DropForge sur cet appareil',
     installAction: 'Installer',
+  },
+  notify: {
+    sentTitle: 'Envoi terminé',
+    sentBody: '{{count}} fichier(s) envoyés vers {{peer}}.',
+    receivedTitle: 'Réception terminée',
+    receivedBody: '{{count}} fichier(s) reçus de {{peer}}.',
+    failedTitle: 'Transfert échoué',
+    failedBody: '{{peer}} — {{reason}}',
+    interruptedTitle: 'Transfert interrompu',
+    interruptedBody: '{{peer}} — la connexion a été perdue. La reprise repartira de ce qui a été écrit.',
   },
   nav: {
     transfer: 'Transfert',
@@ -519,6 +539,16 @@ export const EN: Dictionary = {
     offline: 'The relay is unreachable: only local network transfers will work.',
     installPrompt: 'Install DropForge on this device',
     installAction: 'Install',
+  },
+  notify: {
+    sentTitle: 'Send complete',
+    sentBody: '{{count}} file(s) sent to {{peer}}.',
+    receivedTitle: 'Receive complete',
+    receivedBody: '{{count}} file(s) received from {{peer}}.',
+    failedTitle: 'Transfer failed',
+    failedBody: '{{peer}} — {{reason}}',
+    interruptedTitle: 'Transfer interrupted',
+    interruptedBody: '{{peer}} — the connection was lost. Resuming starts from what was already written.',
   },
   nav: {
     transfer: 'Transfer',
