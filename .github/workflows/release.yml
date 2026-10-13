@@ -135,23 +135,43 @@ jobs:
       - name: Compilation de l'installateur (signé pour les mises à jour)
         if: steps.updater.outputs.signed == 'true'
         working-directory: apps/desktop
+        shell: bash
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.DROPFORGE_UPDATER_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.DROPFORGE_UPDATER_KEY_PASSWORD }}
-        run: npm run tauri:build -- --config src-tauri/tauri.updater.conf.json
+        run: |
+          set -o pipefail
+          # Les journaux d'exécution ne sont pas toujours récupérables depuis
+          # l'extérieur ; une annotation, elle, reste attachée au passage et contient
+          # la fin de la sortie de compilation. Sans ça, un échec Windows se résume à
+          # « exit code 1 ».
+          if ! npm run tauri:build -- --config src-tauri/tauri.updater.conf.json 2>&1 | tee build.log; then
+            node -e "const f=require('fs');const t=f.readFileSync('build.log','utf8').split('\n').slice(-60).join('\n');console.log('::error::'+t.replace(/%/g,'%25').replace(/\r/g,'').replace(/\n/g,'%0A'))"
+            exit 1
+          fi
 
       - name: Compilation de l'installateur (mises à jour non configurées)
         if: steps.updater.outputs.signed != 'true'
         working-directory: apps/desktop
+        shell: bash
         run: |
           echo "::warning::Aucune clé de mise à jour configurée : l'installateur sera produit sans artefacts de mise à jour."
-          npm run tauri:build
+          set -o pipefail
+          if ! npm run tauri:build 2>&1 | tee build.log; then
+          # Les journaux d'exécution ne sont pas toujours récupérables depuis
+          # l'extérieur ; une annotation, elle, reste attachée au passage et contient
+          # la fin de la sortie de compilation. Sans ça, un échec Windows se résume à
+          # « exit code 1 ».
+            node -e "const f=require('fs');const t=f.readFileSync('build.log','utf8').split('\n').slice(-60).join('\n');console.log('::error::'+t.replace(/%/g,'%25').replace(/\r/g,'').replace(/\n/g,'%0A'))"
+            exit 1
+          fi
 
       - name: Rassembler les fichiers publiés
         shell: bash
         run: |
           mkdir -p dist-release
           # Les noms produits par Tauri contiennent la version et l'architecture.
+          rm -f apps/desktop/build.log
           find apps/desktop/src-tauri/target/release/bundle -maxdepth 2 -type f \
             \( -name '*.exe' -o -name '*.msi' -o -name '*.zip' -o -name '*.sig' \) \
             -exec cp {} dist-release/ \;

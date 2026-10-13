@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconEvent};
-use tauri::{Emitter, Manager, WindowEvent};
+use tauri::{Manager, WindowEvent};
 use tauri_plugin_autostart::MacosLauncher;
 
 /// Préférences que le côté système doit connaître.
@@ -131,7 +131,7 @@ fn device_info(app: tauri::AppHandle) -> DeviceInfo {
 /// Applique les préférences système. Ne fait rien de plus que ce que l'utilisateur a
 /// demandé : rien n'est activé par défaut.
 #[tauri::command]
-fn apply_preferences(app: tauri::AppHandle, autostart: bool, closeBehaviour: String) -> Result<(), String> {
+fn apply_preferences(app: tauri::AppHandle, autostart: bool, close_behaviour: String) -> Result<(), String> {
     use tauri_plugin_autostart::ManagerExt as _;
     let manager = app.autolaunch();
     let result = if autostart {
@@ -143,7 +143,7 @@ fn apply_preferences(app: tauri::AppHandle, autostart: bool, closeBehaviour: Str
 
     let preferences = SystemPreferences {
         autostart,
-        close_behaviour: closeBehaviour,
+        close_behaviour,
     };
     write_preferences(&app, &preferences)
 }
@@ -231,8 +231,14 @@ pub fn run() {
                     _ => {}
                 });
 
-                // Clic gauche : ramener la fenêtre. Dépôt de fichiers sur l'icône :
-                // prévenir l'interface, qui met ces fichiers en file d'attente.
+                // Clic gauche : ramener la fenêtre.
+                //
+                // Le dépôt de fichiers *sur l'icône* n'est pas proposé : l'énumération
+                // d'événements de Tauri 2.12 (Click, DoubleClick, Enter, Move, Leave)
+                // n'expose aucun événement de dépôt, et le seul repli possible —
+                // recopier les chemins depuis une variante non exposée — n'existe pas
+                // côté API. Glisser-déposer dans la **fenêtre** fonctionne et reste le
+                // moyen prévu (voir `docs/PLATFORM-MATRIX.md`).
                 tray.on_tray_icon_event(|tray, event| {
                     let app = tray.app_handle();
                     match event {
@@ -241,13 +247,6 @@ pub fn run() {
                             button_state: MouseButtonState::Up,
                             ..
                         } => show_main_window(app.clone()),
-                        TrayIconEvent::Drop { paths, .. } => {
-                            let paths: Vec<String> = paths
-                                .iter()
-                                .map(|path| path.to_string_lossy().to_string())
-                                .collect();
-                            let _ = app.emit("tray:send-files", paths);
-                        }
                         _ => {}
                     }
                 });

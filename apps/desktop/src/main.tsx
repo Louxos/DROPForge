@@ -32,7 +32,7 @@ import {
 import { SPACE } from '@dropforge/design-system';
 import { SqliteMetaStore } from './platform/tauri-store.js';
 import { SqliteIdentityStore } from './platform/tauri-identity-store.js';
-import { TauriFileSystem, sourcesFromFolder } from './platform/tauri-fs.js';
+import { TauriFileSystem } from './platform/tauri-fs.js';
 import { TauriUpdateSource } from './platform/tauri-updater.js';
 
 /** Where the application data lives; the same folder the tray icon uses. */
@@ -103,19 +103,6 @@ function WindowsApp({ controller, store }: { controller: AppController; store: S
       closeBehaviour: state.settings.closeBehaviour,
     }).catch(() => undefined);
   }, [state.settings.autostart, state.settings.closeBehaviour]);
-
-  // Quick-send from the tray: Rust tells us which files were dropped on the icon.
-  useEffect(() => {
-    let stop: (() => void) | undefined;
-    void import('@tauri-apps/api/event').then(async ({ listen }) => {
-      stop = await listen<string[]>('tray:send-files', (event) => {
-        void sourcesFromFolder(event.payload[0] ?? '').then((files) => {
-          controller.setSelection(files.map((file) => ({ path: file.path, kind: file.kind, size: file.size })));
-        });
-      });
-    });
-    return () => stop?.();
-  }, [controller]);
 
   void store;
   if (!ready) {

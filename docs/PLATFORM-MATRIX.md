@@ -39,7 +39,8 @@ Statut exact, sans arrondi optimiste. Quatre niveaux :
 | Fichiers (réception) | ✅ `TauriFileSystem` (mode `create-new`/`replace`/`resume`, espace libre réel) | `apps/desktop/src/platform/tauri-fs.ts` |
 | Identité | ✅ SQLite local, refus d'un enregistrement inutilisable | `apps/desktop/src/platform/tauri-identity-store.ts` |
 | Mises à jour | ✅ Plugin Tauri, clé publique compilée, installation après accord | `apps/desktop/src/platform/tauri-updater.ts` |
-| Rust : fenêtre, tray, fermeture, autostart, espace libre | ✅ Écrit | `apps/desktop/src-tauri/src/lib.rs` |
+| Rust : fenêtre, fermeture, autostart, espace libre | ✅ Écrit | `apps/desktop/src-tauri/src/lib.rs` |
+| Icône de la zone de notification | ✅ Menu (ouvrir / quitter) et clic gauche | Menu **construit en Rust** : la configuration de Tauri 2.2+ ne porte plus de menu d'icône. Le dépôt de fichiers **sur l'icône** n'est pas proposé : `TrayIconEvent` (2.12) n'expose que Click, DoubleClick, Enter, Move, Leave — glisser-déposer dans la **fenêtre**, oui |
 | Configuration (fenêtre, CSP, bundle MSI/NSIS, capacités) | ✅ Écrite | `tauri.conf.json`, `capabilities/default.json` |
 | Icônes | ✅ Générées (dont un `.ico`) | `apps/desktop/src-tauri/icons/` |
 | **Compilation Rust** | ⚠️ **Automatisée, non vérifiée ici** | Aucune chaîne d'outils Rust dans l'environnement de développement utilisé : la compilation est faite par `.github/workflows/release.yml` sur une machine Windows, à chaque tag |
@@ -51,8 +52,10 @@ Ce qui reste à faire, dans l'ordre, sur une machine Windows avec Rust et Node :
 
 1. `npm install`, puis `npm run build:windows` (ou un tag : la chaîne d'intégration
    s'en charge et publie le résultat) ;
-2. corriger ce que le compilateur Rust signale (le code n'a jamais été compilé : des
-   ajustements d'API sont probables) ;
+2. corriger ce que le compilateur Rust signale. La première compilation réelle (chaîne
+   d'intégration) a déjà servi : elle a montré qu'aucun événement de dépôt de fichiers
+   sur l'icône n'existe dans l'API de Tauri 2.12 — la fonction a été retirée plutôt que
+   documentée comme existante ;
 3. renseigner `plugins.updater.pubkey` et les `endpoints` pour activer les mises à
    jour signées, puis republier ;
 4. exécuter le protocole de test de `docs/TESTING.md` (« À faire sur Windows »).
