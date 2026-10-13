@@ -194,13 +194,21 @@ export function SettingsScreen({ controller, state }: { controller: AppControlle
           <label className="df-switch">
             <input
               type="checkbox"
-              checked={settings.allowHostedSharing}
+              checked={settings.allowHostedSharing && state.hostedSharingAvailable}
+              disabled={!state.hostedSharingAvailable}
               onChange={(event) => void controller.updateSettings({ allowHostedSharing: event.target.checked })}
             />
-            {settings.allowHostedSharing ? t('common.yes') : t('common.no')}
+            {state.hostedSharingAvailable
+              ? settings.allowHostedSharing
+                ? t('common.yes')
+                : t('common.no')
+              : t('capabilities.unavailable')}
           </label>
         </Field>
         <p className="df-faint">{t('settings.hostedSharingNote')}</p>
+        {!state.hostedSharingAvailable ? (
+          <p className="df-faint">{t('settings.hostedSharingUnavailable')}</p>
+        ) : null}
 
         <Field labelKey="settings.historyRetention">
           <select

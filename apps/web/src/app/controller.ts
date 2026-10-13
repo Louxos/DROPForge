@@ -197,6 +197,11 @@ export interface AppState {
   canCheckUpdate: boolean;
   /** Set while this device waits for another one to join its room. */
   pairingRoom: { code: string; link: string } | undefined;
+  /**
+   * True only when a sharing service is actually configured. The interface uses it
+   * to explain the absence instead of offering a switch that would do nothing.
+   */
+  hostedSharingAvailable: boolean;
 }
 
 const DEFAULT_DEVICE_NAME = 'Mon appareil';
@@ -271,6 +276,7 @@ export class AppController {
       appVersion: options.appVersion ?? '0.0.0',
       updateState: undefined,
       pairingRoom: undefined,
+      hostedSharingAvailable: Boolean(options.shareBackend && options.shareOrigin),
       canCheckUpdate: (options.updateSource ?? noUpdateSource).canCheck,
     };
   }
@@ -1169,11 +1175,11 @@ export class AppController {
 
   async createShare(sources: Parameters<typeof createHostedShare>[0]['files'], lifetimeMs?: number): Promise<CreatedShare | undefined> {
     if (!this.state.settings.allowHostedSharing) {
-      this.notice('error', 'errors.HOSTED_SHARING_DISABLED');
+      this.notice('error', 'errors.HOSTED_SHARING_DISABLED', { errorCode: ERROR_CODES.HOSTED_SHARING_DISABLED });
       return undefined;
     }
     if (!this.options.shareBackend || !this.options.shareOrigin) {
-      this.notice('error', 'errors.PLATFORM_UNSUPPORTED');
+      this.notice('error', 'errors.PLATFORM_UNSUPPORTED', { errorCode: ERROR_CODES.PLATFORM_UNSUPPORTED });
       return undefined;
     }
     try {

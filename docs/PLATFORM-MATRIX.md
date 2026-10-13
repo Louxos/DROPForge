@@ -65,7 +65,8 @@ Ce qui reste à faire, dans l'ordre, sur une machine Windows avec Rust et Node :
 | Dossier de réception mémorisé | ✅ Testé (8 tests) | `receive-folder.test.ts` |
 | Base locale + migration v1→v2 | ✅ Testé (9 tests) | `indexed-db-store.test.ts` |
 | Mises à jour (service worker) | ✅ Testé (8 tests) | `updater.test.ts` |
-| Contrôleur d'application (bout en bout, deux appareils) | ✅ Testé (22 tests) | `apps/web/src/app/controller.test.ts` |
+| Contrôleur d'application (bout en bout, deux appareils) | ✅ Testé (24 tests) | `apps/web/src/app/controller.test.ts` |
+| QR code d'appairage | ✅ Testé (7 tests de structure) | `apps/web/src/components/qr.test.ts` |
 | Installation réelle sur téléphone | ⚠️ À faire | Voir « À tester à la main » |
 
 ### Limites de la PWA, dites explicitement dans l'interface
@@ -93,6 +94,6 @@ Ce qui reste à faire, dans l'ordre, sur une machine Windows avec Rust et Node :
 | Élément | Pourquoi |
 | --- | --- |
 | Découverte automatique sur le réseau local **native** (mDNS/UDP) | La découverte est implémentée au niveau logique (annonces signées + cache) et testée ; le transport natif spécifique à chaque plateforme reste à brancher |
-| Liens de partage hébergés de bout en bout | Le paquet `sharing` (chiffrement, expiration, révocation, limites) est testé ; il manque un service d'hébergement configuré (optionnel par conception) |
+| Liens de partage hébergés de bout en bout | Le paquet `sharing` (chiffrement, expiration, révocation, limites) est testé, et le contrôleur refuse la création sans service configuré ; aucun service d'hébergement n'est fourni. Sans configuration, l'option est affichée en lecture seule dans les réglages, avec la raison — jamais un bouton qui échoue en silence |
 | Tests E2E navigateur (Playwright) | Le contrôleur et la plateforme sont testés unitairement ; un E2E réel n'a pas été exécuté dans cet environnement |
 | Tests sur appareils mobiles réels | À faire, voir `docs/TESTING.md` |

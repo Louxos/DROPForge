@@ -562,6 +562,31 @@ describe('AppController: favourites and quick send', () => {
   });
 });
 
+describe('AppController: hosted sharing', () => {
+  it('shows the option as unavailable when no sharing service is configured, and refuses to create a link', async () => {
+    const rig = await makeRig();
+    await rig.host.start();
+    // Without a configured backend, the interface must not offer a switch that does
+    // nothing: the controller says so, and creating a link fails with a clear code.
+    expect(rig.host.state.hostedSharingAvailable).toBe(false);
+    await rig.host.updateSettings({ allowHostedSharing: true });
+
+    const share = await rig.host.createShare([new MemorySource('photo.jpg', new Uint8Array(8))]);
+    expect(share).toBeUndefined();
+    expect(rig.host.state.activeShare).toBeUndefined();
+    expect(rig.host.state.notices[0]?.errorCode).toBe(ERROR_CODES.PLATFORM_UNSUPPORTED);
+  });
+
+  it('refuses a hosted link when the preference is off, even with a service configured', async () => {
+    const rig = await makeRig();
+    await rig.host.start();
+    await rig.host.updateSettings({ allowHostedSharing: false });
+    const share = await rig.host.createShare([new MemorySource('photo.jpg', new Uint8Array(8))]);
+    expect(share).toBeUndefined();
+    expect(rig.host.state.notices[0]?.errorCode).toBe(ERROR_CODES.HOSTED_SHARING_DISABLED);
+  });
+});
+
 describe('AppController: updates', () => {
   it('reports an update as available but never installs it without the user', async () => {
     let installs = 0;

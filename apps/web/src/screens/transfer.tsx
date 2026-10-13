@@ -9,6 +9,7 @@ import { formatBytes } from '@dropforge/design-system';
 import { pickFolder, sourcesFromDataTransfer, sourcesFromFileList } from '../platform/browser-fs.js';
 import type { AppController, AppState } from '../app/controller.js';
 import { EmptyState, PageHeader, ProgressView, StateBadge } from '../components/atoms.js';
+import { QrCode } from '../components/qr.js';
 import type { SourceFile } from '@dropforge/app-core';
 
 export function TransferScreen({ controller, state }: { controller: AppController; state: AppState }): React.ReactElement {
@@ -177,7 +178,58 @@ export function TransferScreen({ controller, state }: { controller: AppControlle
             </div>
           ) : (
             <div>
-              <div className="df-field">
+              {state.pairingRoom ? (
+                <div>
+                  <div className="df-label">{t('transfer.hosting')}</div>
+              <p className="df-faint" style={{ marginTop: SPACE.xs }}>
+                {t('transfer.hostingHint')}
+              </p>
+              <div className="df-row df-row--between" style={{ marginTop: SPACE.md, flexWrap: 'wrap', gap: SPACE.lg }}>
+                <div style={{ flex: 1, minWidth: 240 }}>
+                  <div className="df-label">{t('transfer.pairingCode')}</div>
+                  <div className="df-mono df-code" style={{ fontSize: 28, letterSpacing: 4 }}>
+                    {state.pairingRoom.code}
+                  </div>
+                  <div className="df-row" style={{ marginTop: SPACE.md, flexWrap: 'wrap' }}>
+                    <input className="df-input" readOnly value={state.pairingRoom.link} style={{ flex: 1, minWidth: 180 }} />
+                    <button
+                      type="button"
+                      className="df-button df-button--small"
+                      onClick={() => {
+                        // The clipboard is a permission the browser can refuse: a refusal
+                        // is reported, never hidden behind a "copied" message.
+                        void navigator.clipboard
+                          ?.writeText(state.pairingRoom?.link ?? '')
+                          .then(() => controller.reportNotice('success', 'transfer.linkCopied'))
+                          .catch(() => controller.reportNotice('warning', 'transfer.copyLink'));
+                      }}
+                    >
+                      {t('transfer.copyLink')}
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    className="df-button df-button--ghost df-button--small"
+                    style={{ marginTop: SPACE.md }}
+                    onClick={() => void controller.closeHostedRoom()}
+                  >
+                    {t('transfer.closeRoom')}
+                  </button>
+                </div>
+                  <QrCode value={state.pairingRoom.link} label={t('transfer.qrAlt')} />
+                </div>
+              </div>
+              ) : (
+                <div>
+                  <button type="button" className="df-button" onClick={() => void controller.hostRoom()}>
+                    {t('transfer.receiveDevice')}
+                  </button>
+                  <p className="df-faint" style={{ marginTop: SPACE.sm }}>
+                    {t('transfer.receiveDeviceHint')}
+                  </p>
+                </div>
+              )}
+              <div className="df-field" style={{ marginTop: SPACE.lg }}>
                 <label className="df-label" htmlFor="df-code">
                   {t('transfer.pasteCode')}
                 </label>

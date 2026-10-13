@@ -37,6 +37,12 @@ export interface Dictionary {
     sendTo: string;
     noDevices: string;
     waitingPeer: string;
+    receiveDevice: string;
+    receiveDeviceHint: string;
+    hosting: string;
+    hostingHint: string;
+    closeRoom: string;
+    qrAlt: string;
     pairingCode: string;
     copyLink: string;
     linkCopied: string;
@@ -143,6 +149,7 @@ export interface Dictionary {
     privacy: string;
     diagnostics: string;
     hostedSharing: string;
+    hostedSharingUnavailable: string;
     historyRetention: string;
     keepForever: string;
     days: string;
@@ -257,6 +264,12 @@ export const FR: Dictionary = {
     sendTo: 'Envoyer vers',
     noDevices: 'Aucun appareil joignable pour le moment.',
     waitingPeer: 'En attente d’un appareil…',
+    receiveDevice: 'Recevoir d’un appareil',
+    receiveDeviceHint: 'Affichez un code : l’autre appareil le saisit, ou scanne le QR code.',
+    hosting: 'En attente d’un appareil…',
+    hostingHint: 'Sur l’autre appareil, ouvrez DropForge et saisissez ce code (ou scannez le QR code).',
+    closeRoom: 'Fermer l’attente',
+    qrAlt: 'QR code d’appairage',
     pairingCode: 'Code d’appairage',
     copyLink: 'Copier le lien',
     linkCopied: 'Lien copié',
@@ -364,6 +377,8 @@ export const FR: Dictionary = {
     privacy: 'Confidentialité',
     diagnostics: 'Journaux de diagnostic locaux',
     hostedSharing: 'Autoriser les liens hébergés (temporaires)',
+    hostedSharingUnavailable:
+      'Aucun service d’hébergement n’est configuré : cette option n’est donc proposée qu’en lecture. Le transfert direct et les codes d’appairage restent disponibles et ne dépendent d’aucun serveur payant.',
     historyRetention: 'Conserver l’historique',
     keepForever: 'Toujours',
     days: '{{count}} jours',
@@ -526,6 +541,12 @@ export const EN: Dictionary = {
     sendTo: 'Send to',
     noDevices: 'No device is reachable right now.',
     waitingPeer: 'Waiting for a device…',
+    receiveDevice: 'Receive from a device',
+    receiveDeviceHint: 'Show a code: the other device types it in, or scans the QR code.',
+    hosting: 'Waiting for a device…',
+    hostingHint: 'On the other device, open DropForge and type this code (or scan the QR code).',
+    closeRoom: 'Stop waiting',
+    qrAlt: 'Pairing QR code',
     pairingCode: 'Pairing code',
     copyLink: 'Copy link',
     linkCopied: 'Link copied',
@@ -633,6 +654,8 @@ export const EN: Dictionary = {
     privacy: 'Privacy',
     diagnostics: 'Local diagnostic logs',
     hostedSharing: 'Allow hosted (temporary) links',
+    hostedSharingUnavailable:
+      'No hosting service is configured, so this option is shown read-only. Direct transfers and pairing codes remain available and need no paid server.',
     historyRetention: 'Keep history for',
     keepForever: 'Forever',
     days: '{{count}} days',

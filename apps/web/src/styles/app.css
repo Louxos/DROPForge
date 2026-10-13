@@ -449,3 +449,19 @@ select.df-input {
     transition: none;
   }
 }
+
+/* Le code d'appairage se lit de loin : c'est ce qu'on recopie sur l'autre appareil. */
+.df-code {
+  margin-top: 4px;
+  padding: 8px 12px;
+  border: 1px solid var(--df-border);
+  border-radius: 8px;
+  background: var(--df-surface);
+  text-align: center;
+}
+
+.df-qr {
+  flex: 0 0 auto;
+  border: 1px solid var(--df-border);
+  border-radius: 8px;
+}

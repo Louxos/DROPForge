@@ -25,11 +25,13 @@
     "@dropforge/sharing": "*",
     "@dropforge/transfer-engine": "*",
     "i18next": "^26.4.4",
+    "qrcode": "^1.5.4",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-i18next": "^17.0.16"
   },
   "devDependencies": {
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",

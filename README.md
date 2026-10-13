@@ -22,7 +22,7 @@ fonctionnalité, est dans [`docs/PLATFORM-MATRIX.md`](docs/PLATFORM-MATRIX.md).
 
 | Partie | Statut |
 | --- | --- |
-| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** (349 tests automatisés) |
+| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** (358 tests automatisés) |
 | Interface partagée React/TypeScript (FR/EN, thème sombre/clair) | ✅ Implémentée et **testée** au niveau du contrôleur d'application |
 | Application web progressive (PWA) installable | ✅ Implémentée et **testée** (pas encore testée sur téléphone réel) |
 | Serveur de signalisation / relais aveugle | ✅ Implémenté et **testé** (Node) |
@@ -48,17 +48,19 @@ alternative. **Il n'affirme jamais qu'un réseau autorise la connexion directe.*
 
 ## Fonctionnalités
 
-**Transferts** — tous types de fichiers ; sélection multiple et dossiers là où le
-système le permet ; envoi et réception ; file d'attente avec pause, reprise,
+**Transferts** — tous types de fichiers ; sélection multiple, glisser-déposer et
+dossiers là où le système le permet ; envoi et réception ; file d'attente avec pause, reprise,
 annulation, réessai et réordonnancement ; limité en parallèle par un réglage (1 à 8) ;
 reprise après coupure quand la plateforme expose l'écriture aléatoire ; vérification
 d'intégrité SHA-256 avant tout état « terminé » ; aucun plafond de taille artificiel.
 
-**Appareils** — découverte sur le réseau local, appairage par QR code, connexion
-manuelle par code de salle, appareils de confiance révocables, confirmation explicite
-avant d'accepter un nouvel appareil. L'appairage **vérifie l'identité
-cryptographique** (un code à 6 chiffres dérivé du secret partagé), pas seulement un
-nom.
+**Appareils** — découverte sur le réseau local, appairage affiché sous forme de code
+et de QR code, connexion manuelle par code de salle, appareils de confiance
+révocables, favoris avec envoi rapide en une action, confirmation explicite avant
+d'accepter un nouvel appareil. L'appairage **vérifie l'identité cryptographique** (un
+code à 6 chiffres dérivé du secret partagé), pas seulement un nom. Le QR code est
+généré par la bibliothèque `qrcode` (MIT) : aucun encodeur maison, comme pour la
+cryptographie.
 
 **Historique et réglages** — historique détaillé, cherchable et filtrable, avec
 suppression ; favoris et envoi rapide ; notifications ; langue, thème, dossier de
@@ -107,7 +109,7 @@ npm run licences       # régénère docs/LICENCES.md depuis les dépendances in
 
 ```bash
 npm run verify           # typecheck + tous les tests
-npm test                 # 31 fichiers, 349 tests
+npm test                 # 32 fichiers, 358 tests
 npm run test:unit        # paquets et application
 npm run test:integration # transferts réels en mémoire, reprise, sécurité, relais
 ```
