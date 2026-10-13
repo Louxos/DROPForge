@@ -2,7 +2,7 @@
   "name": "dropforge",
   "version": "0.1.0",
   "private": true,
-  "description": "DropForge \u2014 transfert de fichiers entre appareils, sans compte, chiffr\u00e9 de bout en bout.",
+  "description": "DropForge — transfert de fichiers entre appareils, sans compte, chiffré de bout en bout.",
   "license": "SEE LICENSE IN docs/LICENSES.md",
   "type": "module",
   "engines": {
@@ -41,6 +41,7 @@
   "devDependencies": {
     "@types/node": "^26.6.5",
     "fake-indexeddb": "^6.2.5",
+    "happy-dom": "^21.0.1",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vitest": "^5.0.4"

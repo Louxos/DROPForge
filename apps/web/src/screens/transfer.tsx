@@ -251,6 +251,11 @@ export function TransferScreen({ controller, state }: { controller: AppControlle
               {state.methodExplanation.length > 0 ? (
                 <p className="df-faint">{state.methodExplanation.map((key) => t(key as never)).join(' · ')}</p>
               ) : null}
+              {state.devices.length === 0 && state.discovered.length === 0 ? (
+                // An honest empty state: nothing is reachable, so nothing is offered.
+                // The moment a device is paired or discovered, this disappears.
+                <p className="df-faint">{t('transfer.noDevices')}</p>
+              ) : null}
             </div>
           )}
         </div>

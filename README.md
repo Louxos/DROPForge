@@ -37,13 +37,13 @@ fonctionnalité, est dans [`docs/PLATFORM-MATRIX.md`](docs/PLATFORM-MATRIX.md).
 
 | Partie | Statut |
 | --- | --- |
-| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** (378 tests automatisés) |
+| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** (384 tests automatisés) |
 | Interface partagée React/TypeScript (FR/EN, thème sombre/clair) | ✅ Implémentée et **testée** au niveau du contrôleur d'application |
 | Application web progressive (PWA) installable | ✅ Implémentée et **testée** (pas encore testée sur téléphone réel) |
 | Serveur de signalisation / relais aveugle | ✅ Implémenté et **testé** (Node) |
 | Application Windows (Tauri + Rust) | ⚠️ Écrite et vérifiée en TypeScript, **jamais compilée** : aucune chaîne d'outils Rust dans l'environnement de développement utilisé |
 | Installateur Windows signé, mises à jour signées | ❌ Non produits (nécessitent un certificat et Windows) |
-| Tests navigateur E2E, tests sur appareils mobiles réels | ❌ Non exécutés |
+| Tests dans un vrai navigateur (E2E), tests sur appareils mobiles réels | ❌ Non exécutés — le rendu de l'interface est vérifié dans un DOM simulé |
 | Liens de partage hébergés | ⚠️ Code client implémenté et testé ; nécessite un hébergement (optionnel) |
 
 ## Comment DropForge se connecte
@@ -134,7 +134,7 @@ fonctionne sans lui.
 
 ```bash
 npm run verify           # typecheck + tous les tests
-npm test                 # 34 fichiers, 378 tests
+npm test                 # 35 fichiers, 384 tests
 npm run test:unit        # paquets et application
 npm run test:integration # transferts réels en mémoire, reprise, sécurité, relais
 ```

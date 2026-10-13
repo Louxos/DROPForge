@@ -112,6 +112,7 @@ téléchargeable, valeur par défaut de `npm run package`), `/<dépôt>/` (GitHu
 | WebCrypto comme unique primitive cryptographique (+ `@noble/hashes` en flux) | Aucun algorithme maison ; les clés privées ne quittent pas le stockage non exportable quand la plateforme le permet |
 | Une trame = un octet de type + nonce + charge | Le relais ne peut pas confondre contrôle et données, et ne peut rien déchiffrer |
 | Le contrôleur d'application ne connaît que des ports | Windows (SQLite, dossier) et le navigateur (IndexedDB, File System Access) partagent exactement la même logique |
+| L'état publié par le contrôleur est **remplacé** à chaque changement, jamais muté en place | `useSyncExternalStore` compare les instantanés par identité : un objet muté en place laisserait l'interface figée sur son premier rendu alors que le moteur travaille (défaut trouvé par `ui.test.tsx`, corrigé dans `emit()`) |
 | Le relais est un serveur Node autonome | Il peut être hébergé n'importe où (y compris chez le propriétaire) sans dépendre d'une API payante |
 | Les alias `@dropforge/*` pointent vers les sources TypeScript | Un seul `tsc` vérifie tout le dépôt ; pas d'étape de construction intermédiaire à maintenir |
 | Aucune ressource externe (police, CDN, script) | L'application doit fonctionner hors ligne, installée, sans fuite de requêtes vers un tiers |

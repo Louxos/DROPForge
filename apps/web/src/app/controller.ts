@@ -231,7 +231,19 @@ export class AppController {
   private activeReceiver: TransferReceiver | undefined;
   private noticeCounter = 0;
 
-  readonly state: AppState;
+  /**
+   * The published state.
+   *
+   * Read through the getter; written field by field by the controller. `emit()`
+   * replaces the object so its identity changes on every change — that identity is
+   * what React's `useSyncExternalStore` compares, and therefore what makes the
+   * interface follow the engine instead of freezing on its first render.
+   */
+  private snapshot: AppState;
+
+  get state(): AppState {
+    return this.snapshot;
+  }
 
   constructor(private readonly options: ControllerOptions) {
     this.clock = options.clock ?? systemClock;
@@ -257,7 +269,7 @@ export class AppController {
         this.emit();
       },
     });
-    this.state = {
+    this.snapshot = {
       ready: false,
       identityFingerprint: undefined,
       deviceName: options.deviceName ?? DEFAULT_DEVICE_NAME,
@@ -380,7 +392,17 @@ export class AppController {
     return await readStorageEstimate();
   }
 
+  /**
+   * Publishes a new state identity, then wakes the listeners.
+   *
+   * The state is *replaced*, never mutated in place: React's `useSyncExternalStore`
+   * compares snapshots by identity, so a controller that mutated one object would
+   * leave the interface frozen on its first render — transfers would appear never to
+   * start and progress would never move, while the engine worked perfectly. The
+   * rendered-interface test in `ui.test.tsx` is what caught this.
+   */
   private emit(): void {
+    this.snapshot = { ...this.snapshot };
     for (const listener of [...this.listeners]) listener();
   }
 
