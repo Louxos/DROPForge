@@ -93,3 +93,26 @@ C'est ce qui est livré aujourd'hui.
   `docs/PLATFORM-MATRIX.md`.
 - Les versions `0.x` restent possibles tant que la compilation Rust et un
   installateur signé n'ont pas été validés sur Windows.
+
+## Installation et désinstallation
+
+Ce que DropForge écrit sur une machine Windows, et où :
+
+| Élément | Emplacement | Supprimé à la désinstallation |
+| --- | --- | --- |
+| Application et ressources | dossier d'installation choisi par l'installateur | ✅ |
+| Base locale (historique, appareils, réglages) | `%APPDATA%\<identifiant de l'application>` | ✅ (l'installateur supprime les données de l'application, pas les fichiers reçus) |
+| Fichiers reçus | dossier de réception choisi par la personne, ou Téléchargements | ❌ **jamais** : ce sont vos fichiers |
+| Démarrage automatique | clé `Run` de l'utilisateur, posée **uniquement** si le réglage est activé | ✅ (et désactivée aussitôt que l'interrupteur est éteint) |
+| Identité et appareils de confiance | dans la base locale | ✅ |
+
+Points vérifiés par conception, à confirmer à l'installation (voir `docs/TESTING.md`) :
+
+- **Installation par utilisateur** : aucun droit administrateur demandé pour
+  l'installation courante.
+- **Aucun service ni tâche planifiée** n'est créé : DropForge ne démarre que parce
+  que l'utilisateur l'a lancé, ou parce qu'il a activé le démarrage automatique.
+- **Aucun pilote, aucune extension de l'explorateur** : le désinstallateur n'a rien
+  d'autre à retirer que les fichiers listés ci-dessus.
+- **Les fichiers reçus sont hors de portée du désinstallateur** : supprimer
+  l'application ne peut pas supprimer vos données.

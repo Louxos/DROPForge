@@ -19,6 +19,7 @@ npm run verify              # typecheck + tests
 | Cryptographie | `security/…` (identity, session, pairing, handshake) | 48 | Handshake authentifié, anti-rejeu, appairage vérifié, dérivation des clés |
 | Moteur | `transfer-engine/…` (ranges, queue, manifest) | 15 | Plages, file d'attente, manifeste et son empreinte |
 | Modules métier | `device-manager`, `history`, `settings`, `sharing`, `notifications`, `design-system`, `connection-manager` | 71 | Confiance des appareils, historique, préférences validées, partages, notifications, thème, choix de méthode |
+| **Coque Windows** | `apps/desktop/src/platform/local-paths.test.ts` | 9 | Construction et normalisation des chemins (POSIX/Windows), racine de lecteur, dossier parent — les seules parties du shell qui se testent sans Tauri |
 | **Application web** | `apps/web/src/**` | **78** | Capacités mesurées, écriture/refus/renommage de fichiers, dossier de réception, base locale + migration, mises à jour, i18n FR/EN exhaustive, **contrôleur d'application de bout en bout (deux appareils, transfert réel, refus, conflits)** |
 | Transferts réels (mémoire) | `tests/loopback-transfer.test.ts` | 23 | Envoi/réception complets, conflits, écrasement, fichiers modifiés, gros fichiers, vérification |
 | Reprise | `tests/resume.test.ts` | 5 | Reprise alignée sur les morceaux, refus si l'empreinte change |
@@ -26,13 +27,14 @@ npm run verify              # typecheck + tests
 | Connexion | `tests/connection-manager.test.ts` | 7 | Choix de méthode, échecs cumulés, changement d'identité = arrêt |
 | Relais | `apps/signaling/src/server.test.ts` | 11 | Salles, quotas, relais aveugle, expiration |
 
-Total vérifié le 13 octobre 2026 : **328 tests, 30 fichiers**, tous au vert.
+Total vérifié le 13 octobre 2026 : **337 tests, 31 fichiers**, tous au vert.
 
 ## Ce qui n'est PAS couvert (à ne pas confondre avec « testé »)
 
 | Élément | Statut | Où c'est dit |
 | --- | --- | --- |
 | Compilation et exécution Rust/Tauri | ❌ Environnement sans Rust | `docs/PLATFORM-MATRIX.md` |
+| Coque Windows au-delà des chemins | ❌ `tauri-fs`, `tauri-store`, `tauri-updater` n'importent les plugins Tauri : aucun test automatique, seule la vérification de types | ci-dessus |
 | Navigateur réel (Chromium/Safari/Firefox) | ❌ Aucun test E2E exécuté | `docs/PLATFORM-MATRIX.md` |
 | Appareils mobiles réels | ❌ Non testé | plus bas |
 | Service d'hébergement de partage | ❌ Non configuré ; seul le code client est testé | `docs/FREE-DEPLOYMENT.md` |

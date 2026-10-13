@@ -99,7 +99,7 @@ const lines = [
   '- `@tauri-apps/*` est distribué sous Apache-2.0 OR MIT ; Tauri lui-même est sous',
   '  Apache-2.0 OR MIT. Aucun composant n’impose de redevance ni de compte payant.',
   '- Aucune bibliothèque de chiffrement « maison » : seules WebCrypto (plateforme) et',
-  '  `@noble/curves` / `@noble/hashes` (MIT, auditées publiquement) sont utilisées.',
+  '  `@noble/hashes` (MIT, auditée publiquement) est utilisée.',
 ];
 
 if (unknown) {

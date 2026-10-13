@@ -19,7 +19,8 @@ import {
   type FileSystemPort,
   type SourceFile,
 } from '@dropforge/app-core';
-import { isSafeRelativePath, safeRelativePath } from '@dropforge/protocol';
+import { isSafeRelativePath, redactPath, safeRelativePath } from '@dropforge/protocol';
+import { joinUnder, parentOf } from './local-paths.js';
 
 export class TauriFileSystem implements FileSystemPort {
   readonly kind = 'tauri' as const;
@@ -79,8 +80,14 @@ export class TauriFileSystem implements FileSystemPort {
     }
     await this.ensureParent(absolute);
     try {
-      const handle = await open(absolute, options.mode === 'replace' ? { write: true, truncate: true } : { write: true, create: true });
-      return new TauriBlobSink(safe, handle, options.size, this.options, existing?.size ?? 0);
+      // `resume` keeps the bytes already on disk (that is the point); every other
+      // mode starts from an empty file.
+      const handle = await open(
+        absolute,
+        options.mode === 'replace' ? { write: true, create: true, truncate: true } : { write: true, create: true },
+      );
+      const startAt = options.mode === 'resume' && existing ? existing.size : 0;
+      return new TauriBlobSink(safe, handle, startAt);
     } catch (error) {
       throw fromPlatformError(error);
     }
@@ -107,15 +114,14 @@ export class TauriFileSystem implements FileSystemPort {
   private absolute(path: string): string {
     if (path === '' || path === '.') return this.root;
     if (!isSafeRelativePath(path)) {
-      throw new DropForgeError(ERROR_CODES.PATH_UNSAFE, 'The path is not allowed', { context: { path: redact(path) } });
+      throw new DropForgeError(ERROR_CODES.PATH_UNSAFE, 'The path is not allowed', { context: { path: redactPath(path) } });
     }
     return joinUnder(this.root, safeRelativePath(path));
   }
 
   private async ensureParent(absolute: string): Promise<void> {
-    const index = Math.max(absolute.lastIndexOf('/'), absolute.lastIndexOf('\\'));
-    if (index <= 0) return;
-    const parent = absolute.slice(0, index);
+    const parent = parentOf(absolute);
+    if (!parent) return;
     if (!(await exists(parent))) await mkdir(parent, { recursive: true });
   }
 }
@@ -123,29 +129,32 @@ export class TauriFileSystem implements FileSystemPort {
 /** A sink backed by a real file handle; `abort()` closes without truncating. */
 class TauriBlobSink implements BlobSink {
   private writtenBytes = 0;
+  /** Position of the next byte to write in the destination file. */
+  private cursor: number;
   private done = false;
 
   constructor(
     readonly path: string,
     private readonly handle: Awaited<ReturnType<typeof open>>,
-    private readonly size: number,
-    private readonly options: { freeSpace?: () => Promise<number | undefined> },
-    private readonly existingSize: number,
+    /** Offset the file starts at: the existing size when resuming, 0 otherwise. */
+    startAt: number,
   ) {
-    void this.options;
+    this.cursor = startAt;
   }
 
+  /** Bytes written during this session, which is what progress must report. */
   get written(): number {
     return this.writtenBytes;
   }
 
-  get existing(): number {
-    return this.existingSize;
-  }
-
   async write(offset: number, data: Uint8Array): Promise<void> {
     try {
+      // The engine writes in order, so the common case is a plain append. The
+      // seek covers the rest: a resumed file starts at its existing size, and a
+      // re-ordered write must never land at the wrong position.
+      if (offset !== this.cursor) await this.handle.seek(offset, SeekMode.Start);
       await this.handle.write(data);
+      this.cursor = offset + data.length;
       this.writtenBytes += data.length;
     } catch (error) {
       throw fromPlatformError(error);
@@ -163,7 +172,6 @@ class TauriBlobSink implements BlobSink {
     // user was told the file is incomplete.
     this.done = true;
     await this.handle.close().catch(() => undefined);
-    void this.size;
   }
 }
 
@@ -218,19 +226,3 @@ async function walk(directory: string, prefix: string, out: SourceFile[], depth:
   }
 }
 
-/**
- * Joins a validated relative path under a root, keeping the separator style of the
- * root. The validation already happened: this only builds the string.
- */
-function joinUnder(root: string, relative: string): string {
-  const separator = root.includes('\\') && !root.includes('/') ? '\\' : '/';
-  const cleanRoot = root.replace(/[\\/]+$/, '');
-  return `${cleanRoot}${separator}${relative.split('/').join(separator)}`;
-}
-
-function redact(path: string): string {
-  // Never log a user path in full: keep the extension only.
-  const base = path.split(/[\\/]/).at(-1) ?? path;
-  const dot = base.lastIndexOf('.');
-  return dot > 0 ? `***${base.slice(dot)}` : '***';
-}
