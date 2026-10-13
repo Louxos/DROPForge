@@ -1,0 +1,34 @@
+{
+  "name": "dropforge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DropForge — transfert de fichiers entre appareils, sans compte, chiffré de bout en bout.",
+  "license": "SEE LICENSE IN docs/LICENSES.md",
+  "type": "module",
+  "engines": {
+    "node": ">=20.19"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/web",
+    "apps/signaling"
+  ],
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
+    "dev:web": "npm run dev -w @dropforge/web",
+    "dev:signaling": "npm run dev -w @dropforge/signaling",
+    "build:web": "npm run build -w @dropforge/web",
+    "start:signaling": "npm run start -w @dropforge/signaling",
+    "verify": "npm run typecheck && npm run test"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.4"
+  }
+}

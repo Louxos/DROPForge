@@ -1,0 +1,173 @@
+import { describe, expect, it, vi } from 'vitest';
+import { ERROR_CODES } from '@dropforge/app-core';
+import {
+  DEFAULT_PREFERENCES,
+  SETTINGS_COLLECTION,
+  SETTINGS_KEY,
+  SETTINGS_VERSION,
+  SettingsService,
+  migrateSettings,
+  readSettings,
+} from './settings.js';
+import { MemoryStore } from '../../../tests/helpers/memory-store.js';
+
+describe('defaults', () => {
+  it('is private by default', () => {
+    expect(DEFAULT_PREFERENCES.diagnostics).toBe(false);
+    expect(DEFAULT_PREFERENCES.trustedDevicesOnly).toBe(false);
+    expect(DEFAULT_PREFERENCES.conflictPolicy).toBe('ask');
+    expect(DEFAULT_PREFERENCES.historyRetentionDays).toBe(0);
+    expect(DEFAULT_PREFERENCES.theme).toBe('dark');
+  });
+
+  it('returns the defaults when nothing is stored yet', async () => {
+    const service = new SettingsService(new MemoryStore());
+    const result = await service.load();
+    expect(result.preferences).toEqual(DEFAULT_PREFERENCES);
+    expect(result.ignored).toEqual([]);
+    expect(result.fromVersion).toBe(0);
+  });
+});
+
+describe('validation', () => {
+  it('falls back to the default for an unusable stored value and reports it', () => {
+    const { value, ignored } = readSettings({
+      v: SETTINGS_VERSION,
+      theme: 'neon',
+      language: 'de',
+      maxConcurrentTransfers: 'many',
+      notifications: 'yes',
+    });
+    expect(value.theme).toBe('dark');
+    expect(value.language).toBe('fr');
+    expect(value.maxConcurrentTransfers).toBe(2);
+    expect(value.notifications).toBe(true);
+    expect(ignored.sort()).toEqual(['language', 'maxConcurrentTransfers', 'notifications', 'theme']);
+  });
+
+  it('clamps numbers instead of failing, so a slider cannot break the engine', () => {
+    const { value, clamped, ignored } = readSettings({
+      v: SETTINGS_VERSION,
+      maxConcurrentTransfers: 99,
+      historyRetentionDays: -5,
+      maxTransferBytes: 1.6,
+    });
+    expect(value.maxConcurrentTransfers).toBe(8);
+    expect(value.historyRetentionDays).toBe(0);
+    expect(value.maxTransferBytes).toBe(2);
+    expect(clamped).toContain('maxConcurrentTransfers');
+    expect(ignored).toEqual([]);
+  });
+
+  it('refuses a patch whose value the caller made up', async () => {
+    const service = new SettingsService(new MemoryStore());
+    await service.load();
+    await expect(service.update({ theme: 'neon' as never })).rejects.toMatchObject({
+      code: ERROR_CODES.UNSUPPORTED_OPERATION,
+    });
+    // Nothing was written on the way out.
+    expect(service.get().theme).toBe('dark');
+  });
+});
+
+describe('persistence and events', () => {
+  it('persists an update and reloads it', async () => {
+    const store = new MemoryStore();
+    const service = new SettingsService(store);
+    await service.load();
+    await service.update({ theme: 'light', language: 'en', receiveFolder: 'D:\\Téléchargements' });
+
+    const reloaded = new SettingsService(store);
+    const { preferences } = await reloaded.load();
+    expect(preferences.theme).toBe('light');
+    expect(preferences.language).toBe('en');
+    expect(preferences.receiveFolder).toBe('D:\\Téléchargements');
+  });
+
+  it('emits a change per modified key only', async () => {
+    const service = new SettingsService(new MemoryStore());
+    await service.load();
+    const seen: string[] = [];
+    service.onChange((change) => seen.push(change.key));
+    await service.update({ theme: 'light' });
+    await service.update({ theme: 'light' });
+    await service.update({ notifications: false });
+
+    expect(seen).toEqual(['theme', 'notifications']);
+  });
+
+  it('resets everything, including privacy switches', async () => {
+    const service = new SettingsService(new MemoryStore());
+    await service.load();
+    await service.update({ diagnostics: true, trustedDevicesOnly: true, theme: 'light' });
+    const reset = await service.reset();
+    expect(reset).toEqual(DEFAULT_PREFERENCES);
+    expect(reset.diagnostics).toBe(false);
+  });
+
+  it('does not rewrite the store when nothing changed', async () => {
+    const store = new MemoryStore();
+    const spy = vi.spyOn(store, 'put');
+    const service = new SettingsService(store);
+    await service.load();
+    expect(spy).not.toHaveBeenCalled();
+    await service.update({ theme: 'light' });
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(await store.get(SETTINGS_COLLECTION, SETTINGS_KEY)).toMatchObject({
+      theme: 'light',
+      v: SETTINGS_VERSION,
+    });
+  });
+});
+
+describe('migrations', () => {
+  it('migrates a version 1 file that used a separate rename flag', () => {
+    const migrated = migrateSettings({
+      v: 1,
+      renameOnConflict: true,
+      conflictPolicy: 'ask',
+      maxConcurrentTransfers: 12,
+      theme: 'light',
+    });
+    expect(migrated.changed).toBe(true);
+    expect(migrated.value.conflictPolicy).toBe('rename');
+    expect(migrated.value.renameOnConflict).toBeUndefined();
+    // The old build allowed 12 parallel transfers; the queue never did.
+    expect(migrated.value.maxConcurrentTransfers).toBe(8);
+    expect(migrated.value.allowHostedSharing).toBe(true);
+    expect(migrated.value.v).toBe(SETTINGS_VERSION);
+    // Everything the user had chosen survives.
+    expect(migrated.value.theme).toBe('light');
+  });
+
+  it('treats a file without a version as version 0 and keeps known keys', () => {
+    const { value, fromVersion } = readSettings({ theme: 'light', language: 'en' });
+    expect(fromVersion).toBe(0);
+    expect(value.theme).toBe('light');
+    expect(value.language).toBe('en');
+    expect(value.v).toBe(SETTINGS_VERSION);
+  });
+
+  it('writes the migrated file back only when the schema changed', async () => {
+    const store = new MemoryStore();
+    await store.put(SETTINGS_COLLECTION, SETTINGS_KEY, {
+      v: 1,
+      renameOnConflict: true,
+      conflictPolicy: 'ask',
+    });
+    const service = new SettingsService(store);
+    const result = await service.load();
+    expect(result.fromVersion).toBe(1);
+    expect(result.preferences.conflictPolicy).toBe('rename');
+    expect(await store.get(SETTINGS_COLLECTION, SETTINGS_KEY)).toMatchObject({
+      v: SETTINGS_VERSION,
+      conflictPolicy: 'rename',
+    });
+  });
+
+  it('survives a garbage payload without throwing', () => {
+    expect(() => readSettings('not an object')).not.toThrow();
+    expect(readSettings('not an object').value).toEqual(DEFAULT_PREFERENCES);
+    expect(readSettings(null).value).toEqual(DEFAULT_PREFERENCES);
+  });
+});
