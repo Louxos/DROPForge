@@ -67,6 +67,7 @@ Ce qui reste à faire, dans l'ordre, sur une machine Windows avec Rust et Node :
 | Mises à jour (service worker) | ✅ Testé (8 tests) | `updater.test.ts` |
 | Contrôleur d'application (bout en bout, deux appareils) | ✅ Testé (27 tests) | `apps/web/src/app/controller.test.ts` |
 | QR code d'appairage | ✅ Testé (7 tests de structure) | `apps/web/src/components/qr.test.ts` |
+| Installation (invite du navigateur, iOS expliqué, déjà installé) | ✅ Testé (7 tests) | `apps/web/src/platform/install.test.ts` |
 | Installation réelle sur téléphone | ⚠️ À faire | Voir « À tester à la main » |
 
 ### Limites de la PWA, dites explicitement dans l'interface

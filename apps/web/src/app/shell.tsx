@@ -11,15 +11,21 @@ import { DevicesScreen } from '../screens/devices.js';
 import { ActivityScreen } from '../screens/activity.js';
 import { SettingsScreen } from '../screens/settings.js';
 import { BrandMark, NoticeStack } from '../components/atoms.js';
+import type { InstallWatch } from '../platform/install.js';
 
 export type Route = 'transfer' | 'devices' | 'activity' | 'settings';
 
 export interface ShellProps {
   controller: AppController;
   state: AppState;
+  /**
+   * Installation watch, when the host has one (the browser does, the Windows shell
+   * does not). Absent means: no install banner, which is the truth there.
+   */
+  install?: InstallWatch;
 }
 
-export function Shell({ controller, state }: ShellProps): React.ReactElement {
+export function Shell({ controller, state, install }: ShellProps): React.ReactElement {
   const { t, i18n } = useTranslation();
   const [route, setRoute] = useState<Route>('transfer');
   const [systemDark, setSystemDark] = useState(true);
@@ -130,6 +136,7 @@ export function Shell({ controller, state }: ShellProps): React.ReactElement {
 
       <main className="df-main" style={{ fontFamily: TYPOGRAPHY.fontFamily }}>
         <NoticeStack controller={controller} state={state} />
+        <InstallBanner install={install} />
         {route === 'transfer' ? <TransferScreen controller={controller} state={state} /> : null}
         {route === 'devices' ? <DevicesScreen controller={controller} state={state} /> : null}
         {route === 'activity' ? <ActivityScreen controller={controller} state={state} /> : null}
@@ -150,6 +157,59 @@ export function Shell({ controller, state }: ShellProps): React.ReactElement {
           </button>
         ))}
       </nav>
+    </div>
+  );
+}
+
+/**
+ * The install offer. It appears only when the browser really offers an install
+ * prompt, or when the platform has a documented manual path (iOS). It is
+ * dismissible and never comes back during the session once declined.
+ */
+function InstallBanner({ install }: { install?: InstallWatch | undefined }): React.ReactElement | null {
+  const { t } = useTranslation();
+  const [dismissed, setDismissed] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [shown, setShown] = useState(false);
+
+  // The prompt event arrives after the first render; watching for it here keeps the
+  // banner honest (it never claims to be installable before it is).
+  useEffect(() => {
+    if (!install) return;
+    const refresh = (): void => setShown(!install.installed() && (install.available() || install.platform() === 'ios'));
+    refresh();
+    return install.subscribe(refresh);
+  }, [install]);
+
+  if (!install || dismissed || !shown) return null;
+  const canPrompt = install.available();
+  return (
+    <div className="df-card df-card--tight df-row df-row--between" style={{ marginBottom: SPACE.lg, flexWrap: 'wrap' }}>
+      <span>{canPrompt ? t('app.installPrompt') : t('app.installIos')}</span>
+      <span className="df-row">
+        {canPrompt ? (
+          <button
+            type="button"
+            className="df-button df-button--small df-button--primary"
+            disabled={busy}
+            onClick={() => {
+              setBusy(true);
+              void install
+                .prompt()
+                .then((outcome) => {
+                  // Whatever the user chose, the offer has been made once.
+                  if (outcome !== 'unavailable') setDismissed(true);
+                })
+                .finally(() => setBusy(false));
+            }}
+          >
+            {t('app.installAction')}
+          </button>
+        ) : null}
+        <button type="button" className="df-button df-button--small df-button--ghost" onClick={() => setDismissed(true)}>
+          {t('app.installLater')}
+        </button>
+      </span>
     </div>
   );
 }

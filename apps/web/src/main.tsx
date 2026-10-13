@@ -11,6 +11,7 @@ import { createRoot } from 'react-dom/client';
 import '@dropforge/design-system/styles.css';
 import './styles/app.css';
 import { setupI18n } from './i18n/index.js';
+import type { InstallWatch } from './platform/install.js';
 import { detectCapabilities, type PlatformCapabilities } from './platform/capabilities.js';
 import { triggerDownload } from './platform/browser-fs.js';
 import { IndexedDbMetaStore } from './platform/indexed-db-store.js';
@@ -18,6 +19,7 @@ import { IndexedDbIdentityStore } from './platform/identity-store.js';
 import { ReceiveFolderService } from './platform/receive-folder.js';
 import { WebRtcLinkFactory } from './platform/webrtc-link.js';
 import { ServiceWorkerUpdateSource, noUpdateSource, type UpdateSource } from './platform/updater.js';
+import { createInstallWatch } from './platform/install.js';
 import { AppController } from './app/controller.js';
 import { Shell } from './app/shell.js';
 import { useAppState } from './app/use-app-state.js';
@@ -28,6 +30,9 @@ const APP_VERSION = import.meta.env['VITE_APP_VERSION'] ?? '0.0.0-dev';
 
 async function boot(): Promise<void> {
   const capabilities = detectCapabilities();
+  // Installation is offered by the browser, so the watch lives here and the shell
+  // only displays what it reports.
+  const install = createInstallWatch(globalThis as unknown as Window);
   const store = new IndexedDbMetaStore();
   const receiveFolders = new ReceiveFolderService(store);
   await setupI18n(preferredLocale());
@@ -65,7 +70,7 @@ async function boot(): Promise<void> {
 
   createRoot(root).render(
     <StrictMode>
-      <App controller={controller} />
+      <App controller={controller} install={install} />
     </StrictMode>,
   );
 
@@ -73,7 +78,7 @@ async function boot(): Promise<void> {
   exposeForDiagnostics(controller);
 }
 
-function App({ controller }: { controller: AppController }): React.ReactElement {
+function App({ controller, install }: { controller: AppController; install: InstallWatch }): React.ReactElement {
   const state = useAppState(controller);
   const [ready, setReady] = useState(false);
 
@@ -90,7 +95,7 @@ function App({ controller }: { controller: AppController }): React.ReactElement 
       </div>
     );
   }
-  return <Shell controller={controller} state={state} />;
+  return <Shell controller={controller} state={state} install={install} />;
 }
 
 /**

@@ -23,6 +23,8 @@ export type {
 export { pairingLinkFor, newRoomCode } from './app/controller.js';
 export { Shell } from './app/shell.js';
 export type { Route, ShellProps } from './app/shell.js';
+export { createInstallWatch } from './platform/install.js';
+export type { InstallWatch } from './platform/install.js';
 export { useAppState } from './app/use-app-state.js';
 export { TransferScreen } from './screens/transfer.js';
 export { DevicesScreen } from './screens/devices.js';

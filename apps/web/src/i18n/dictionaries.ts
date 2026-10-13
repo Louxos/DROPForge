@@ -15,6 +15,8 @@ export interface Dictionary {
     offline: string;
     installPrompt: string;
     installAction: string;
+    installIos: string;
+    installLater: string;
   };
   notify: {
     sentTitle: string;
@@ -252,6 +254,8 @@ export const FR: Dictionary = {
     offline: 'Le relais est injoignable : seuls les transferts sur le réseau local fonctionneront.',
     installPrompt: 'Installer DropForge sur cet appareil',
     installAction: 'Installer',
+    installIos: 'Sur iPhone ou iPad : bouton Partager, puis « Sur l’écran d’accueil ».',
+    installLater: 'Plus tard',
   },
   notify: {
     sentTitle: 'Envoi terminé',
@@ -539,6 +543,8 @@ export const EN: Dictionary = {
     offline: 'The relay is unreachable: only local network transfers will work.',
     installPrompt: 'Install DropForge on this device',
     installAction: 'Install',
+    installIos: 'On iPhone or iPad: the Share button, then “Add to Home Screen”.',
+    installLater: 'Later',
   },
   notify: {
     sentTitle: 'Send complete',
