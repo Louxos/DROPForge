@@ -69,10 +69,13 @@ C'est ce qui est livré aujourd'hui.
    npm run build:windows
    ```
 
-   Avec `createUpdaterArtifacts: true`, la compilation produit l'installateur **et**
-   l'artefact de mise à jour signée. Le manifeste doit être mis à jour avec les
-   empreintes et les signatures réellement produites, jamais recopiées à la main d'une
-   version précédente.
+   `createUpdaterArtifacts` vaut `false` dans `tauri.conf.json` : sans clé configurée,
+   une compilation non signée n'a pas à produire d'artefact de mise à jour. Il passe à
+   `true` par `src-tauri/tauri.release.conf.json` (voie locale) ou par la configuration
+   temporaire écrite par la chaîne d'intégration (voie automatisée) ; c'est alors la
+   compilation qui produit l'installateur **et** l'artefact signé. Le manifeste doit
+   être mis à jour avec les empreintes et les signatures réellement produites, jamais
+   recopiées à la main d'une version précédente.
 
 5. **Vérifier, sur une machine différente** : une version ancienne propose la
    nouvelle ; l'installation ne démarre qu'après accord ; une signature volontairement
@@ -97,9 +100,16 @@ C'est ce qui est livré aujourd'hui.
 
 ## Publication automatisée (recommandé)
 
+La publication part de la branche par défaut (`main`) : c'est là que GitHub découvre
+les chaînes d'intégration. La version publiée doit donc être un commit de `main`.
+
 ```bash
 git tag v0.1.0 && git push origin v0.1.0
 ```
+
+Avant de pousser le tag : `npm run verify` et `npm run package` doivent passer, et
+l'exécution de `ci.yml` sur le commit visé doit être **verte** — publier est un acte
+définitif, une version dont les tests ont échoué ne doit pas être proposée.
 
 `.github/workflows/release.yml` fait alors, sur une machine Windows pour la partie
 bureau :

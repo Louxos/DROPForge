@@ -79,6 +79,14 @@ async function harness(options: { refuse?: TransportMethod[]; expectAlice?: bool
           ? { deviceId: crypto.randomUUID() }
           : { deviceId: aliceId, fingerprint: aliceFingerprint };
       pendingAccept = bob.accept(bobSide, expectations, { requestTrust: false });
+      // The storing side of the connection is also the side that may *refuse*: this
+      // promise rejects on purpose in the "not the expected device" test. The test
+      // attaches its own handler a few microtasks later (it first lets Alice dial in),
+      // and Node reports a rejection that has no handler *yet* as an unhandled
+      // rejection — which turns the whole run red, on a schedule that depends on
+      // timing. This branch only keeps the rejection observed; the original promise
+      // still rejects for whoever awaits it.
+      pendingAccept.catch(() => undefined);
       return alice;
     },
   };
