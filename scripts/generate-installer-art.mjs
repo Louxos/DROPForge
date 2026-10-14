@@ -20,6 +20,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { encodeBmp } from './lib/bmp.mjs';
+import { MARK } from '../packages/design-system/src/brand-mark.mjs';
 
 const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'apps', 'desktop', 'src-tauri', 'installer');
 
@@ -28,8 +29,14 @@ const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'apps', 'desktop
  * ------------------------------------------------------------------ */
 const BACKGROUND = [11, 11, 15];
 const SURFACE = [20, 20, 27];
-const VIOLET = [139, 92, 246];
-const BLUE = [56, 189, 248];
+/**
+ * Le dégradé du logo, pris à la source (`brand-mark.mjs`). L'art de l'installateur
+ * utilisait auparavant une seconde palette, proche mais différente : deux violets pour
+ * une seule marque, cela se voit sur une page d'installation côte à côte avec l'icône.
+ */
+const rgb = (value) => [1, 3, 5].map((index) => Number.parseInt(value.slice(index, index + 2), 16));
+const VIOLET = rgb(MARK.gradient.from);
+const BLUE = rgb(MARK.gradient.to);
 const TEXT = [244, 244, 247];
 const TEXT_MUTED = [165, 165, 180];
 const BORDER = [38, 38, 47];
@@ -168,39 +175,56 @@ function distanceToPolyline(px, py, points) {
  * ------------------------------------------------------------------ */
 
 /**
- * Dessine le symbole dans une boîte donnée. La forme est celle des icônes
- * (`scripts/generate-icons.mjs`) : un coin vers le bas, une tige détachée.
+ * Dessine le symbole dans une boîte donnée, à partir de la description partagée
+ * (`packages/design-system/src/brand-mark.mjs`).
+ *
+ * Les proportions ne sont donc plus recalculées ici : elles *sont* le logo. C'est la
+ * différence entre un installateur qui affiche une marque approchante et un
+ * installateur qui affiche la marque — la même que celle du `.ico`, des icônes de la
+ * PWA et du bloc de marque de l'interface.
+ *
+ * @param {import('./lib/canvas.mjs').Canvas} canvas
+ * @param {{ x: number, y: number, size: number, glow?: boolean }} box
  */
 function drawMark(canvas, box, options = {}) {
   const { x, y, size } = box;
-  const gradientAt = (px, py) => {
-    const t = Math.min(1, Math.max(0, (py - y) / size));
-    return mix(VIOLET, BLUE, t);
-  };
-  const wedgeTop = y + size * 0.04;
-  const wedgeHeight = size * 0.52;
-  const halfWidth = size * 0.46;
-  const centerX = x + size / 2;
+  /** Le repère du logo (512) ramené à la boîte demandée. */
+  const at = (vx, vy) => ({ x: x + (vx / MARK.viewBox) * size, y: y + (vy / MARK.viewBox) * size });
+  const gradientAt = (px, py) => mix(VIOLET, BLUE, Math.min(1, Math.max(0, (py - y) / size)));
 
   if (options.glow) {
-    canvas.glow(centerX, y + size * 0.45, size * 1.15, VIOLET, 0.18);
+    canvas.glow(x + size / 2, y + (MARK.wedge[1][1] / MARK.viewBox) * size, size * 1.15, VIOLET, 0.18);
   }
 
+  // Le coin descendant : trois sommets, exactement ceux du SVG.
+  const [a, b, c] = MARK.wedge.map(([vx, vy]) => at(vx, vy));
+  const sign = (p, q, r) => (p.x - r.x) * (q.y - r.y) - (q.x - r.x) * (p.y - r.y);
   canvas.fillShape(
     (px, py) => {
-      const dy = py - wedgeTop;
-      if (dy < 0 || dy > wedgeHeight) return false;
-      const allowed = halfWidth * (1 - dy / wedgeHeight);
-      return Math.abs(px - centerX) <= allowed;
+      const point = { x: px, y: py };
+      const d1 = sign(point, a, b);
+      const d2 = sign(point, b, c);
+      const d3 = sign(point, c, a);
+      const hasNegative = d1 < 0 || d2 < 0 || d3 < 0;
+      const hasPositive = d1 > 0 || d2 > 0 || d3 > 0;
+      return !(hasNegative && hasPositive);
     },
     gradientAt,
     4,
   );
 
-  const stemTop = wedgeTop + wedgeHeight + size * 0.06;
-  const stemHalf = Math.max(1, size * 0.055);
+  // La tige : le rectangle arrondi du SVG, mis à l'échelle.
+  const stem = MARK.stem;
+  const topLeft = at(stem.x, stem.y);
+  const bottomRight = at(stem.x + stem.width, stem.y + stem.height);
+  const radius = (stem.radius / MARK.viewBox) * size;
   canvas.fillShape(
-    (px, py) => py >= stemTop && py <= y + size && Math.abs(px - centerX) <= stemHalf,
+    (px, py) => {
+      if (px < topLeft.x || px > bottomRight.x || py < topLeft.y || py > bottomRight.y) return false;
+      const cx = Math.min(Math.max(px, topLeft.x + radius), bottomRight.x - radius);
+      const cy = Math.min(Math.max(py, topLeft.y + radius), bottomRight.y - radius);
+      return Math.hypot(px - cx, py - cy) <= radius;
+    },
     gradientAt,
     4,
   );

@@ -123,7 +123,9 @@ jobs:
         # le laisser découvrir une fois l'installateur publié.
         run: |
           npm run icons
-          git diff --exit-code -- apps/web/public/icons apps/desktop/src-tauri/icons apps/desktop/src-tauri/installer \
+          # `apps/desktop/index.html` en fait partie : l'écran de démarrage y reçoit le
+          # logo, écrit par le même générateur.
+          git diff --exit-code -- apps/web/public/icons apps/desktop/src-tauri/icons apps/desktop/src-tauri/installer apps/desktop/index.html \
             || { echo "::error::les visuels versionnés ne correspondent plus à leur générateur (node scripts/generate-icons.mjs)"; exit 1; }
 
       # Quatre étapes plutôt qu'un seul `npm run verify` : un échec doit dire *laquelle*

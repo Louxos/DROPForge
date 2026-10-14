@@ -106,12 +106,15 @@ body {
   place-items: center;
   width: 30px;
   height: 30px;
-  border-radius: 9px;
-  background: linear-gradient(140deg, var(--df-accent), var(--df-blue));
-  color: var(--df-on-accent);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  line-height: 0;
+}
+
+/* Le fond, les coins arrondis et le dégradé viennent du SVG lui-même : le logo est
+   celui de `brand-mark.mjs`, pas une approximation en CSS. */
+.df-brand__mark svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .df-page-title {

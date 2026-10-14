@@ -10,11 +10,24 @@ import { DropForgeError, ERROR_CODES, type MetaStore, type StoredRecord } from '
 const DB_NAME = 'dropforge';
 /**
  * Schema version. Version 2 added the `handles` store (a remembered receiving
- * folder). The upgrade is additive and idempotent: an existing database is only
- * given the stores it is missing, so no user data is ever rewritten or dropped.
+ * folder); version 3 added `identity` — the store this device's key pair lives in,
+ * which the interface had been trying to open since the beginning and which simply
+ * did not exist. Version 3 is what fixes an installation that already has version 2:
+ * `onupgradeneeded` only runs when the version changes, so adding a store without
+ * bumping the version would have left every existing database without it.
+ *
+ * The upgrade is additive and idempotent: an existing database is only given the
+ * stores it is missing, so no user data is ever rewritten or dropped.
  */
-const DB_VERSION = 2;
-const COLLECTIONS = ['settings', 'devices', 'transfers', 'resume', 'shares'] as const;
+const DB_VERSION = 3;
+/**
+ * Every store the application writes to.
+ *
+ * The list is the schema. A collection that is not here fails at the first write with
+ * "the local database has no … store" — which is exactly what `identity` did, in every
+ * real browser, while the whole unit suite stayed green (it substitutes the store).
+ */
+const COLLECTIONS = ['identity', 'settings', 'devices', 'transfers', 'resume', 'shares'] as const;
 const HANDLE_STORE = 'handles';
 
 export class IndexedDbMetaStore implements MetaStore {

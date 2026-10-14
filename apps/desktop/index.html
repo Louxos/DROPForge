@@ -23,18 +23,18 @@
         gap: 18px;
         padding: 32px;
       }
+      /* Le logo, écrit par `scripts/generate-icons.mjs` entre ses deux repères : le
+         même tracé que l'icône de l'exécutable, jamais un « DF » de remplacement. */
       #df-boot__mark {
-        display: inline-flex;
+        display: inline-block;
         width: 40px;
         height: 40px;
-        align-items: center;
-        justify-content: center;
-        border-radius: 12px;
-        background: linear-gradient(160deg, #8b5cf6, #38bdf8);
-        color: #0b0b0f;
-        font-weight: 700;
-        font-size: 15px;
-        letter-spacing: 0.02em;
+        line-height: 0;
+      }
+      #df-boot__mark svg {
+        display: block;
+        width: 100%;
+        height: 100%;
       }
       #df-boot__title {
         color: #a5a5b4;
@@ -46,7 +46,19 @@
     </style>
   </head>
   <body>
-    <div id="root"><div id="df-boot"><span id="df-boot__mark" aria-hidden="true">DF</span><strong id="df-boot__title">DropForge — démarrage…</strong><span id="df-boot__hint">Si ce message reste affiché, l’interface n’a pas pu démarrer ; le journal de diagnostic se trouve dans %APPDATA%\org.dropforge.app\diagnostics.log</span></div></div>
+    <div id="root"><div id="df-boot"><span id="df-boot__mark" aria-hidden="true"><!-- DROPFORGE_MARK:START -->
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="40" height="40" aria-hidden="true">
+  <defs>
+    <linearGradient id="df" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7c5cff" />
+      <stop offset="1" stop-color="#389cff" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#0b0b0f" />
+  <path d="M256 112 L368 272 L144 272 Z" fill="url(#df)" />
+  <rect x="238" y="312" width="36" height="88" rx="10" fill="url(#df)" />
+</svg>
+          <!-- DROPFORGE_MARK:END --></span><strong id="df-boot__title">DropForge — démarrage…</strong><span id="df-boot__hint">Si ce message reste affiché, l’interface n’a pas pu démarrer ; le journal de diagnostic se trouve dans %APPDATA%\org.dropforge.app\diagnostics.log</span></div></div>
     <noscript>DropForge a besoin de JavaScript pour chiffrer et transférer vos fichiers.</noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -3,23 +3,60 @@
  * framework-free. Every one of them renders *state it is given*: none of them
  * invents a progress value, a speed or a success.
  */
+import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  MARK,
+  MARK_GRADIENT_STOPS,
   formatBytes,
   formatDuration,
   formatFilesProgress,
   formatProgress,
   formatSpeed,
   SPACE,
+  stemRect,
+  wedgePath,
 } from '@dropforge/design-system';
 import type { AppController, AppState } from '../app/controller.js';
 
+/**
+ * Le logo, puis le nom.
+ *
+ * Le symbole est dessiné à partir de la description partagée
+ * (`@dropforge/design-system`, `brand-mark.mjs`) : le même tracé que l'icône de
+ * l'exécutable Windows, du `.ico` de l'installateur et de l'écran de démarrage. Il
+ * portait auparavant les lettres « DF », c'est-à-dire un troisième logo.
+ *
+ * Le dégradé a besoin d'un identifiant unique : deux blocs de marque sur la même page
+ * (le cas pendant le démarrage) se seraient sinon disputé le premier défini.
+ */
 export function BrandMark(): React.ReactElement {
   const { t } = useTranslation();
+  const gradientId = useId().replace(/:/g, '');
+  const id = `df-mark-${gradientId}`;
+  const viewBox = `0 0 ${MARK.viewBox} ${MARK.viewBox}`;
   return (
     <div className="df-brand">
       <span className="df-brand__mark" aria-hidden="true">
-        DF
+        <svg viewBox={viewBox} width="100%" height="100%" focusable="false">
+          <defs>
+            <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+              {MARK_GRADIENT_STOPS.map((stop) => (
+                <stop key={stop.offset} offset={stop.offset} stopColor={stop.color} />
+              ))}
+            </linearGradient>
+          </defs>
+          <rect width={MARK.viewBox} height={MARK.viewBox} rx={MARK.radius} fill={MARK.background} />
+          <path d={wedgePath()} fill={`url(#${id})`} />
+          <rect
+            x={stemRect().x}
+            y={stemRect().y}
+            width={stemRect().width}
+            height={stemRect().height}
+            rx={stemRect().radius}
+            fill={`url(#${id})`}
+          />
+        </svg>
       </span>
       <span>{t('app.name')}</span>
     </div>

@@ -56,17 +56,20 @@ describe('entrée réelle de l’application', () => {
     await import('./main.js');
 
     try {
-      await waitFor(() => globalThis.document.querySelector(SHELL) !== null);
+      // « Quelque chose s'affiche » ne suffit pas : l'écran d'échec porte le même repère
+      // que l'interface. Ce qui est attendu ici, c'est l'application **prête** — les
+      // quatre sections, et l'historique, qui n'existent que si la base locale et
+      // l'identité ont réellement été écrites.
+      await waitFor(() => globalThis.document.querySelector('.df-nav__item') !== null);
     } catch (error) {
       // Le message d'échec doit dire ce que la personne verrait, pas seulement qu'un
       // sélecteur manque.
       throw new Error(`${String(error)}\nÉcran : ${visibleText() || '(vide)'}`);
     }
 
-    // L'écran d'attente puis l'interface complète portent tous deux le repère : le
-    // premier à s'afficher suffit à prouver que l'application a rendu quelque chose.
     const shell = globalThis.document.querySelector(SHELL);
     expect(shell).not.toBeNull();
+    expect(globalThis.document.querySelector('.df-app--error')).toBeNull();
     expect(visibleText().length).toBeGreaterThan(0);
   }, 30_000);
 

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="apps/web/public/icons/icon-192.png" alt="DropForge" width="96" height="96" />
+</p>
+
 # DropForge
 
 **Transférez vos fichiers simplement, rapidement, et en toute sécurité.**
@@ -37,7 +41,7 @@ fonctionnalité, est dans [`docs/PLATFORM-MATRIX.md`](docs/PLATFORM-MATRIX.md).
 
 | Partie | Statut |
 | --- | --- |
-| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** (414 tests automatisés, 39 fichiers) |
+| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** (430 tests automatisés, 40 fichiers) |
 | Interface partagée React/TypeScript (FR/EN, thème sombre/clair) | ✅ Implémentée et **testée** au niveau du contrôleur d'application |
 | Application web progressive (PWA) installable | ✅ Implémentée et **testée** (pas encore testée sur téléphone réel) |
 | Serveur de signalisation / relais aveugle | ✅ Implémenté et **testé** (Node) |
@@ -135,7 +139,7 @@ fonctionne sans lui.
 
 ```bash
 npm run verify           # typecheck + tous les tests + configuration Windows
-npm test                 # 39 fichiers, 414 tests
+npm test                 # 40 fichiers, 430 tests
 npm run test:unit        # paquets et application
 npm run test:integration # transferts réels en mémoire, reprise, sécurité, relais
 npm run test:e2e         # de vrais navigateurs, deux appareils, un transfert réel

@@ -27,6 +27,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readBmpHeader } from './lib/bmp.mjs';
 import { analyseHooks, TAURI_HOOKS } from './lib/nsis.mjs';
+import { readIco } from './lib/ico.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const desktop = join(root, 'apps', 'desktop');
@@ -204,6 +205,45 @@ for (const icon of BUNDLE_ICONS) {
   if (!existsSync(join(tauriDir, icon.path))) fail(`l'icône « ${icon.path} » est introuvable.`);
 }
 
+// 3b. Le `.ico` de l'exécutable : c'est lui qui donne à `DropForge.exe` son visage dans
+//     l'Explorateur, le menu Démarrer, la barre des tâches et la boîte de dialogue
+//     d'installation. Un `.ico` mal formé ne casse aucune compilation : il donne juste
+//     un exécutable sans logo, ce que personne ne voit avant d'installer.
+const SIZES_ATTENDUES = [16, 32, 48, 256];
+const icoPath = join(tauriDir, 'icons', 'icon.ico');
+if (!existsSync(icoPath)) {
+  fail('apps/desktop/src-tauri/icons/icon.ico est absent : l’exécutable n’aurait pas d’icône.');
+} else {
+  try {
+    const ico = readIco(readFileSync(icoPath));
+    const sizes = ico.entries.map((entry) => entry.width);
+    for (const expected of SIZES_ATTENDUES) {
+      if (!sizes.includes(expected)) {
+        fail(`icon.ico n'a pas d'image ${expected}×${expected} : Windows devrait en réduire une autre.`);
+      }
+    }
+    for (const entry of ico.entries) {
+      if (entry.bitCount !== 32) fail(`icon.ico : image ${entry.width}×${entry.height} en ${entry.bitCount} bits, 32 attendus.`);
+      if (entry.format === 'dib' && entry.dibHeight !== entry.height) {
+        fail(`icon.ico : image ${entry.width}×${entry.height} annonce ${entry.dibHeight} pixels de haut dans son en-tête.`);
+      }
+    }
+    if (ico.count < 5) fail(`icon.ico ne contient que ${ico.count} image(s) : Windows en demande au moins cinq tailles.`);
+  } catch (error) {
+    fail(`icon.ico illisible : ${error.message}`);
+  }
+}
+
+// 3c. L'écran de démarrage de la coque : le logo y est écrit par
+//     `scripts/generate-icons.mjs`, entre deux repères. Vide, il resterait un carré noir
+//     pendant tout le démarrage — la fenêtre n'aurait plus l'air d'être celle de
+//     DropForge.
+const bootHtml = readFileSync(join(desktop, 'index.html'), 'utf8');
+const bootMark = /<!-- DROPFORGE_MARK:START -->([\s\S]*?)<!-- DROPFORGE_MARK:END -->/.exec(bootHtml)?.[1] ?? '';
+if (!bootMark.includes('<svg')) {
+  fail('apps/desktop/index.html n’affiche pas le logo pendant le démarrage (« npm run icons »).');
+}
+
 /* ------------------------------------------------------------------ *
  * Résultat
  * ------------------------------------------------------------------ */
@@ -221,3 +261,4 @@ console.log(
     `${TAURI_HOOKS.length} hooks NSIS autorisés.`,
 );
 console.log(`Images de l'installateur présentes et aux bonnes dimensions (${IMAGES.length} images, ${NSIS_ICONS.length} icônes).`);
+console.log('Icône de l’exécutable complète (7 tailles, 16 à 256) et logo de démarrage en place.');
