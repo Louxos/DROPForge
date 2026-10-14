@@ -41,7 +41,7 @@ fonctionnalité, est dans [`docs/PLATFORM-MATRIX.md`](docs/PLATFORM-MATRIX.md).
 
 | Partie | Statut |
 | --- | --- |
-| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** (440 tests automatisés, 41 fichiers) |
+| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** (441 tests automatisés, 41 fichiers) |
 | Interface partagée React/TypeScript (FR/EN, thème sombre/clair) | ✅ Implémentée et **testée** au niveau du contrôleur d'application |
 | Application web progressive (PWA) installable | ✅ Implémentée et **testée** (pas encore testée sur téléphone réel) |
 | Serveur de signalisation / relais aveugle | ✅ Implémenté et **testé** (Node) |
@@ -139,7 +139,7 @@ fonctionne sans lui.
 
 ```bash
 npm run verify           # typecheck + tous les tests + configuration Windows
-npm test                 # 41 fichiers, 440 tests
+npm test                 # 41 fichiers, 441 tests
 npm run test:unit        # paquets et application
 npm run test:integration # transferts réels en mémoire, reprise, sécurité, relais
 npm run test:e2e         # de vrais navigateurs, deux appareils, un transfert réel
@@ -218,6 +218,7 @@ d'application qui s'appuie sur les paquets. Le même code sert la PWA et Windows
 | [`docs/THREAT-MODEL.md`](docs/THREAT-MODEL.md) | Ce qui est protégé — et ce qui ne l'est pas |
 | [`docs/PRIVACY.md`](docs/PRIVACY.md) | Ce qui ne quitte jamais l'appareil |
 | [`docs/FREE-DEPLOYMENT.md`](docs/FREE-DEPLOYMENT.md) | Coûts réels, quotas, alternatives |
+| [`docs/SPEC-AUDIT.md`](docs/SPEC-AUDIT.md) | **Le prompt maître, exigence par exigence** : fait, partiel, bloqué, écarté — et ce qui manque pour une 1.0 |
 | [`docs/PLATFORM-MATRIX.md`](docs/PLATFORM-MATRIX.md) | Implémenté / testé / partiel / bloqué |
 | [`docs/OWNER-GUIDE.md`](docs/OWNER-GUIDE.md) | Les trois actions réservées au propriétaire du dépôt (Pages, clés de mise à jour, signature, licence) |
 | [`docs/TESTING.md`](docs/TESTING.md) | Tests, et protocoles à exécuter à la main |
