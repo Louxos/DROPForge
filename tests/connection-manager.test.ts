@@ -266,6 +266,70 @@ describe('ConnectionManager', () => {
     expect(h.alice.state).toBe('idle');
   });
 
+  it('asks for confirmation on both sides, never on one', async () => {
+    // The comparison code is only worth comparing if each person was shown it. The side
+    // that answers announced its question from the start; the side that dials announces
+    // it too now — otherwise the device that placed the call was the only one asked, and
+    // the other end was connected to a device nobody approved.
+    const aliceIdentity = await createDeviceIdentity();
+    const bobIdentity = await createDeviceIdentity();
+    const aliceId = crypto.randomUUID();
+    const bobId = crypto.randomUUID();
+
+    const questions: Array<{ who: 'alice' | 'bob'; resolve: (answer: boolean) => void }> = [];
+    const ask = (who: 'alice' | 'bob') => async (): Promise<boolean> =>
+      await new Promise<boolean>((resolve) => questions.push({ who, resolve }));
+
+    let pendingAccept: Promise<Connection> | undefined;
+    const alice = new ConnectionManager({
+      identity: aliceIdentity,
+      deviceId: aliceId,
+      displayName: 'Alice PC',
+      platform: 'windows',
+      capabilities: TEST_CAPABILITIES,
+      factory: {
+        async create(): Promise<Transport> {
+          const [aliceSide, bobSide] = MemoryTransport.pair();
+          pendingAccept = bob.accept(bobSide, {}, { requestTrust: true });
+          pendingAccept.catch(() => undefined);
+          return aliceSide;
+        },
+      },
+      clock: systemClock,
+      logger: testLogger(),
+      requestTrust: ask('alice'),
+    });
+    const bob = new ConnectionManager({
+      identity: bobIdentity,
+      deviceId: bobId,
+      displayName: 'Bob phone',
+      platform: 'android',
+      capabilities: TEST_CAPABILITIES,
+      factory: { create: async () => { throw new Error('Bob never dials in this test'); } },
+      clock: systemClock,
+      logger: testLogger(),
+      requestTrust: ask('bob'),
+    });
+    closers.push(async () => {
+      await alice.close('test finished');
+      await bob.close('test finished');
+    });
+
+    const connecting = alice.connect({ deviceId: bobId, displayName: 'Bob phone', methods: ['lan'] });
+    connecting.catch(() => undefined);
+    const deadline = Date.now() + 3_000;
+    while (questions.length < 2) {
+      if (Date.now() > deadline) throw new Error(`questions posées : ${questions.map((q) => q.who).join(', ')}`);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    }
+    expect(questions.map((question) => question.who).sort()).toEqual(['alice', 'bob']);
+
+    for (const question of questions.splice(0)) question.resolve(true);
+    const connection = await connecting;
+    expect(connection.peer.displayName).toBe('Bob phone');
+    await pendingAccept;
+  });
+
   it('carries a real transfer over a connection it established', async () => {
     const h = await harness();
     const connection = await h.connect({ deviceId: h.bobId, displayName: 'Bob phone', methods: ['lan'] });

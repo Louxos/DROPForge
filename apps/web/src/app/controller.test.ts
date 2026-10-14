@@ -159,6 +159,23 @@ describe('AppController: pairing', () => {
     expect(rig.host.state.notices[0]?.errorCode).toBeDefined();
   });
 
+  it('cesse d’afficher une connexion qui n’existe plus', async () => {
+    const rig = await makeRig();
+    await rig.host.start();
+    await rig.guest.start();
+    await connectPair(rig);
+    expect(rig.guest.state.connection).toBeDefined();
+
+    // L'autre appareil ferme la session (il a refusé, il est parti, le réseau est
+    // tombé) : garder « Envoyer à » à l'écran serait annoncer une réussite qui n'a pas
+    // eu lieu — exactement ce que ce produit s'interdit.
+    await rig.host.disconnect();
+    await settle(60);
+    expect(rig.guest.state.connection).toBeUndefined();
+    const notice = rig.guest.state.notices.find((entry) => entry.errorCode === 'CONNECTION_LOST');
+    expect(notice?.kind).toBe('warning');
+  });
+
   it('tries a direct path before the relay, whatever the capability plan said', async () => {
     const rig = await makeRig();
     await rig.guest.start();

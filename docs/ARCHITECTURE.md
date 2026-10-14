@@ -49,6 +49,12 @@ Deux règles structurent tout le reste :
 | `app-core` | Codes d'erreur, machine à états, ports de stockage, interface `FileSystemPort`, mesure de progression | `protocol` |
 | `transfer-engine` | Manifeste, expédition, réception, reprise, file d'attente, orchestration `sendTransfer`/`receiveTransfer` | `protocol`, `app-core`, `security` |
 | `connection-manager` | Choix de la meilleure méthode réellement disponible, handshake applicatif, confiance | `protocol`, `security`, `app-core` |
+
+> **Confirmation d'un appareil.** Elle est annoncée (`trust.request`, capacité du hello)
+et demandée par un message dédié (`trustRequest`, envoyé avant `auth`). Elle ne dépend plus
+du seul code QR : un appareil joint par code est confirmé **des deux côtés**, chacun
+comparant le même code à 6 chiffres. Un pair qui ne sait pas demander à son utilisateur
+n'en reçoit jamais la demande — il n'attendrait qu'une réponse qui ne viendra pas.
 | `device-manager` | Appareils connus, confiance, révocation, cache de découverte | `app-core` |
 | `history` | Historique versionné, recherche, export, purge | `app-core` |
 | `settings` | Préférences versionnées, validation par liste blanche, migrations | `app-core` |

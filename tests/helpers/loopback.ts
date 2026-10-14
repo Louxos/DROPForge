@@ -31,6 +31,8 @@ export const TEST_CAPABILITIES: Capability[] = [
   'transfer.pause',
   'transfer.folders',
   'transfer.integrity',
+  // Les managers de ces tests savent demander une confirmation à leur utilisateur.
+  'trust.request',
 ];
 
 export interface TestPeer {

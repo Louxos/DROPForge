@@ -625,6 +625,9 @@ export class AppController {
 
   localCapabilities(): Capability[] {
     const capabilities: Capability[] = ['transfer.integrity'];
+    // This device can ask its user whether a brand-new device may be trusted — and it
+    // does: the question is what makes the comparison code worth comparing.
+    capabilities.push('trust.request');
     if (this.state.capabilities.webRtc) capabilities.push('webrtc.direct');
     if (this.state.capabilities.directoryRead) capabilities.push('transfer.folders', 'fs.directory');
     if (this.state.capabilities.downloadStream) capabilities.push('fs.download');
@@ -1038,6 +1041,24 @@ export class AppController {
     connection.session.events.on('control', (message: ControlMessage) => {
       if (message.t !== 'transferOffer') return;
       void this.receiveOffer(connection, message);
+    });
+    // A connection that dies must stop being shown as alive. Leaving "Envoyer à" on
+    // screen after the other device closed the session (it refused the connection, it
+    // quit, the network went) is a success that never happened — the one thing this
+    // product refuses to do. A deliberate close is already cleared by `disconnect()`.
+    connection.session.events.on('closed', (reason) => {
+      if (this.connection !== connection) return;
+      this.connection = undefined;
+      this.connectionManager = undefined;
+      this.state.connection = undefined;
+      this.state.connecting = false;
+      this.notice('warning', 'errors.CONNECTION_LOST', {
+        errorCode: ERROR_CODES.CONNECTION_LOST,
+        // Why it ended is the useful part: "local" is the user closing it, "transport"
+        // is the link dying, "remote" is the other device leaving.
+        detail: typeof reason === 'object' && 'kind' in reason ? String(reason.kind) : undefined,
+      });
+      this.emit();
     });
   }
 

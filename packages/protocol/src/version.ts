@@ -28,6 +28,14 @@ export const CAPABILITIES = [
   'transfer.folders',
   /** Integrity manifest (per-chunk + whole-file digests) is supported. */
   'transfer.integrity',
+  /**
+   * The peer can ask its user to confirm a brand-new device, and can answer such a
+   * request (`trustRequest`, see packages/security).
+   *
+   * Announced, and used only when both sides announced it: a peer that cannot ask its
+   * user must never be sent a request nobody can answer.
+   */
+  'trust.request',
 ] as const;
 
 export type Capability = (typeof CAPABILITIES)[number];

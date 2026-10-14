@@ -111,7 +111,14 @@ export interface ConnectionManagerOptions {
   factory: ConnectionFactory;
   clock?: Clock;
   logger?: Logger;
-  /** Asks the user whether a new device may be remembered. Default: never ask. */
+  /**
+   * Asks the user whether a new device may be remembered. Default: never ask.
+   *
+   * Its presence is also **announced** to the other device: a manager that can ask for a
+   * decision tells the peer to ask for one too, so that neither side ends up connected to
+   * a device it never approved. A manager without this callback announces nothing —
+   * inventing a request nobody can answer would leave the other side waiting forever.
+   */
   requestTrust?: (peer: PeerInfo, method: TransportMethod) => Promise<boolean>;
   /** Secret from the QR code, when the devices were paired that way. */
   pairingSecret?: Uint8Array;
@@ -181,7 +188,12 @@ export class ConnectionManager {
 
       try {
         this.emit({ type: 'handshaking', method });
-        const outcome = await this.runHandshake(transport, 'initiator', target);
+        const outcome = await this.runHandshake(transport, 'initiator', target, {
+          // The side that dials confirms the device it reached, exactly like the side
+          // that answers. Both questions exist for the same reason: the comparison code
+          // is only worth comparing if each person was actually shown it.
+          requestTrust: this.options.requestTrust !== undefined,
+        });
         const connection = await this.finish(transport, method, outcome);
         this.phase = 'connected';
         return connection;
