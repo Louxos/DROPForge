@@ -22,7 +22,8 @@
         "center": true,
         "visible": false,
         "decorations": true,
-        "theme": null
+        "theme": null,
+        "backgroundColor": "#0b0b0f"
       }
     ],
     "trayIcon": {
@@ -41,6 +42,7 @@
     "active": true,
     "targets": ["msi", "nsis"],
     "publisher": "DropForge",
+    "copyright": "© 2026 DropForge",
     "category": "Utility",
     "shortDescription": "Transfert de fichiers entre appareils, chiffré de bout en bout.",
     "longDescription": "DropForge transfère des fichiers entre vos appareils, directement quand c'est possible, chiffrés de bout en bout, sans compte et sans service payant obligatoire.",
@@ -52,9 +54,27 @@
       "icons/icon.ico"
     ],
     "windows": {
+      "webviewInstallMode": {
+        "type": "embedBootstrapper",
+        "silent": true
+      },
       "nsis": {
         "installMode": "currentUser",
-        "displayLanguageSelector": true
+        "displayLanguageSelector": true,
+        "languages": ["French", "English"],
+        "installerIcon": "icons/icon.ico",
+        "uninstallerIcon": "icons/icon.ico",
+        "headerImage": "installer/header.bmp",
+        "uninstallerHeaderImage": "installer/header.bmp",
+        "sidebarImage": "installer/sidebar.bmp",
+        "startMenuFolder": "DropForge",
+        "compression": "lzma",
+        "installerHooks": "installer/hooks.nsh"
+      },
+      "wix": {
+        "language": ["fr-FR", "en-US"],
+        "bannerPath": "installer/wix-banner.bmp",
+        "dialogImagePath": "installer/wix-dialog.bmp"
       }
     },
     "createUpdaterArtifacts": false

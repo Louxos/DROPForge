@@ -6,11 +6,48 @@
     <title>DropForge</title>
     <meta name="theme-color" content="#0b0b0f" />
     <!-- Aucune ressource distante : l'application Windows doit fonctionner hors ligne. -->
+    <style>
+      /* Affiché uniquement le temps du premier rendu de React, qui le remplace.
+         Il sert de diagnostic : si ce texte reste visible, c'est que l'interface n'a
+         pas démarré — et la fenêtre s'affiche quand même (contrôle de secours côté
+         Rust), au lieu d'un rectangle vide. */
+      html,
+      body {
+        margin: 0;
+        background: #0b0b0f;
+        color: #f4f4f7;
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      }
+      #df-boot {
+        display: grid;
+        gap: 18px;
+        padding: 32px;
+      }
+      #df-boot__mark {
+        display: inline-flex;
+        width: 40px;
+        height: 40px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        background: linear-gradient(160deg, #8b5cf6, #38bdf8);
+        color: #0b0b0f;
+        font-weight: 700;
+        font-size: 15px;
+        letter-spacing: 0.02em;
+      }
+      #df-boot__title {
+        color: #a5a5b4;
+      }
+      #df-boot__hint {
+        color: #6f6f80;
+        font-size: 12px;
+      }
+    </style>
   </head>
   <body>
-    <div id="root">
-      <noscript>DropForge a besoin de JavaScript pour chiffrer et transférer vos fichiers.</noscript>
-    </div>
+    <div id="root"><div id="df-boot"><span id="df-boot__mark" aria-hidden="true">DF</span><strong id="df-boot__title">DropForge — démarrage…</strong><span id="df-boot__hint">Si ce message reste affiché, l’interface n’a pas pu démarrer ; le journal de diagnostic se trouve dans %APPDATA%\org.dropforge.app\diagnostics.log</span></div></div>
+    <noscript>DropForge a besoin de JavaScript pour chiffrer et transférer vos fichiers.</noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

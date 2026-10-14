@@ -48,3 +48,91 @@ jobs:
           path: release/dropforge-pwa-*.zip
           if-no-files-found: error
           retention-days: 14
+
+  e2e:
+    # Les navigateurs réels, et deux appareils.
+    #
+    # Tout le reste de la chaîne remplace le transport, le système de fichiers et le
+    # DOM. Ici rien n'est remplacé : deux contextes de navigateur, deux identités, le
+    # vrai service de signalisation, un vrai canal WebRTC, et les octets reçus sont
+    # hachés pour vérifier qu'ils sont identiques à ceux envoyés.
+    name: Navigateurs réels (bout en bout)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Navigateurs
+        run: npx playwright install --with-deps chromium firefox webkit
+      - name: Transfert réel entre deux navigateurs
+        run: npm run test:e2e
+      - name: Traces en cas d'échec
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: dropforge-e2e-traces
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  windows:
+    # Compiler la coque Windows pour de vrai, sur Windows, à chaque envoi.
+    #
+    # C'est la leçon la plus chère de ce dépôt : la partie Rust ne peut pas être
+    # compilée hors de Windows, et les erreurs qu'elle contient — une API de tray
+    # inexistante, une permission mal nommée, une fenêtre qui ne s'affiche jamais — ne
+    # se voient que là. Les tests de ce dépôt ne les attrapent pas : ils ne compilent
+    # pas de Rust. Cette tâche le fait, et produit en plus un installateur réellement
+    # installable, téléchargeable ci-dessous, pour qu'une correction puisse être
+    # essayée sans attendre une publication.
+    name: Application Windows (compilation et installateur)
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - name: Chaîne d'outils Rust
+        shell: bash
+        run: |
+          rustc --version || rustup default stable
+          rustc --version
+          cargo --version
+      - run: npm ci --no-audit --no-fund
+
+      - name: Visuels et icônes à jour
+        shell: bash
+        # Les icônes et les images de l'installateur sont générées par du code. Si les
+        # fichiers versionnés diffèrent de ce que le générateur produit, c'est qu'un
+        # visuel a été modifié à la main ou oublié : le contrôle le dit ici, au lieu de
+        # le laisser découvrir une fois l'installateur publié.
+        run: |
+          npm run icons
+          git diff --exit-code -- apps/web/public/icons apps/desktop/src-tauri/icons apps/desktop/src-tauri/installer \
+            || { echo "::error::les visuels versionnés ne correspondent plus à leur générateur (node scripts/generate-icons.mjs)"; exit 1; }
+
+      - name: Types, tests et configuration
+        run: npm run verify
+
+      - name: Compilation de la coque et de l'installateur NSIS
+        # `--debug` : la compilation est bien plus rapide, et ce qui est vérifié ici est
+        # que le code compile et que l'installateur se construit avec ses hooks. La
+        # version publiée, elle, est compilée en mode release par `release.yml`.
+        run: npm run build:windows:check
+
+      - name: Installateur produit
+        shell: bash
+        run: ls -la apps/desktop/src-tauri/target/debug/bundle/nsis/
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dropforge-installateur-de-test
+          path: apps/desktop/src-tauri/target/debug/bundle/nsis/*.exe
+          if-no-files-found: error
+          retention-days: 14

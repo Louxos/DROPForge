@@ -10,7 +10,10 @@ version = "0.1.0"
 description = "Transfert de fichiers entre appareils, sans compte, chiffré de bout en bout."
 authors = ["DropForge"]
 edition = "2021"
-rust-version = "1.77"
+# Les greffons officiels utilisés ici (SQL, mise à jour, instance unique) demandent
+# Rust 1.90 ou plus récent : la version minimale déclarée le dit, au lieu de laisser
+# croire à une compatibilité plus large qui n'existe pas.
+rust-version = "1.90"
 # Licence du projet : pas encore choisie (voir docs/LICENCES.md pour les licences des
 # dépendances). Aucun champ `license` ni `license-file` n'est renseigné : Cargo n'a
 # donc rien à valider, et rien ne pointe vers un fichier inexistant.
@@ -32,6 +35,9 @@ tauri-plugin-sql = { version = "2", features = ["sqlite"] }
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
 tauri-plugin-autostart = "2"
+# Une seule instance à la fois : une seconde tentative de lancement ramène la fenêtre
+# existante au premier plan au lieu de créer un processus invisible.
+tauri-plugin-single-instance = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["fs", "macros", "rt-multi-thread"] }

@@ -99,7 +99,7 @@ export function Shell({ controller, state, install }: ShellProps): React.ReactEl
 
   if (!state.ready) {
     return (
-      <div style={{ padding: SPACE.xxl }}>
+      <div className="df-app df-app--loading" data-dropforge-shell="" style={{ padding: SPACE.xxl }}>
         <BrandMark />
         <div className="df-loading" style={{ marginTop: SPACE.xl }} aria-live="polite">
           <div className="df-skeleton" style={{ width: 220 }} />
@@ -110,7 +110,10 @@ export function Shell({ controller, state, install }: ShellProps): React.ReactEl
   }
 
   return (
-    <div className="df-app">
+    // `data-dropforge-shell` is how a host that cannot see the screen checks that the
+    // interface really rendered — the Windows shell uses it to report a blank window
+    // instead of leaving it unexplained.
+    <div className="df-app" data-dropforge-shell="">
       <aside className="df-sidebar" aria-label={t('app.name')}>
         <BrandMark />
         <nav className="df-nav">

@@ -2,7 +2,7 @@
   "name": "dropforge",
   "version": "0.1.0",
   "private": true,
-  "description": "DropForge \u2014 transfert de fichiers entre appareils, sans compte, chiffr\u00e9 de bout en bout.",
+  "description": "DropForge — transfert de fichiers entre appareils, sans compte, chiffré de bout en bout.",
   "license": "SEE LICENSE IN docs/LICENCES.md",
   "type": "module",
   "engines": {
@@ -20,6 +20,8 @@
     "test:watch": "vitest",
     "test:unit": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install --with-deps chromium firefox webkit",
     "dev:web": "npm run dev -w @dropforge/web",
     "dev:signaling": "npm run dev -w @dropforge/signaling",
     "build:web": "npm run build -w @dropforge/web",
@@ -27,7 +29,7 @@
     "verify": "npm run typecheck && npm run typecheck:desktop && npm run check:desktop && npm run test",
     "dev:desktop": "npm run tauri dev -w @dropforge/desktop",
     "build:desktop": "npm run tauri:build -w @dropforge/desktop",
-    "icons": "node scripts/generate-icons.mjs",
+    "icons": "node scripts/generate-icons.mjs && node scripts/generate-installer-art.mjs",
     "licences": "node scripts/list-licences.mjs",
     "typecheck:desktop": "tsc -p apps/desktop/tsconfig.json --noEmit",
     "check:desktop": "node scripts/check-desktop-config.mjs",
@@ -37,9 +39,12 @@
     "build": "npm run build:signaling && npm run build:web && npm run build:desktop:frontend",
     "package": "node scripts/package.mjs",
     "smoke:release": "node scripts/smoke-release.mjs",
-    "build:windows": "npm run tauri:build -w @dropforge/desktop"
+    "build:windows": "npm run tauri:build -w @dropforge/desktop",
+    "installer-art": "node scripts/generate-installer-art.mjs",
+    "build:windows:check": "npm run tauri:build -w @dropforge/desktop -- --debug --bundles nsis"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.0",
     "@types/node": "^26.6.5",
     "fake-indexeddb": "^6.2.5",
     "happy-dom": "^21.0.1",
