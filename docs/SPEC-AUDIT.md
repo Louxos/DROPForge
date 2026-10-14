@@ -104,7 +104,7 @@ manque.
 | Ne jamais écraser silencieusement un fichier | ✅ | Règles de conflit (demander, renommer, ignorer, remplacer après confirmation) ; valeur par défaut : demander. |
 | Ne pas journaliser les secrets | ✅ | Journaux bornés et nettoyés (`apps/desktop/src-tauri`, `diagnostics.log`) ; aucun contenu de fichier, aucune clé. |
 | Erreurs compréhensibles, sans information sensible | ✅ | 42 codes stables (`packages/app-core/src/errors.ts`), message traduit, jamais la trace brute. |
-| Limites anti-abus, limitation de débit, rétention des métadonnées | ✅ | Signalisation : 20 msg/s, salle limitée à 2 pairs, TTL 10 min ; historique : rétention configurable (défaut 30 jours). |
+| Limites anti-abus, limitation de débit, rétention des métadonnées | ✅ | Signalisation : 20 msg/s, salle limitée à 2 pairs, TTL 10 min ; historique : rétention configurable (défaut : conserver). |
 
 ## 8. Données locales
 
