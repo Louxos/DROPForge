@@ -44,11 +44,48 @@ export interface Device {
  */
 export async function openDevice(context: BrowserContext): Promise<Device> {
   const page = await context.newPage();
+  // Everything the page says, collected from the first moment: a failure that only
+  // reports "selector not found" costs a whole debugging round, and the browser's own
+  // console is the one place that knows why.
+  const problems: string[] = [];
+  page.on('pageerror', (error) => problems.push(`erreur JavaScript : ${error.message}`));
+  page.on('console', (message) => {
+    if (message.type() === 'error') problems.push(`console : ${message.text()}`);
+  });
+
   await page.goto('/');
+
   // The application is ready when the shell is on screen (never a blank page: the
   // shell renders a loading state first, which is also what rules out a silent boot).
-  await expect(page.locator('[data-dropforge-shell]')).toBeVisible({ timeout: 30_000 });
+  //
+  // Every screen carries `data-dropforge-shell`, the failure screen included: it means
+  // "the interface rendered something". If it is missing, nothing rendered at all —
+  // and the failure must say what the page contained, not just that a selector missed.
+  try {
+    await expect(page.locator('[data-dropforge-shell]')).toBeVisible({ timeout: 30_000 });
+  } catch (error) {
+    throw new Error(`La coque n'est jamais apparue.\n${await describeScreen(page, problems)}\n\n${String(error)}`);
+  }
+
+  // A failure screen is a screen: it satisfies the check above, so it is caught here,
+  // with the sentence it shows.
+  if (await page.locator('.df-app--error').isVisible().catch(() => false)) {
+    throw new Error(`L'application refuse de démarrer.\n${await describeScreen(page, problems)}`);
+  }
+
   return { context, page };
+}
+
+/** What a person would see and what the browser complained about, in one message. */
+async function describeScreen(page: Page, problems: string[]): Promise<string> {
+  const text = await page
+    .locator('body')
+    .innerText({ timeout: 5_000 })
+    .catch(() => '');
+  return [
+    `Écran : ${text.replace(/\s+/g, ' ').trim() || '(vide)'}`,
+    problems.length > 0 ? `Journal du navigateur :\n${problems.join('\n')}` : 'Journal du navigateur : vide',
+  ].join('\n');
 }
 
 /** Starts showing a pairing code and returns it. */

@@ -20,8 +20,9 @@ import { ReceiveFolderService } from './platform/receive-folder.js';
 import { WebRtcLinkFactory } from './platform/webrtc-link.js';
 import { ServiceWorkerUpdateSource, noUpdateSource, type UpdateSource } from './platform/updater.js';
 import { createInstallWatch } from './platform/install.js';
+import { fromPlatformError } from '@dropforge/app-core';
 import { AppController } from './app/controller.js';
-import { Shell } from './app/shell.js';
+import { FatalScreen, Shell } from './app/shell.js';
 import { useAppState } from './app/use-app-state.js';
 import { BrandMark } from './components/atoms.js';
 import { SPACE } from '@dropforge/design-system';
@@ -76,6 +77,29 @@ async function boot(): Promise<void> {
 
   await controller.start();
   exposeForDiagnostics(controller);
+}
+
+/**
+ * Shows why the application could not open, instead of nothing at all.
+ *
+ * The entry point used to end with a bare `void boot()`: any throw while building the
+ * platform — local storage unavailable, no WebCrypto, a service worker that refuses to
+ * register — rejected a promise nobody looked at and left the page **blank**. No
+ * message, no way to tell "still loading" from "broken". That is the same failure the
+ * Windows shell had, and it is the one thing an application should never do.
+ */
+function reportBootFailure(error: unknown): void {
+  const dfError = fromPlatformError(error);
+  const detail = error instanceof Error && error.message ? error.message : dfError.message;
+  // eslint-disable-next-line no-console
+  console.error('[DropForge] démarrage impossible', error);
+  const root = document.getElementById('root');
+  if (!root) return;
+  createRoot(root).render(
+    <StrictMode>
+      <FatalScreen code={dfError.code} message={detail} />
+    </StrictMode>,
+  );
 }
 
 function App({ controller, install }: { controller: AppController; install: InstallWatch }): React.ReactElement {
@@ -138,4 +162,4 @@ function exposeForDiagnostics(controller: AppController): void {
   (globalThis as { dropforge?: { controller: AppController } }).dropforge = { controller };
 }
 
-void boot();
+void boot().catch(reportBootFailure);

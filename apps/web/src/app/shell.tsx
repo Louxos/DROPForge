@@ -15,6 +15,35 @@ import type { InstallWatch } from '../platform/install.js';
 
 export type Route = 'transfer' | 'devices' | 'activity' | 'settings';
 
+/**
+ * What is shown when the application cannot start at all: the local storage, the
+ * identity keys, the interface. It says what is broken and carries
+ * `data-dropforge-shell` like every other screen — the marker means "the interface
+ * really rendered something", and an honest error screen is something.
+ *
+ * This is the lesson of the first run of the browser suite: eleven scenarios waited
+ * for that marker on a screen that rendered fine but did not carry it, and every one
+ * of them failed with "element not found" — the least useful possible message.
+ */
+export function FatalScreen({ code, message }: { code: string; message: string }): React.ReactElement {
+  // `main.tsx` can reach here before the dictionaries are loaded (a failure while
+  // setting them up is one of the ways in). Showing the platform's own sentence is
+  // then the honest answer — it is English, and it is true.
+  const { t, i18n } = useTranslation();
+  const text = i18n.isInitialized ? t(`errors.${code}` as never, message) : message;
+  return (
+    <div className="df-app df-app--error" data-dropforge-shell="">
+      <div style={{ padding: SPACE.xxl, maxWidth: 640 }}>
+        <BrandMark />
+        <div className="df-error" role="alert" style={{ marginTop: SPACE.xl }}>
+          <strong>{text}</strong>
+          <span className="df-faint">{code}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export interface ShellProps {
   controller: AppController;
   state: AppState;
@@ -86,15 +115,7 @@ export function Shell({ controller, state, install }: ShellProps): React.ReactEl
   );
 
   if (state.fatalError) {
-    return (
-      <div style={{ padding: SPACE.xxl, maxWidth: 640 }}>
-        <BrandMark />
-        <div className="df-error" role="alert" style={{ marginTop: SPACE.xl }}>
-          <strong>{t(`errors.${state.fatalError.code}` as never, state.fatalError.message)}</strong>
-          <span className="df-faint">{state.fatalError.code}</span>
-        </div>
-      </div>
-    );
+    return <FatalScreen code={state.fatalError.code} message={state.fatalError.message} />;
   }
 
   if (!state.ready) {
