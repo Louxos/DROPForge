@@ -14,7 +14,11 @@ import { expect, type BrowserContext, type Download, type Page } from '@playwrig
 /** French labels of the shipped interface (the app starts in French). */
 export const L = {
   selectFiles: 'Choisir des fichiers',
-  sendTo: 'Envoyer à',
+  // Le libellé exact du dictionnaire (« Envoyer vers », `transfer.sendTo`) : le helper
+  // cherchait « Envoyer à », qui n'existe nulle part dans l'interface — le clic
+  // attendait donc un bouton qui ne viendrait jamais, et **aucun test de transfert
+  // n'est jamais allé plus loin que cette ligne**.
+  sendTo: 'Envoyer vers',
   receiveDevice: 'Recevoir d’un appareil',
   pairingCode: 'Code d’appairage',
   pasteCode: 'Coller un code ou un lien',

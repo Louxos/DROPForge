@@ -5,9 +5,10 @@ ne demande de compte ni de paiement.
 
 ## 1. Windows — l'installateur (recommandé)
 
-L'installateur est **construit et signé automatiquement** par GitHub Actions, sur une
-machine Windows, à chaque version publiée. Il est donc reproductible : n'importe qui
-peut vérifier qu'il provient bien de ce dépôt.
+L'installateur est **construit automatiquement** par GitHub Actions, sur une machine
+Windows, à chaque version publiée — à partir du code de ce dépôt, sans étape manuelle.
+Il n'est **pas** signé par un certificat commercial (voir le point 4) : les sommes de
+contrôle sont ce qui permet de vérifier le fichier.
 
 1. Ouvrez la page **[Releases](../../releases)** du dépôt.
 2. Téléchargez `DropForge_<version>_x64-setup.exe` (installateur NSIS) ou
