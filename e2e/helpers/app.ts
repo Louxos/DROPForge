@@ -30,6 +30,8 @@ export const L = {
   history: 'Historique',
   settings: 'Réglages',
   devicesNavigation: 'Appareils',
+  /** Le libellé de l'onglet « transfert » dans la barre basse (et dans la barre latérale). */
+  transfers: 'Transfert',
 } as const;
 
 /** A pair of devices, each with its own browser context, storage and identity. */
@@ -61,6 +63,10 @@ export async function describePage(page: Page): Promise<string> {
     .locator('body')
     .innerText({ timeout: 5_000 })
     .catch(() => '');
+  // GitHub coupe une annotation à quelques milliers de caractères : l'écran entier
+  // (près de 3 000 caractères sur les Réglages) pousserait la raison de l'échec hors
+  // du message. Il est donc tronqué ici, et `attempt` place l'erreur *avant* lui.
+  const screen = text.replace(/\s+/g, ' ').trim() || '(vide)';
   const state = await page
     .evaluate(() => {
       const controller = (globalThis as { dropforge?: { controller?: { state?: unknown } } }).dropforge?.controller;
@@ -79,9 +85,9 @@ export async function describePage(page: Page): Promise<string> {
     .catch(() => undefined);
   const problems = journals.get(page) ?? [];
   return [
-    `Écran : ${text.replace(/\s+/g, ' ').trim() || '(vide)'}`,
     `État de l'application : ${state ? JSON.stringify(state) : '(contrôleur indisponible)'}`,
     problems.length > 0 ? `Journal du navigateur :\n${problems.join('\n')}` : 'Journal du navigateur : vide',
+    `Écran : ${screen.length > 1_500 ? `${screen.slice(0, 1_500)} […]` : screen}`,
   ].join('\n');
 }
 
@@ -95,7 +101,9 @@ export async function attempt<T>(page: Page, what: string, action: () => Promise
   try {
     return await action();
   } catch (error) {
-    throw new Error(`${what} : échec.\n${await describePage(page)}\n\n${String(error)}`);
+    // L'erreur vient en premier : c'est la seule partie qui explique l'échec, et une
+    // annotation CI coupée au milieu doit la garder entière.
+    throw new Error(`${what} : échec.\n${String(error)}\n${await describePage(page)}`);
   }
 }
 

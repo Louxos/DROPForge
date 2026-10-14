@@ -48,7 +48,7 @@ test.describe('PWA sur un écran de téléphone', () => {
     // click on is resolved through `elementFromPoint`, so an element in the way is
     // named here — a click that silently lands elsewhere costs a 150-second timeout
     // and says nothing about what covered it.
-    for (const label of [L.devicesNavigation, L.history, L.settings, 'Transfert']) {
+    for (const label of [L.devicesNavigation, L.history, L.settings, L.transfers]) {
       await attempt(device.page, `appui sur « ${label} » dans la barre basse`, async () => {
         // A fixed bar is positioned against the viewport, not the document: scrolling
         // back to the top keeps the click point where the layout put it.
@@ -57,6 +57,7 @@ test.describe('PWA sur un écran de téléphone', () => {
         await expect(button).toBeVisible();
         const box = await button.boundingBox();
         expect(box).not.toBeNull();
+        const point = { x: box!.x + box!.width / 2, y: box!.y + box!.height / 2 };
         const hits = await device.page.evaluate(
           ({ x, y }) => {
             const element = document.elementFromPoint(x, y);
@@ -64,10 +65,20 @@ test.describe('PWA sur un écran de téléphone', () => {
             const item = element.closest('.df-bottom-nav__item');
             return item ? `le bouton « ${item.textContent?.trim()} »` : `${element.tagName.toLowerCase()}.${element.className}`;
           },
-          { x: box!.x + box!.width / 2, y: box!.y + box!.height / 2 },
+          point,
         );
         expect(hits).toContain(label);
-        await button.click({ timeout: 20_000 });
+
+        // A thumb lands on a **point**, so that is what is clicked here, at the point
+        // `elementFromPoint` just proved belongs to this tab. `locator.click()` is not
+        // used on purpose: its actionability loop waits for the bar to be *stable frame
+        // by frame*, which a fixed bar composited by `backdrop-filter` never reports on
+        // an emulated phone — 20 seconds of waiting, then a failure that says nothing
+        // about the interface. Nothing is given up: what has to be true (nothing covers
+        // the bar, and the tab answers a real click at that point) is still checked, and
+        // the tab that ended up current is asserted right after.
+        await device.page.mouse.click(point.x, point.y);
+        await expect(button).toHaveAttribute('aria-current', 'page');
         await expect(device.page.locator('.df-main')).toBeVisible();
       });
     }
