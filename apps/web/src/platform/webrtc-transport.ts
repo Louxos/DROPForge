@@ -162,6 +162,14 @@ export interface SignalingClientOptions {
   onPeerJoined?: (peer: Record<string, unknown>) => void;
   onPeerLeft?: () => void;
   onRelayOpen?: () => void;
+  /**
+   * The other peer asked for relay mode.
+   *
+   * The room only relays once *both* sides asked, so a peer that needs it cannot get
+   * there alone: this callback is where the second half answers. A deployment that
+   * refuses to relay simply leaves it out and keeps its direct path.
+   */
+  onRelayRequested?: () => void;
   onError?: (code: string, message: string) => void;
   create?: boolean;
   /** Injected for tests. */
@@ -220,6 +228,9 @@ export class SignalingClient {
             break;
           case 'peer-left':
             this.options.onPeerLeft?.();
+            break;
+          case 'relay-requested':
+            this.options.onRelayRequested?.();
             break;
           case 'relay-open':
             this.relayReady = true;

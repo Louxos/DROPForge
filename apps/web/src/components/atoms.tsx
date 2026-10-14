@@ -85,7 +85,12 @@ export function NoticeStack({ controller, state }: { controller: AppController; 
           role={notice.kind === 'error' ? 'alert' : 'status'}
           style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: SPACE.md }}
         >
-          <span>{t(notice.messageKey as never)}</span>
+          <span>
+            {t(notice.messageKey as never)}
+            {/* What was actually tried, when the engine knows: a failure that says
+                where it failed is a failure the user can act on. */}
+            {notice.detail ? <span className="df-faint df-mono" style={{ display: 'block', fontSize: 12 }}>{notice.detail}</span> : null}
+          </span>
           <button type="button" className="df-button df-button--ghost df-button--small" onClick={() => controller.dismissNotice(notice.id)}>
             {t('common.close')}
           </button>

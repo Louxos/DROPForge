@@ -54,8 +54,18 @@ export class FakeRelay {
   private readonly rooms = new Map<string, { resolve: (transport: Transport) => void; reject: (error: unknown) => void }>();
   readonly hostedCodes: string[] = [];
 
-  host(code: string): { code: string; transport: Promise<Transport>; close(): Promise<void> } {
+  /** When true, the service refuses every room: hosting cannot show a code. */
+  refuseRooms = false;
+  /** Methods the dialling side tried, in order — the point of `connectWithCode`. */
+  readonly attemptedMethods: string[] = [];
+
+  host(code: string): { code: string; transport: Promise<Transport>; ready: Promise<void>; close(): Promise<void> } {
     this.hostedCodes.push(code);
+    if (this.refuseRooms) {
+      const refusal = Promise.reject(new Error('the room was refused'));
+      void refusal.catch(() => undefined);
+      return { code, transport: refusal, ready: refusal, close: async () => {} };
+    }
     let settle: { resolve: (transport: Transport) => void; reject: (error: unknown) => void } = {
       resolve: () => {},
       reject: () => {},
@@ -67,6 +77,7 @@ export class FakeRelay {
     return {
       code,
       transport,
+      ready: Promise.resolve(),
       close: async () => {
         const room = this.rooms.get(code);
         this.rooms.delete(code);
@@ -94,12 +105,13 @@ export class FakeLinkFactory implements LinkFactory {
     private readonly mode: 'dial' | 'host',
   ) {}
 
-  async create(_method: TransportMethod, target: ConnectionTarget, _signal: AbortSignal): Promise<Transport> {
+  async create(method: TransportMethod, target: ConnectionTarget, _signal: AbortSignal): Promise<Transport> {
+    this.relay.attemptedMethods.push(method);
     if (!target.route) throw new Error('a route is required');
     return this.relay.dial(target.route, this.info);
   }
 
-  async host(code: string): Promise<{ code: string; transport: Promise<Transport>; close(): Promise<void> }> {
+  async host(code: string): Promise<{ code: string; transport: Promise<Transport>; ready: Promise<void>; close(): Promise<void> }> {
     return this.relay.host(code);
   }
 }

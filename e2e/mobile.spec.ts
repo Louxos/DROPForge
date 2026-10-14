@@ -9,6 +9,7 @@
 import { expect, test } from '@playwright/test';
 import {
   acceptIncoming,
+  attempt,
   answerNewDevice,
   collectDownloads,
   createTestFiles,
@@ -42,15 +43,33 @@ test.describe('PWA sur un écran de téléphone', () => {
     expect(Math.abs(bar!.y + bar!.height - viewport!.height)).toBeLessThan(2);
     expect(bar!.width).toBeGreaterThanOrEqual(viewport!.width - 2);
 
-    // Every screen is reachable from the bottom bar. The page is scrolled to the top
-    // first: with a fixed bar, the click point depends on the scroll position, and a
-    // test that fails on that would be blaming the interface for its own arithmetic.
+    // Every screen is reachable from the bottom bar, which is the whole point of the
+    // bar. Each tap is checked *before* it is attempted: the point the browser would
+    // click on is resolved through `elementFromPoint`, so an element in the way is
+    // named here — a click that silently lands elsewhere costs a 150-second timeout
+    // and says nothing about what covered it.
     for (const label of [L.devicesNavigation, L.history, L.settings, 'Transfert']) {
-      await device.page.evaluate(() => window.scrollTo(0, 0));
-      const button = device.page.locator('.df-bottom-nav__item', { hasText: label }).first();
-      await expect(button).toBeVisible();
-      await button.click();
-      await expect(device.page.locator('.df-main')).toBeVisible();
+      await attempt(device.page, `appui sur « ${label} » dans la barre basse`, async () => {
+        // A fixed bar is positioned against the viewport, not the document: scrolling
+        // back to the top keeps the click point where the layout put it.
+        await device.page.evaluate(() => window.scrollTo(0, 0));
+        const button = device.page.locator('.df-bottom-nav__item', { hasText: label }).first();
+        await expect(button).toBeVisible();
+        const box = await button.boundingBox();
+        expect(box).not.toBeNull();
+        const hits = await device.page.evaluate(
+          ({ x, y }) => {
+            const element = document.elementFromPoint(x, y);
+            if (!element) return 'rien';
+            const item = element.closest('.df-bottom-nav__item');
+            return item ? `le bouton « ${item.textContent?.trim()} »` : `${element.tagName.toLowerCase()}.${element.className}`;
+          },
+          { x: box!.x + box!.width / 2, y: box!.y + box!.height / 2 },
+        );
+        expect(hits).toContain(label);
+        await button.click({ timeout: 20_000 });
+        await expect(device.page.locator('.df-main')).toBeVisible();
+      });
     }
 
     await device.context.close();

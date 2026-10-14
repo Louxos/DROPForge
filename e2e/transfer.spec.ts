@@ -23,6 +23,7 @@ import {
   refuseIncoming,
   selectFiles,
   sendSelection,
+  describePage,
   type Device,
 } from './helpers/app.js';
 
@@ -42,9 +43,21 @@ async function pairAndConnect(a: Device, b: Device): Promise<void> {
   const code = await hostRoom(b.page);
   await joinRoom(a.page, code);
 
-  const [sasA, sasB] = await Promise.all([answerNewDevice(a.page, true), answerNewDevice(b.page, true)]);
-  expect(sasA).toBe(sasB);
-  expect(sasA).toMatch(/^\d{6}$/);
+  try {
+    const [sasA, sasB] = await Promise.all([answerNewDevice(a.page, true), answerNewDevice(b.page, true)]);
+    expect(sasA).toBe(sasB);
+    expect(sasA).toMatch(/^\d{6}$/);
+  } catch (error) {
+    // Les deux moitiés de la conversation : celle qui a saisi le code et celle qui l'a
+    // affiché. Un échec d'appairage ne se comprend qu'en les lisant ensemble.
+    throw new Error(
+      [
+        String(error),
+        `Appareil qui a saisi le code :\n${await describePage(a.page)}`,
+        `Appareil qui a affiché le code :\n${await describePage(b.page)}`,
+      ].join('\n\n'),
+    );
+  }
 }
 
 /** Waits for the queue of a page to show a row matching a file name. */

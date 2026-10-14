@@ -147,6 +147,31 @@ describe('AppController: pairing', () => {
     expect(rig.host.state.pairingRoom).toBeUndefined();
   });
 
+  it('never shows a code for a room the service refused to open', async () => {
+    const rig = await makeRig();
+    await rig.host.start();
+    // The service is reachable but will not hold the room: publishing the code anyway
+    // would send the other device to a room that does not exist.
+    rig.relay.refuseRooms = true;
+    expect(await rig.host.hostRoom()).toBeUndefined();
+    expect(rig.host.state.pairingRoom).toBeUndefined();
+    expect(rig.host.state.notices[0]?.kind).toBe('error');
+    expect(rig.host.state.notices[0]?.errorCode).toBeDefined();
+  });
+
+  it('tries a direct path before the relay, whatever the capability plan said', async () => {
+    const rig = await makeRig();
+    await rig.guest.start();
+    // A code nobody is waiting on: both paths fail, and the order they were tried in is
+    // the point. The relay is the least private path, so it is never the first one.
+    expect(await rig.guest.connectWithCode('ABCD2345XYZ')).toBe(false);
+    expect(rig.relay.attemptedMethods).toEqual(['webrtc', 'relay']);
+    expect(rig.guest.state.notices[0]?.messageKey).toBe('errors.PEER_UNREACHABLE');
+    // The failure travels with the paths that were tried: an explanation, not a shrug.
+    expect(rig.guest.state.notices[0]?.detail).toContain('webrtc:');
+    expect(rig.guest.state.notices[0]?.detail).toContain('relay:');
+  });
+
   it('says the platform is unsupported when no room can be hosted', async () => {
     const rig = new AppController({
       store: new MemoryStore(),

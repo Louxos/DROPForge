@@ -47,15 +47,40 @@ export interface Device {
  */
 const journals = new WeakMap<Page, string[]>();
 
-/** Everything a person would see and everything the browser complained about. */
+/**
+ * Everything a person would see, what the browser complained about, and **what the
+ * application itself thinks** it is doing.
+ *
+ * `main.tsx` exposes the controller for diagnostics (`globalThis.dropforge`), so the
+ * test can read the state the interface is rendering: whether it is connecting, which
+ * transport method it tried, and the notices — including the error it reported. The
+ * rendered text says what the user sees; this says why.
+ */
 export async function describePage(page: Page): Promise<string> {
   const text = await page
     .locator('body')
     .innerText({ timeout: 5_000 })
     .catch(() => '');
+  const state = await page
+    .evaluate(() => {
+      const controller = (globalThis as { dropforge?: { controller?: { state?: unknown } } }).dropforge?.controller;
+      if (!controller?.state) return undefined;
+      const snapshot = controller.state as Record<string, unknown>;
+      return {
+        ready: snapshot['ready'],
+        connecting: snapshot['connecting'],
+        connection: snapshot['connection'] ?? null,
+        methodExplanation: snapshot['methodExplanation'] ?? [],
+        notices: snapshot['notices'] ?? [],
+        hasNewDeviceQuestion: Boolean(snapshot['newDevice']),
+        pairingRoom: Boolean(snapshot['pairingRoom']),
+      };
+    })
+    .catch(() => undefined);
   const problems = journals.get(page) ?? [];
   return [
     `Écran : ${text.replace(/\s+/g, ' ').trim() || '(vide)'}`,
+    `État de l'application : ${state ? JSON.stringify(state) : '(contrôleur indisponible)'}`,
     problems.length > 0 ? `Journal du navigateur :\n${problems.join('\n')}` : 'Journal du navigateur : vide',
   ].join('\n');
 }

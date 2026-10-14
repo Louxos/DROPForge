@@ -254,6 +254,10 @@ describe('ConnectionManager', () => {
 
     expect(error?.code).toBe(ERROR_CODES.PEER_UNREACHABLE);
     expect(error?.context.attempts).toBe(2);
+    // The paths that were tried travel with the error: an interface that only says
+    // "unreachable" has thrown away the one thing that explains the failure.
+    expect(String(error?.context.path)).toContain('lan:');
+    expect(String(error?.context.path)).toContain('webrtc:');
     const failed = h.events.at(-1);
     expect(failed?.type).toBe('failed');
     if (failed?.type === 'failed') {

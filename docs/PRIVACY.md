@@ -28,6 +28,11 @@ directement, sans intermédiaire. Un déploiement peut en configurer un
 visible dans l'application construite, et il doit être annoncé aux personnes qui
 l'utilisent (un serveur STUN voit votre adresse IP publique).
 
+**Quand aucun chemin direct n'existe**, les deux appareils passent par le relais aveugle
+du même service : il recopie des trames déjà chiffrées de bout en bout et ne peut en lire
+ni le nom des fichiers, ni un octet de contenu. Ce que le service voit dans tous les cas
+est dans le tableau ci-dessus : des adresses IP, des horaires, un volume.
+
 Rien n'est envoyé à l'auteur de DropForge, ni à un service d'analyse, ni à un
 gestionnaire d'erreurs distant.
 

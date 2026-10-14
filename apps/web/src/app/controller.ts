@@ -84,6 +84,12 @@ export interface HostedRoom {
   code: string;
   /** Resolves with the transport once the other device has joined and connected. */
   transport: Promise<Transport>;
+  /**
+   * Resolves once the room really exists — the service has accepted this device
+   * into it. A code is only worth showing after that: a code announced too early
+   * makes the other device fail for a reason that belongs to this side.
+   */
+  ready: Promise<void>;
   close(): Promise<void>;
 }
 
@@ -438,7 +444,14 @@ export class AppController {
   /** Reports an error as a notice with its stable code, never with a raw message. */
   private reportError(error: unknown): DropForgeErrorType {
     const dfError = error instanceof DropForgeError ? error : fromPlatformError(error);
-    this.notice('error', `errors.${dfError.code}`, { errorCode: dfError.code });
+    const path = dfError.context['path'];
+    this.notice('error', `errors.${dfError.code}`, {
+      errorCode: dfError.code,
+      // A connection can fail on several paths at once (a direct one, then the
+      // relay). Naming them is the difference between "it did not work" and an
+      // answer: `.df-faint` shows this line under the sentence.
+      ...(typeof path === 'string' && path.length > 0 ? { detail: path } : {}),
+    });
     this.options.logger?.log('warn', 'action failed', { code: dfError.code });
     return dfError;
   }
@@ -668,7 +681,9 @@ export class AppController {
     if (!target) return false;
     const method = this.chooseMethod(['webrtc.direct', 'relay.blind'], false);
     const choice = selectTransportMethod(method);
-    return await this.connect({ ...target, methods: choice.method ? [choice.method] : ['relay', 'webrtc'] });
+    // Nothing should ever be preferred to a direct path: the relay costs the most and
+    // is the least private of the three, so it is tried last, never first.
+    return await this.connect({ ...target, methods: choice.method ? [choice.method] : ['webrtc', 'relay'] });
   }
 
   private targetFromCode(input: string): ConnectionTarget | undefined {
@@ -741,28 +756,44 @@ export class AppController {
       const code = newRoomCode();
       const room = await links.host(code);
       this.hostedRoom = room;
+      // The code is published *after* the room is real. Showing it earlier is how a
+      // fast hand (a scanned QR code, a pasted link) ends up being told the room does
+      // not exist — a race that belongs to this side, and that the user would pay for.
+      await room.ready;
       this.state.pairingRoom = { code, link: pairingLinkFor(code) };
       this.emit();
       // The waiting side runs the handshake as the responder: it answers whoever
       // dials, and only then does a transfer become possible.
       void room.transport.then(
         async (transport) => {
+          // An answer arrived (or the wait was cancelled): the code has served its
+          // purpose and is withdrawn either way.
+          if (this.state.pairingRoom?.code === code) this.state.pairingRoom = undefined;
           this.hostedRoom = undefined;
-          this.state.pairingRoom = undefined;
           this.state.connecting = true;
           this.emit();
           await this.acceptOnTransport(transport, {});
         },
         () => {
+          // Two outcomes share this path, and they are not the same thing: the user
+          // closed the room (the code is already withdrawn — nothing to say), or the
+          // wait ended by itself (nobody came in time: the code is dead, and saying so
+          // is the only honest thing left).
+          if (this.state.pairingRoom?.code === code) {
+            this.state.pairingRoom = undefined;
+            this.notice('warning', 'errors.PAIRING_CODE_EXPIRED');
+          }
           this.hostedRoom = undefined;
-          this.state.pairingRoom = undefined;
           this.emit();
         },
       );
-      return { code, link: this.state.pairingRoom.link };
+      return { code, link: pairingLinkFor(code) };
     } catch (error) {
-      this.reportError(error);
+      // Nothing is shown as waiting when the room was never opened: the failure is
+      // reported instead of a code that would not work.
+      this.hostedRoom = undefined;
       this.state.pairingRoom = undefined;
+      this.reportError(error);
       this.emit();
       return undefined;
     }

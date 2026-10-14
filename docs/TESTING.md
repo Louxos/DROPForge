@@ -39,6 +39,17 @@ voir** —
 C'est la raison d'être de la chaîne de publication : compiler et empaqueter pour de
 vrai, sur la plateforme visée, à chaque version.
 
+Les **tests de navigateur** ont apporté la troisième : le repli par **relais aveugle**,
+annoncé partout (README, interface, `docs/ARCHITECTURE.md`), ne fonctionnait pas. La
+tentative en mode relais marquait bien son transport comme ouvert quand le service
+confirmait le relais, mais ne le remettait jamais à la tentative en cours : elle attendait
+ensuite un canal WebRTC que personne n'ouvrirait, puis échouait au délai. Autrement dit,
+une connexion qui avait besoin du relais échouait **toujours**, et rien dans les tests
+unitaires ne pouvait le voir — ils remplacent le transport. Depuis la correction,
+`tests/relay-fallback.test.ts` le prouve sur un vrai serveur : la tentative aboutit, les
+trames traversent le relais dans les deux sens, et un pair ne peut pas basculer une salle
+en relais sans que l'autre ait répondu.
+
 ## Ce qui est couvert, et par quoi
 
 | Suite | Fichiers | Tests | Ce qu'elle prouve |
@@ -49,20 +60,21 @@ vrai, sur la plateforme visée, à chaque version.
 | Modules métier | `device-manager`, `history`, `settings`, `sharing`, `notifications`, `design-system`, `connection-manager` | 74 | Confiance des appareils, historique, préférences validées, partages, notifications, thème, choix de méthode |
 | **Coque Windows** | `apps/desktop/src/platform/local-paths.test.ts` | 9 | Construction et normalisation des chemins (POSIX/Windows), racine de lecteur, dossier parent — les seules parties du shell qui se testent sans Tauri |
 | **QR d’appairage** | `apps/web/src/components/qr.test.ts` | 7 | Structure réelle du code QR (motifs de repérage, motif de synchronisation, taille légale), refus propre au-delà de la capacité |
-| **Application web** | `apps/web/src/**` | **112** | Capacités mesurées, écriture/refus/renommage de fichiers, dossier de réception, base locale + migration, mises à jour, i18n FR/EN exhaustive, **contrôleur d'application de bout en bout (deux appareils, transfert réel, refus, conflits)** |
+| **Application web** | `apps/web/src/**` | **114** | Capacités mesurées, écriture/refus/renommage de fichiers, dossier de réception, base locale + migration, mises à jour, i18n FR/EN exhaustive, **contrôleur d'application de bout en bout (deux appareils, transfert réel, refus, conflits)** |
 | **Interface montée (DOM simulé)** | `apps/web/src/app/ui.test.tsx` | 6 | L'application est réellement rendue (React + happy-dom) : chargement puis navigation, état vide honnête quand aucun appareil n'est joignable, transfert suivi jusqu'à « Terminé » avec sa vérification, **refus affiché comme un refus**, changement de langue à chaud, fonction indisponible annoncée comme telle |
 | **Démarrage de la coque Windows** | `apps/desktop/src/platform/boot.test.ts` | 11 | La séquence de démarrage : l'ordre des étapes, l'arrêt sur l'échec avec l'étape nommée, la description d'erreur bornée sur une ligne (aucune entrée de journal ne peut être forgée), et « l'interface a-t-elle réellement rendu quelque chose » — la question qui manquait quand l'application pouvait s'ouvrir sur une fenêtre vide |
 | Transferts réels (mémoire) | `tests/loopback-transfer.test.ts` | 23 | Envoi/réception complets, conflits, écrasement, fichiers modifiés, gros fichiers, vérification |
 | Reprise | `tests/resume.test.ts` | 5 | Reprise alignée sur les morceaux, refus si l'empreinte change |
 | Sécurité (bout en bout) | `tests/security-integration.test.ts` | 11 | Relais incapable de lire, SAS falsifié, signature falsifiée, trame rejouée, traversée de chemin, écrasement refusé, disque plein, trame forgée |
 | Connexion | `tests/connection-manager.test.ts` | 7 | Choix de méthode, échecs cumulés, changement d'identité = arrêt |
-| Relais | `apps/signaling/src/server.test.ts` | 11 | Salles, quotas, relais aveugle, expiration |
+| Relais | `apps/signaling/src/server.test.ts` | 13 | Salles, quotas, relais aveugle, expiration, et l'accord **à deux** avant de basculer une salle en relais (un pair qui demande, l'autre qui répond — jamais l'inverse) |
+| **Repli par relais, bout en bout** | `tests/relay-fallback.test.ts` | 3 | Une tentative en mode relais **aboutit** (elle expirait avant : le transport était marqué ouvert mais jamais remis à la tentative en cours), les trames traversent le relais dans les deux sens, et la moitié qui attend accepte le relais sans jamais le subir |
 | Logo et icônes | `tests/icons.test.ts` | 15 | Le `.ico` de l’exécutable (sept tailles, DIB de 16 à 128 et PNG pour 256, cadres dans le fichier), l’écriture d’un DIB (BGRA, de bas en haut, masque), le SVG livré **identique à la description partagée**, l’écran de démarrage, le bloc de marque de l’interface, l’icône masquable |
 | **Entrée réelle de l’application** | `apps/web/src/entry.test.tsx` | 3 | `main.tsx` démarré pour de vrai, hors navigateur : IndexedDB simulée mais conforme, WebCrypto réel — la coque s’affiche ; et privée de WebCrypto, l’application **dit ce qui manque** au lieu de rester blanche (l’entrée finissait par un `void boot()` sans `catch` : n’importe quel échec laissait une page vide) |
 | Hooks de l’installateur | `tests/nsis.test.ts` | 11 | Le fichier de hooks NSIS : les mêmes macros lues dans un extrait Linux et dans un extrait Windows, la macro de fermeture insérée par les deux chemins, et le refus des trois erreurs silencieuses (macro insérée mais jamais définie, hook que Tauri n’appelle pas, macro morte) — ces tests viennent d’un échec réel de la tâche Windows |
 | Paquets de publication | `tests/packaging.test.ts` | 9 | Écriture **et relecture** des archives ZIP : CRC de référence, structure du répertoire central, choix stocké/déflaté, refus d’une entrée sans nom, refus d’une archive corrompue ou étrangère |
 
-Total vérifié le 14 octobre 2026 : **430 tests, 40 fichiers**, tous au vert, sur Linux.
+Total vérifié le 14 octobre 2026 : **437 tests, 41 fichiers**, tous au vert, sur Linux.
 La même suite tourne aussi sur Windows à chaque envoi (tâche `windows` de
 `.github/workflows/ci.yml`) : c'est ce qui a fait apparaître les deux défauts propres à
 Windows corrigés depuis — des scripts `.cmd` lancés sans shell, et un contrôle de

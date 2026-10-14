@@ -210,7 +210,16 @@ export class ConnectionManager {
       failures.length === 1
         ? failures[0]!.message
         : 'No available path allowed a connection to this device',
-      { retryable: true, context: { attempts: failures.length } },
+      {
+        retryable: true,
+        // The per-path outcome travels with the error: a caller that only shows
+        // "unreachable" throws away the one piece of information that explains it
+        // ("webrtc: the other device did not answer · relay: this code has expired").
+        context: {
+          attempts: failures.length,
+          path: failures.map((failure) => `${failure.method}:${failure.code}`).join(' · '),
+        },
+      },
     );
     this.emit({ type: 'failed', code: error.code, message: error.message, failures });
     throw error;
