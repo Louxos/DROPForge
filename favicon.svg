@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="DropForge">
+  <defs>
+    <linearGradient id="df" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7c5cff" />
+      <stop offset="1" stop-color="#389cff" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#0b0b0f" />
+  <path d="M256 112 L368 272 L144 272 Z" fill="url(#df)" />
+  <rect x="238" y="312" width="36" height="88" rx="10" fill="url(#df)" />
+</svg>

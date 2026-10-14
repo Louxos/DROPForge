@@ -33,6 +33,12 @@ Il n'y a **aucune ressource externe** dans le site publié : pas de police dista
 de CDN, pas de script d'analyse, pas de compte. Le dossier `apps/web/dist` se suffit à
 lui-même.
 
+> **Dernière étape, une fois le site créé** : collez l'adresse obtenue (par exemple
+> `https://dropforge.netlify.app`) dans [`site/app-url.txt`](site/app-url.txt), lancez
+> `npm run site:build`, puis envoyez `index.html`. C'est cette unique constante que la
+> page d'accueil publiée (`https://louxos.github.io/DROPForge/`) affiche en haut, dans
+> son bloc « L'application web ».
+
 ## 2. Ce qui marche, et ce qui ne marche pas, une fois publié
 
 | Fonction | État | Pourquoi |

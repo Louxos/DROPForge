@@ -45,17 +45,24 @@ retélécharger l'installateur.
 
 ## 2. Téléphone, tablette, autre ordinateur — l'application web
 
-### a) Depuis la page hébergée (le plus simple)
+### a) Depuis une adresse hébergée (le plus simple)
 
-Si le dépôt publie sa page GitHub Pages
-(`https://<utilisateur>.github.io/DROPForge/`), ouvrez-la.
+Deux adresses existent, et elles ne servent pas la même chose :
 
-> **Activation, une seule fois** : dépôt → *Settings* → *Pages* → *Source* =
-> « GitHub Actions », puis relancez le travail « Application web (GitHub Pages) ».
-> Tant qu'elle n'a pas eu lieu, la chaîne d'intégration construit l'application,
-> **le dit dans un avis** et ne publie rien — sans échouer pour autant, et l'archive
-> ci-dessous reste le moyen d'obtenir l'application web. Le pas-à-pas est dans
-> [`OWNER-GUIDE.md`](OWNER-GUIDE.md) §1.
+- **`https://louxos.github.io/DROPForge/`** — la **page d'accueil du projet** (page
+  premium, état réel, téléchargements). Elle ne sert pas encore l'application : la
+  publication de Pages est réglée sur la branche du dépôt, et le bloc « L'application
+  web » en haut de cette page indique où aller.
+- **l'adresse Netlify** (ou la vôtre) — l'**application web installable**, à régler une
+  fois pour toutes : [`NETLIFY.md`](NETLIFY.md). L'adresse obtenue se colle dans
+  [`site/app-url.txt`](site/app-url.txt) puis `npm run site:build`, pour que la page
+  d'accueil l'affiche en haut.
+
+> Pour servir l'application **depuis GitHub Pages** à la place de la page d'accueil :
+> dépôt → *Settings* → *Pages* → *Source* = « GitHub Actions », puis relancez le travail
+> « Application web (GitHub Pages) ». Le détail des deux réglages, et pourquoi ils
+> s'excluent, est dans [`OWNER-GUIDE.md`](OWNER-GUIDE.md) §1. Sans cette bascule,
+> l'archive ci-dessous reste le moyen d'obtenir l'application web hors Netlify.
 
 - **Android / Chrome / Edge** : menu ⋮ → « Installer l'application » ;
 - **iPhone / iPad** : bouton Partager → « Sur l'écran d'accueil » ;

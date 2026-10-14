@@ -7,43 +7,61 @@ vous arrêtez après la première**.
 
 | Action | Nécessaire pour | Coût | Temps |
 | --- | --- | --- | --- |
-| 1. Activer GitHub Pages | Ouvrir DropForge dans un navigateur, sur téléphone | 0 € | 2 min |
+| 1. GitHub Pages : page d'accueil publique | Page premium du projet, avec l'adresse de l'application web | 0 € | 2 min |
 | 2. Configurer les clés de mise à jour | Mises à jour Windows signées et vérifiées | 0 € | 10 min |
 | 3. Signer l'installateur (certificat d'éditeur) | Supprimer l'avertissement SmartScreen | payant | variable |
 | 4. Choisir la licence du projet | Clarifier ce que les autres ont le droit de faire | 0 € | 5 min |
 
 ---
 
-## 1. Activer GitHub Pages : DropForge dans un navigateur
+## 1. GitHub Pages : la page d'accueil publique (faite), et le choix à connaître
 
-**Pourquoi c'est la première étape.** Aujourd'hui, DropForge est téléchargeable (archive
-web et installateur), mais la page web hébergée n'existe pas : GitHub Pages doit être
-activé **une fois**, et cette activation n'est pas accessible avec les droits d'un agent
-d'intégration — elle est réservée au propriétaire du dépôt. Le travail d'intégration
-continue de réussir sans elle : il constate l'absence, l'écrit dans son journal, et
-s'arrête proprement au lieu d'échouer à chaque envoi.
+**État réel.** GitHub Pages est activé. Sa source est réglée sur **« Deploy from a
+branch »**, branche `arena/32d42310-dropforge`, dossier `/` — c'est le réglage qui
+publie la **page d'accueil du projet** :
 
-**Ce qu'il faut faire**
+> **https://louxos.github.io/DROPForge/**
 
-1. Ouvrez `https://github.com/Louxos/DROPForge/settings/pages`.
-2. Dans **Build and deployment**, réglez **Source** sur **GitHub Actions**.
-   *(Ne choisissez pas « Deploy from a branch » : le projet publie un artefact construit,
-   pas une branche.)*
-3. Attendez que la page l'indique, puis relancez la publication :
-   `https://github.com/Louxos/DROPForge/actions/workflows/pages.yml` → bouton
-   **Re-run all jobs** (ou envoyez n'importe quel changement sur `main`).
+Cette page est la vitrine : le logo, ce que DropForge fait, ce qu'il ne fait pas, l'état
+réel du projet, l'avertissement sur l'application Windows, et — tout en haut — le bloc
+« L'application web » avec son adresse et les deux chemins possibles (ouvrir
+l'application web, ou télécharger le logiciel).
 
-**Ce que vous obtenez**
+**Votre action, quand l'application web sera en ligne** (Netlify, [`docs/NETLIFY.md`](NETLIFY.md)) :
 
-- L'application est servie sur `https://louxos.github.io/DROPForge/` : ouvrez cette
-  adresse sur un téléphone, et « Installer l'application » (Android/Chrome) ou
-  Partager → « Sur l'écran d'accueil » (iOS/Safari) suffit à l'installer ;
-- le service worker met l'application en cache : elle se rouvre ensuite même sans réseau ;
-- deux appareils peuvent se transférer des fichiers avec cette seule adresse.
+1. ouvrez `docs/site/app-url.txt` et collez l'adresse sur une seule ligne, par exemple
+   `https://dropforge.netlify.app` ;
+2. lancez `npm run site:build` — la page est régénérée à la racine (`index.html`) et
+   `npm run check:site` refuse une adresse impossible (pas de `http://`, pas de lien
+   mort, pas cette page elle-même) ;
+3. envoyez `index.html` sur la branche publiée par Pages ; la publication prend une minute.
 
-**Si le travail « Application web (GitHub Pages) » dit encore que Pages n'est pas
-activé** : c'est que l'étape 2 n'a pas été enregistrée, ou que l'onglet a été quitté
-avant validation. Recommencez l'étape 2, puis relancez le travail.
+Tant que ce fichier ne contient qu'une adresse vide, la page affiche
+« **Application web · bientôt** » à la place du bouton : jamais un lien mort.
+
+**Le choix à connaître — les deux réglages de Pages s'excluent.** GitHub Pages ne sert
+qu'un seul contenu à la racine du site :
+
+| Source réglée dans Pages | Ce qui est servi à l'adresse | Le reste |
+| --- | --- | --- |
+| **Deploy from a branch** → `arena/32d42310-dropforge` → `/` *(réglage actuel)* | la page d'accueil `index.html` | l'application web reste sur Netlify (ou dans l'archive hors ligne) |
+| **GitHub Actions** | l'application web progressive construite par `pages.yml` (installable directement depuis cette adresse) | la page d'accueil n'est plus servie par Pages |
+
+Les deux sont valables ; ils ne peuvent pas cohabiter. La configuration actuelle est
+celle qui correspond à la demande faite ici : **une page premium sur GitHub Pages, et
+l'application sur Netlify**. Si vous préférez un jour servir l'application depuis
+GitHub Pages, réglez **Source** sur **GitHub Actions** dans
+`https://github.com/Louxos/DROPForge/settings/pages` et relancez le travail
+`pages.yml` : l'application prend la place de la page d'accueil.
+
+**Après la fusion de la branche de travail dans `main`** : si la branche
+`arena/32d42310-dropforge` venait à disparaître, la publication s'arrêterait. Dans ce
+cas, repassez la même source sur **`main`** (les fichiers publiés y seront identiques).
+
+**Si un jour la page d'accueil n'affiche plus le bon contenu** : vérifiez qu'`index.html`
+et `.nojekyll` sont bien présents à la racine (`npm run site:build` les recrée, et
+`npm run check:site` — inclus dans `npm run verify` — refuse une page désynchronisée de
+ses sources).
 
 > HTTPS est fourni par GitHub Pages. Ce n'est pas un détail : sans HTTPS le navigateur
 > refuse le presse-papiers, les notifications, le service worker et l'installation. Une
@@ -154,7 +172,7 @@ choisi (`MIT`, `Apache-2.0`, `GPL-3.0-only`…), et retirez la phrase correspond
 
 | Après l'étape | Ce qui change, concrètement |
 | --- | --- |
-| 1. Pages activé | Le travail `pages.yml` publie au lieu de s'arrêter : l'adresse devient active, l'application s'installe depuis un navigateur |
+| 1. Pages publié | `https://louxos.github.io/DROPForge/` sert la page d'accueil du projet (mode branche). Les deux réglages possibles sont décrits au § 1 |
 | 2. Clés configurées | Les versions publiées proposent une mise à jour, signée et vérifiée |
 | 3. Certificat | Plus d'avertissement SmartScreen au premier lancement |
 | 4. Licence choisie | Le code devient réellement réutilisable selon les termes choisis |

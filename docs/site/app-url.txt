@@ -1,0 +1,17 @@
+# Adresse de l'application web — LA SEULE LIGNE À MODIFIER
+#
+# Collez ici l'adresse publique de l'application web (Netlify, Vercel, votre
+# domaine…), sans espace, sur une seule ligne, par exemple :
+#
+#   https://dropforge.netlify.app
+#
+# Tant que ce fichier ne contient qu'une adresse vide, la page publiée affiche
+# « Application web · bientôt » à l'endroit prévu, en haut de la page, au lieu
+# d'un lien mort. Après modification, lancez :
+#
+#   npm run site:build
+#
+# puis envoyez `index.html` (régénéré à la racine) sur la branche publiée par
+# GitHub Pages. La constante `WEB_APP_URL` est lue uniquement ici : elle
+# n'existe nulle part ailleurs dans la page.
+#

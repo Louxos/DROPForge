@@ -80,7 +80,7 @@ Ce qui reste à faire, sur une machine Windows :
 | Interface rendue (React, DOM simulé) | ✅ Testé (6 tests) | `apps/web/src/app/ui.test.tsx` — ni CSS, ni navigateur réel |
 | QR code d'appairage | ✅ Testé (7 tests de structure) | `apps/web/src/components/qr.test.ts` |
 | Installation (invite du navigateur, iOS expliqué, déjà installé) | ✅ Testé (7 tests) | `apps/web/src/platform/install.test.ts` |
-| Installation réelle sur téléphone | ⚠️ À faire | La publication sur GitHub Pages attend une activation du dépôt (voir `docs/OWNER-GUIDE.md`) ; l'installation depuis un navigateur de bureau est couverte par les tests de bout en bout (`e2e/mobile.spec.ts`, `e2e/safari.spec.ts`) |
+| Installation réelle sur téléphone | ⚠️ À faire | GitHub Pages est activé, mais sert la page d'accueil du projet, pas encore l'application (choix expliqué dans `docs/OWNER-GUIDE.md` §1) ; l'installation depuis un navigateur de bureau est couverte par les tests de bout en bout (`e2e/mobile.spec.ts`, `e2e/safari.spec.ts`) |
 
 ### Limites de la PWA, dites explicitement dans l'interface
 

@@ -164,7 +164,7 @@ manque.
 
 | Exigence | État | Preuve / limite |
 | --- | --- | --- |
-| Tests unitaires, intégration, sécurité, bout en bout | ✅ | `npm run verify` : **449 tests, 42 fichiers** (unitaires et intégration) ; suite navigateur Playwright sur Chromium, Firefox et WebKit (iPhone). |
+| Tests unitaires, intégration, sécurité, bout en bout | ✅ | `npm run verify` : **462 tests, 43 fichiers** (unitaires et intégration) ; suite navigateur Playwright sur Chromium, Firefox et WebKit (iPhone). |
 | Gros et petits fichiers, plusieurs fichiers, conflits, espace insuffisant, coupure, reprise, annulation, permission refusée, intégrité, appareil non approuvé, révocation, liens expirés/révoqués, quotas, accès non autorisé, fermeture | ✅ | Chaque situation a son test nommé (voir `docs/TESTING.md`, tableau des cas et des fichiers). Les cas qui exigent deux appareils réels sont couverts par la suite navigateur. |
 | Navigateurs mobiles disponibles, limites iOS/Android documentées | 🟡 | Émulation iPhone (WebKit) et téléphone Chromium dans la suite ; **aucun appareil mobile réel** n'a servi aux essais. |
 | Migrations, désinstallation, mise à jour signée | 🟡 / 🔒 | Migrations ✅ testées ; désinstallation ⚠️ produite mais jamais essayée à la main ; mise à jour signée 🔒 bloquée par les secrets. |
@@ -180,7 +180,7 @@ manque.
 | Prototypes ciblés (local, distant, reprise, association, limites PWA) | ✅ | Vérifiés pour de vrai : transfert navigateur à navigateur dans la chaîne d'intégration, reprise et association en tests. |
 | Étapes cohérentes, projet compilable et testé | ✅ | Chaque envoi déclenche « Types, tests et compilations », la tâche Windows et la suite navigateur. |
 | Ne pas demander les détails techniques ordinaires, documenter les décisions | ✅ | Décisions écrites dans `docs/ARCHITECTURE.md` ; seules les actions du propriétaire ont été signalées. |
-| Poser une question seulement si une décision produit indispensable ne peut être déduite | 🔒 | Trois décisions restent : activer GitHub Pages, créer les secrets de signature, choisir la licence. |
+| Poser une question seulement si une décision produit indispensable ne peut être déduite | 🔒 | Deux décisions restent : créer les secrets de signature des mises à jour, choisir la licence. (GitHub Pages est activé : il publie la page d'accueil du projet, `index.html` — voir `docs/OWNER-GUIDE.md` § 1.) |
 
 ## 16. Qualité de livraison
 
@@ -214,7 +214,7 @@ signés par un certificat d'éditeur).
 
 **Non atteint, et ce document ne prétend pas le contraire.** Ce qui existe est la version
 **0.1.1** : installateurs Windows, application web, serveur de signalisation optionnel,
-449 tests automatiques et une suite navigateur réelle. Ce qui manque pour une 1.0
+462 tests automatiques et une suite navigateur réelle. Ce qui manque pour une 1.0
 honnête :
 
 1. **Un essai humain sur un vrai Windows** — installation, lancement, transfert local,

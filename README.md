@@ -23,7 +23,7 @@ jamais le contenu des fichiers.
 | Vous êtes sur | Prenez | Comment |
 | --- | --- | --- |
 | **Windows** | l'installateur de la dernière version | page **[Releases](../../releases)** → `DropForge_<version>_x64-setup.exe` (par utilisateur, sans droits administrateur) |
-| **Téléphone, tablette, autre ordinateur** | l'application web | `dropforge-pwa-<version>.zip` de la dernière version, servi en **HTTPS**, puis « Installer l'application » / « Sur l'écran d'accueil ». La page hébergée (GitHub Pages) demande une activation manuelle du dépôt — deux minutes, expliquées dans [`docs/OWNER-GUIDE.md`](docs/OWNER-GUIDE.md) |
+| **Téléphone, tablette, autre ordinateur** | l'application web | l'adresse publiée (Netlify, configuration fournie : [`docs/NETLIFY.md`](docs/NETLIFY.md)), puis « Installer l'application » / « Sur l'écran d'accueil » ; ou `dropforge-pwa-<version>.zip` de la dernière version, servi en **HTTPS** depuis n'importe quel dossier. La page d'accueil publique du projet est sur **[louxos.github.io/DROPForge](https://louxos.github.io/DROPForge/)** — son unique constante, l'adresse de l'application web, se règle dans [`docs/site/app-url.txt`](docs/site/app-url.txt) puis `npm run site:build` |
 | **N'importe où, sans réseau** | le même dossier, hors ligne | une fois le service worker installé, l'application fonctionne sans réseau ; l'archive se sert depuis n'importe quel dossier |
 | **Deux réseaux différents** | le serveur optionnel | `dropforge-signaling-<version>.zip` : `npm install --omit=dev && npm start` |
 | **Un serveur à vous** | les conteneurs | `cd deploy && docker compose up -d --build` → `http://localhost:8080` |
@@ -41,12 +41,12 @@ fonctionnalité, est dans [`docs/PLATFORM-MATRIX.md`](docs/PLATFORM-MATRIX.md).
 
 | Partie | Statut |
 | --- | --- |
-| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** (449 tests automatisés, 42 fichiers) |
+| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** (462 tests automatisés, 43 fichiers) |
 | Interface partagée React/TypeScript (FR/EN, thème sombre/clair) | ✅ Implémentée et **testée** au niveau du contrôleur d'application |
 | Application web progressive (PWA) installable | ✅ Implémentée et **testée** (pas encore testée sur téléphone réel) |
 | Serveur de signalisation / relais aveugle | ✅ Implémenté et **testé** (Node) |
 | Application Windows (Tauri + Rust) | ✅ **Compilée et empaquetée** par la chaîne d'intégration (version 0.1.1 : `DropForge_0.1.1_x64-setup.exe` et `.msi` publiés — la 0.1.0 ne s’ouvrait pas, la fenêtre était masquée par configuration), et recompilée à **chaque envoi** par la tâche Windows de l'intégration continue. La fenêtre ne peut plus rester invisible : ouverture demandée avant tout le reste, contrôles de secours côté Rust, écran d'échec avec la cause et le journal (`docs/TROUBLESHOOTING.md`). L'application n'a **pas encore été ouverte** sur un vrai Windows : c'est la seule chose que la chaîne d'intégration ne peut pas faire |
-| Installateur et désinstallateur Windows | ✅ **Soignés** : WebView2 embarqué (premier lancement sans réseau), images d'en-tête et de bandeau aux dimensions exactes, icône d'installateur, choix de la langue, démarrage en français, fermeture des instances en cours, désinstallation proposant (décoché) la suppression des données locales. Non signés « éditeur » (certificat payant) et les mises à jour signées attendent une clé (`docs/OWNER-GUIDE.md`) |
+| Installateur et désinstallateur Windows | ⚠️ **Deux défauts signalés, en cours de correction** : l'écran de démarrage peut rester affiché, et la désinstallation peut refuser de se lancer en annonçant que l'application est en cours d'exécution (le contrôle de Windows employé par l'installateur réagit à tout ce qui tient le fichier `.exe`, pas seulement à l'application). Le WebView2 embarqué, les images aux dimensions exactes, l'icône d'installateur, le choix de la langue, le démarrage en français, la fermeture des instances avant installation et la proposition (décochée) de supprimer les données locales sont, eux, en place. Non signés « éditeur » (certificat payant) et les mises à jour signées attendent une clé (`docs/OWNER-GUIDE.md`) |
 | Tests dans un vrai navigateur (E2E) | ✅ **Écrits et exécutés à chaque envoi** : deux navigateurs réels, transfert réel, **octets reçus hachés et comparés** — plus le refus, l'appareil refusé, l'historique après rechargement et le fonctionnement hors ligne. Chromium, Firefox, WebKit (`docs/TESTING.md`) |
 | Tests sur appareils mobiles réels | ❌ Non exécutés — l'émulation de téléphone est couverte, un vrai iPhone/Android ne l'est pas |
 | Liens de partage hébergés | ⚠️ Code client implémenté et testé ; nécessite un hébergement (optionnel) |
@@ -139,7 +139,7 @@ fonctionne sans lui.
 
 ```bash
 npm run verify           # typecheck + tous les tests + configuration Windows
-npm test                 # 42 fichiers, 449 tests
+npm test                 # 43 fichiers, 462 tests
 npm run test:unit        # paquets et application
 npm run test:integration # transferts réels en mémoire, reprise, sécurité, relais
 npm run test:e2e         # de vrais navigateurs, deux appareils, un transfert réel
