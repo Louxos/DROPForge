@@ -52,6 +52,8 @@ import {
   type QueueEntry,
   type ReceiverOutcome,
   type SenderOutcome,
+  type TaskHooks,
+  type TaskResult,
   type TransferProgress,
 } from '@dropforge/transfer-engine';
 import { generateDeviceId, hydrateIdentity, createDeviceIdentity, type StoredIdentity } from '@dropforge/security';
@@ -218,6 +220,24 @@ export interface AppState {
 }
 
 const DEFAULT_DEVICE_NAME = 'Mon appareil';
+
+/**
+ * What a queue row says about a transfer: the names of what is being moved.
+ *
+ * The row used to read « Windows · 2 fichier(s) » — the peer and a count. The peer is
+ * already shown by the connection panel just above, and a count says nothing about
+ * *what* is moving: two rows from the same device were indistinguishable. Beyond three
+ * names the row would stop being a row, so the rest becomes a count.
+ */
+export function transferLabel(entries: Array<{ path: string }>): string {
+  const names = entries.map((entry) => {
+    const cut = Math.max(entry.path.lastIndexOf('/'), entry.path.lastIndexOf('\\'));
+    return cut >= 0 ? entry.path.slice(cut + 1) : entry.path;
+  });
+  if (names.length === 0) return '—';
+  if (names.length <= 3) return names.join(', ');
+  return `${names.slice(0, 3).join(', ')} + ${names.length - 3}`;
+}
 
 export class AppController {
   private readonly listeners = new Set<() => void>();
@@ -977,7 +997,7 @@ export class AppController {
     this.queue.enqueue({
       id: transferId,
       direction: 'send',
-      label: `${connection.peer.displayName} · ${prepared.offer.entries.length} fichier(s)`,
+      label: transferLabel(prepared.offer.entries),
       totalBytes: prepared.offer.totalBytes,
       filesTotal: prepared.offer.entries.length,
       priority: this.queue.size,
@@ -1115,6 +1135,51 @@ export class AppController {
         (await this.devices.canAutoAccept(connection.peer.deviceId)) &&
         answer.accepted;
 
+      // The receiving side joins the queue exactly like the sending side. It used to
+      // run outside it, so the person waiting for a file saw an empty « File
+      // d'attente » and no moving progress while the bytes were arriving — the
+      // interface was silent about the very thing happening on that device.
+      this.queue.enqueue({
+        id: transferId,
+        direction: 'receive',
+        label: transferLabel(offer.entries),
+        totalBytes: offer.totalBytes,
+        filesTotal: offer.entries.length,
+        priority: this.queue.size,
+        // An offer is answered once: a failed receive has nothing to retry, and a
+        // replay would wait for an offer that will never come again.
+        retry: false,
+        run: async (hooks) => await this.runReceive(transferId, connection, offer, answer, store, hooks),
+      });
+      void autoAccept;
+    } catch (error) {
+      this.state.incoming = undefined;
+      const dfError = this.reportError(error);
+      await this.finishRecord(transferId, {
+        state: 'failed',
+        bytesDone: 0,
+        verifiedFiles: 0,
+        errorCode: dfError.code,
+      });
+    }
+  }
+
+  /**
+   * The work of one received transfer, run by the queue.
+   *
+   * It reports progress like a send does — the figures come from the engine's real
+   * counters, never from a timer — and it never throws: an error becomes a `failed`
+   * result and a finished record, which is what the queue and the history both need.
+   */
+  private async runReceive(
+    transferId: string,
+    connection: Connection,
+    offer: ControlMessage & { t: 'transferOffer' },
+    answer: Parameters<IncomingRequestState['resolve']>[0],
+    store: FileSystemPort,
+    hooks: TaskHooks,
+  ): Promise<TaskResult> {
+    try {
       const received = await receiveTransfer({
         session: connection.session,
         // The offer was consumed by this controller to build the request above; the
@@ -1124,7 +1189,8 @@ export class AppController {
         ...(this.options.logger ? { logger: this.options.logger } : {}),
         store,
         policy: this.state.settings.conflictPolicy,
-        ...(freeSpace !== undefined ? { freeSpaceBytes: freeSpace } : {}),
+        ...(this.state.freeSpace !== undefined ? { freeSpaceBytes: this.state.freeSpace } : {}),
+        onProgress: (progress) => hooks.onProgress(progress),
         requestDecision: async () => ({
           accepted: answer.accepted,
           decisions: answer.decisions,
@@ -1144,9 +1210,14 @@ export class AppController {
       });
       await this.saveResumeTask(transferId, received.offer, receiverResumeState(received.receiver, received.offer));
       await this.notifyOutcome('receive', saved, received.outcome.outcome);
-      void autoAccept;
+      return {
+        outcome: received.outcome.outcome,
+        ...(received.outcome.errorCode ? { errorCode: received.outcome.errorCode } : {}),
+        bytesDone: received.outcome.bytesDone,
+        verifiedFiles: received.outcome.verifiedFiles,
+      };
     } catch (error) {
-      this.state.incoming = undefined;
+      this.activeReceiver = undefined;
       const dfError = this.reportError(error);
       await this.finishRecord(transferId, {
         state: 'failed',
@@ -1154,6 +1225,7 @@ export class AppController {
         verifiedFiles: 0,
         errorCode: dfError.code,
       });
+      return { outcome: 'failed', errorCode: dfError.code, bytesDone: 0, verifiedFiles: 0 };
     }
   }
 

@@ -281,6 +281,16 @@ describe('AppController: transfer', () => {
     expect(guestRecord?.state).toBe('completed');
     expect(guestRecord?.files[0]?.verified).toBe(true);
     expect(guestRecord?.bytesDone).toBe(bytes.length);
+
+    // The receiving device shows the transfer in its own queue, like the sending one:
+    // it used to show an empty « File d'attente » while the bytes were arriving, which
+    // is the interface staying silent about the thing happening on that device.
+    const receiving = rig.guest.state.queue.find((entry) => entry.id === transferId);
+    expect(receiving?.direction).toBe('receive');
+    expect(receiving?.label).toBe('note.txt');
+    expect(receiving?.state).toBe('completed');
+    // And the sender's row names what is moving, not how many files it is.
+    expect(rig.host.state.queue.find((entry) => entry.id === transferId)?.label).toBe('note.txt');
   });
 
   it('lets the receiver refuse a transfer and never reports it as completed', async () => {

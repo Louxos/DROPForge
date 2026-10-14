@@ -50,7 +50,16 @@ unitaires ne pouvait le voir — ils remplacent le transport. Depuis la correcti
 trames traversent le relais dans les deux sens, et un pair ne peut pas basculer une salle
 en relais sans que l'autre ait répondu.
 
-La quatrième vient de la même suite, et touche la promesse de sécurité : **la question
+La quatrième est une leçon sur les tests eux-mêmes : **le helper de la suite cherchait un
+bouton qui n'existe pas**. Il attendait « Envoyer à » alors que l'interface dit « Envoyer
+vers » (`transfer.sendTo`). Le clic attendait donc un bouton qui ne viendrait jamais, et
+aucun test de transfert — Chromium, Firefox, téléphone — n'allait plus loin que cette
+ligne : ils échouaient tous au même endroit, en accusant l'interface. Ils passent
+maintenant la ligne, et ce qu'ils vérifient ensuite est ce qu'ils annonçaient depuis le
+début : les octets reçus, hachés hors de l'application, identiques à ceux envoyés. Un
+test qui n'a jamais rien prouvé ressemble beaucoup à un test qui réussit.
+
+La cinquième vient de la même suite, et touche la promesse de sécurité : **la question
 « nouvel appareil » n'affichait pas le code à comparer**. Le gestionnaire de connexion
 savait calculer ce code (le SAS dérivé de la poignée de main, identique des deux côtés)
 mais ne le transmettait pas à la question, et les deux interfaces affichaient un tiret à
@@ -149,6 +158,7 @@ le service de signalisation, démarrés automatiquement par la configuration Pla
 | Historique après rechargement | Chromium | Après un rechargement complet de la page, l'historique est toujours là (IndexedDB) et l'entrée s'ouvre |
 | Hors ligne | Chromium | Une fois le service worker installé, l'application **se rouvre sans réseau** : la promesse « PWA installable qui fonctionne hors ligne » est vérifiée, pas supposée |
 | Téléphone (Pixel 7 émulé) | Chromium mobile | La navigation basse remplace la barre latérale, et un transfert complet fonctionne depuis un écran de téléphone |
+| File d'attente, des deux côtés | Chromium, Firefox, téléphone | Les deux appareils affichent la ligne du transfert, nommée par les **fichiers** (et non « 2 fichier(s) »), jusqu'à « Terminé » — le côté qui reçoit avait une file d'attente vide pendant que les octets arrivaient |
 | Ce que l'on ne promet pas sur iOS | WebKit (iPhone 14 émulé) | Le sélecteur de dossier est **absent** (iOS ne l'a pas), l'installation explique le vrai geste (« Partager → Sur l'écran d'accueil ») au lieu d'un bouton mort, et le code d'appairage peut être affiché |
 
 Ce que cette suite **ne** fait **pas** : piloter un vrai iPhone, un vrai Android ou un

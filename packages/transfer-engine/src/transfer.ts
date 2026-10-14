@@ -189,6 +189,15 @@ export interface ReceiveTransferOptions {
    */
   offer?: TransferOffer;
   /**
+   * Progress of a transfer being received.
+   *
+   * Receiving used to report nothing at all: the sending side's queue moved, the
+   * receiving side's did not, and the person waiting had no idea whether anything was
+   * arriving. The figures are the same measured ones as on the sending side — never an
+   * estimate dressed up as a measurement.
+   */
+  onProgress?: (progress: TransferProgress) => void;
+  /**
    * Called the moment the receiver exists, before it runs: the UI needs it to
    * pause, cancel or inspect the transfer while it is happening.
    */
@@ -253,6 +262,7 @@ export async function receiveTransfer(options: ReceiveTransferOptions): Promise<
     ...(options.progressIntervalMs !== undefined ? { progressIntervalMs: options.progressIntervalMs } : {}),
     ...(options.progressThrottleMs !== undefined ? { progressThrottleMs: options.progressThrottleMs } : {}),
     ...(options.stallTimeoutMs !== undefined ? { stallTimeoutMs: options.stallTimeoutMs } : {}),
+    ...(options.onProgress ? { onProgress: (progress: TransferProgress) => options.onProgress?.(progress) } : {}),
     requestDecision: async (request) => {
       // The receiver knows the real conflicts and free space at this point: the
       // question handed to the user contains those, not guesses.

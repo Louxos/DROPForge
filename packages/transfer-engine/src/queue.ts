@@ -60,6 +60,12 @@ export interface QueueJob {
   filesTotal: number;
   /** Lower value runs first; equal values keep insertion order. */
   priority: number;
+  /**
+   * Whether a failed job may be retried automatically. Sending can always be tried
+   * again; receiving cannot — the offer it answers is consumed once, and replaying it
+   * would wait for an offer that will never come. Defaults to `true`.
+   */
+  retry?: boolean;
   run: (hooks: TaskHooks) => Promise<TaskResult>;
 }
 
@@ -385,7 +391,12 @@ export class TransferQueue {
           filesDone: result.verifiedFiles ?? entry.progress?.filesDone ?? 0,
         };
       }
-      if (result.outcome === 'failed' && entry.attempts < this.maxAttempts && !entry.cancelRequested) {
+      if (
+        result.outcome === 'failed' &&
+        entry.job.retry !== false &&
+        entry.attempts < this.maxAttempts &&
+        !entry.cancelRequested
+      ) {
         // Automatic, jittered retry for transient failures only.
         entry.state = 'queued';
         const delay = backoffDelay(entry.attempts, 750, 8_000);
