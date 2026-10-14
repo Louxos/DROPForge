@@ -31,6 +31,11 @@ const root = fileURLToPath(new URL('..', import.meta.url));
 const desktop = join(root, 'apps', 'desktop');
 const tauriDir = join(desktop, 'src-tauri');
 const cli = join(root, 'node_modules', '.bin', process.platform === 'win32' ? 'tauri.cmd' : 'tauri');
+// Sous Windows, `tauri` est un script `.cmd` : Node refuse de lancer directement un
+// `.cmd` (« spawn EINVAL ») depuis les versions qui ont fermé cette porte. Le shell est
+// donc requis, et le chemin est mis entre guillemets parce qu'il peut contenir des
+// espaces.
+const cliCommand = process.platform === 'win32' ? `"${cli}"` : cli;
 
 const problems = [];
 const fail = (message) => problems.push(message);
@@ -47,7 +52,12 @@ if (!existsSync(cli)) {
 let output = '';
 let status = 0;
 try {
-  output = execFileSync(cli, ['info'], { cwd: desktop, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  output = execFileSync(cliCommand, ['info'], {
+    cwd: desktop,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    shell: process.platform === 'win32',
+  });
 } catch (error) {
   output = `${error?.stdout ?? ''}${error?.stderr ?? ''}`;
   status = error?.status ?? 1;

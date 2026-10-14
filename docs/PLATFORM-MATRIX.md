@@ -13,7 +13,7 @@ Statut exact, sans arrondi optimiste. Quatre niveaux :
 
 | Fonction | Windows (Tauri) | PWA (Chromium bureau/Android) | PWA (Safari iOS) | PWA (Firefox) |
 | --- | --- | --- | --- | --- |
-| Transfert local (même réseau) | Implémenté, non compilé | Testé (logique partagée) | Testé (logique partagée) | Testé (logique partagée) |
+| Transfert local (même réseau) | Compilé et empaqueté, à ouvrir | Testé (logique partagée + navigateurs réels) | Testé (WebKit, sans transfert piloté) | Testé (navigateurs réels) |
 | Transfert direct Internet (WebRTC) | Implémenté, non compilé | Implémenté | Partiel (voir iOS) | Implémenté |
 | Relais aveugle | Implémenté, non compilé | Testé | Testé | Testé |
 | Réception dans un dossier | Implémenté (système de fichiers) | Oui (File System Access) | Non (téléchargement) | Non (téléchargement) |
@@ -49,7 +49,9 @@ du code Rust a été trouvée par une compilation réelle, sur une machine Windo
 | **Compilation Rust** | ✅ **Faite par la chaîne d'intégration** | `.github/workflows/release.yml`, à chaque tag. Elle a servi deux fois : elle a rejeté une API de tray inexistante puis une permission mal nommée, défauts invisibles ici |
 | Configuration (fenêtre, CSP, bundle, icône de notification, permissions) | ✅ **Validée** contre le schéma officiel de Tauri 2 | `npm run check:desktop` — c'est ce contrôle qui a corrigé le menu de l'icône (désormais construit en Rust, la configuration ne l'acceptant plus depuis Tauri 2.2) |
 | **Installateur** | ⚠️ **Produit par la chaîne d'intégration** | Par utilisateur, non signé « éditeur » (certificat payant) ; mises à jour signées si la clé est configurée — voir `docs/DOWNLOAD.md` |
-| **Exécution réelle sur Windows** | ❌ **Jamais lancée** | L'installateur est publié et vérifié, mais personne n'a encore ouvert l'application sur Windows : à faire en premier |
+| **Ouverture de la fenêtre** | ✅ **Corrigée et vérifiée à la compilation** | La fenêtre ne peut plus rester invisible : elle est demandée avant tout le reste, deux contrôles de secours côté Rust l'affichent (700 ms puis 12 s), un écran d'attente est présent dans `index.html`, et tout échec de démarrage affiche sa cause, son étape, le chemin du journal et un bouton « Réessayer » au lieu d'un processus sans fenêtre. Voir `docs/TROUBLESHOOTING.md` |
+| **Installateur / désinstallateur** | ✅ **Soigné** | WebView2 embarqué (premier lancement sans réseau), images d'en-tête et de bandeau NSIS/WiX aux dimensions exactes, icône d'installateur, choix de la langue à l'installation, démarrage en français, fermeture propre d'une instance en cours, désinstallation qui propose (décoché) la suppression des données locales |
+| **Exécution réelle sur Windows** | ⚠️ **À faire par vous** | L'installateur est publié, la coque est compilée et empaquetée à chaque envoi, mais personne n'a encore **ouvert** l'application sur Windows : c'est la seule chose que la chaîne d'intégration ne peut pas faire. Protocole : `docs/TESTING.md` |
 
 Ce qui reste à faire, sur une machine Windows :
 
@@ -76,7 +78,7 @@ Ce qui reste à faire, sur une machine Windows :
 | Interface rendue (React, DOM simulé) | ✅ Testé (6 tests) | `apps/web/src/app/ui.test.tsx` — ni CSS, ni navigateur réel |
 | QR code d'appairage | ✅ Testé (7 tests de structure) | `apps/web/src/components/qr.test.ts` |
 | Installation (invite du navigateur, iOS expliqué, déjà installé) | ✅ Testé (7 tests) | `apps/web/src/platform/install.test.ts` |
-| Installation réelle sur téléphone | ⚠️ À faire | Voir « À tester à la main » |
+| Installation réelle sur téléphone | ⚠️ À faire | La publication sur GitHub Pages attend une activation du dépôt (voir `docs/OWNER-GUIDE.md`) ; l'installation depuis un navigateur de bureau est couverte par les tests de bout en bout (`e2e/mobile.spec.ts`, `e2e/safari.spec.ts`) |
 
 ### Limites de la PWA, dites explicitement dans l'interface
 
@@ -104,5 +106,5 @@ Ce qui reste à faire, sur une machine Windows :
 | --- | --- |
 | Découverte automatique sur le réseau local **native** (mDNS/UDP) | La découverte est implémentée au niveau logique (annonces signées + cache) et testée ; le transport natif spécifique à chaque plateforme reste à brancher |
 | Liens de partage hébergés de bout en bout | Le paquet `sharing` (chiffrement, expiration, révocation, limites) est testé, et le contrôleur refuse la création sans service configuré ; aucun service d'hébergement n'est fourni. Sans configuration, l'option est affichée en lecture seule dans les réglages, avec la raison — jamais un bouton qui échoue en silence |
-| Tests E2E navigateur (Playwright) | Le contrôleur et la plateforme sont testés unitairement ; un E2E réel n'a pas été exécuté dans cet environnement |
+| ~~Tests E2E navigateur (Playwright)~~ | ✅ **Écrits et exécutés par la chaîne d'intégration** : deux navigateurs réels, un transfert réel, les octets reçus hachés et comparés ; refus, appareil refusé, historique après rechargement et fonctionnement hors ligne. Trois moteurs (Chromium, Firefox, WebKit). Détail : `docs/TESTING.md` |
 | Tests sur appareils mobiles réels | À faire, voir `docs/TESTING.md` |

@@ -29,7 +29,9 @@ const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const say = (message) => console.log(`[package] ${message}`);
 
 function run(args, env = {}) {
-  execFileSync(npm, args, { cwd: root, stdio: 'inherit', env: { ...process.env, ...env } });
+  // Un `.cmd` ne se lance pas directement sous Windows (Node refuse : « spawn EINVAL ») :
+  // le shell est requis là, et seulement là.
+  execFileSync(npm, args, { cwd: root, stdio: 'inherit', env: { ...process.env, ...env }, shell: process.platform === 'win32' });
 }
 
 /** Every file under `directory`, with its path relative to it. */

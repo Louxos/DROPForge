@@ -22,7 +22,17 @@ peut vérifier qu'il provient bien de ce dépôt.
    version. Une différence signifie que le fichier a été modifié : ne l'installez pas.
 4. Lancez l'installateur. Il s'installe **pour l'utilisateur courant** : aucune
    autorisation administrateur n'est demandée, aucun service ni tâche planifiée n'est
-   créé.
+   créé. La langue de l'installation peut être choisie (français ou anglais).
+   - Si le moteur d'affichage Microsoft (WebView2) manque, la version fournie le
+     contient : le premier lancement fonctionne sans réseau ;
+   - Windows peut afficher un avertissement d'éditeur inconnu : l'installateur n'est
+     pas signé par un certificat commercial. C'est un avertissement de réputation, pas
+     une erreur ; les sommes de contrôle ci-dessus permettent de vérifier le fichier, et
+     `docs/OWNER-GUIDE.md` explique ce que la signature changerait.
+5. Lancez DropForge. **La fenêtre s'ouvre toujours** : si l'interface rencontrait un
+   problème, elle affiche l'étape concernée, la cause, le chemin du journal de
+   diagnostic et un bouton « Réessayer » au lieu de rester invisible
+   (`docs/TROUBLESHOOTING.md`).
 
 ### Mises à jour
 
@@ -40,10 +50,11 @@ Si le dépôt publie sa page GitHub Pages
 (`https://<utilisateur>.github.io/DROPForge/`), ouvrez-la.
 
 > **Activation, une seule fois** : dépôt → *Settings* → *Pages* → *Source* =
-> « GitHub Actions ». Tant qu'elle n'a pas eu lieu, la chaîne d'intégration construit
-> l'application, **le dit dans un avis** et ne publie rien — sans échouer pour autant.
-> L'archive ci-dessous reste alors le moyen d'obtenir l'application web. Dès que Pages
-> est activé, relancer le travail « Application web (GitHub Pages) » suffit.
+> « GitHub Actions », puis relancez le travail « Application web (GitHub Pages) ».
+> Tant qu'elle n'a pas eu lieu, la chaîne d'intégration construit l'application,
+> **le dit dans un avis** et ne publie rien — sans échouer pour autant, et l'archive
+> ci-dessous reste le moyen d'obtenir l'application web. Le pas-à-pas est dans
+> [`OWNER-GUIDE.md`](OWNER-GUIDE.md) §1.
 
 - **Android / Chrome / Edge** : menu ⋮ → « Installer l'application » ;
 - **iPhone / iPad** : bouton Partager → « Sur l'écran d'accueil » ;

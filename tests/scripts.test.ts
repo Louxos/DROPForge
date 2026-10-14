@@ -10,9 +10,12 @@
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-const root = new URL('..', import.meta.url).pathname;
+// `new URL(...).pathname` donne « /D:/… » sous Windows, ce qui n'est pas un chemin
+// utilisable : le dépôt doit se lire de la même façon sur les trois systèmes.
+const root = fileURLToPath(new URL('..', import.meta.url));
 
 interface Manifest {
   name: string;
@@ -112,5 +115,23 @@ describe('scripts npm', () => {
         }
       }
     }
+  });
+});
+
+describe('processus externes', () => {
+  it('un exécutable Windows (.cmd) n’est jamais lancé sans shell', () => {
+    // Sous Windows, `npm` n'est pas un exécutable mais un script `.cmd`. Node refuse de
+    // le lancer directement (« spawn EINVAL ») : il faut passer par un shell, sinon la
+    // commande échoue à l'exécution alors que tout va bien en développement sous
+    // Linux ou macOS. Ce défaut a été trouvé par la tâche Windows de la chaîne
+    // d'intégration ; ce test l'empêche de revenir.
+    const offenders: string[] = [];
+    for (const { name, source } of scripts) {
+      const launchesCmd = /['"][^'"]*\.cmd['"]/.test(source) || /npm\.cmd/.test(source);
+      if (!launchesCmd) continue;
+      if (!/execFileSync|spawn|execSync/.test(source)) continue;
+      if (!/shell:/.test(source)) offenders.push(name);
+    }
+    expect(offenders).toEqual([]);
   });
 });

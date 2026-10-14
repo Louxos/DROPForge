@@ -3,6 +3,38 @@
 Chaque entrée dit quoi faire, et ce que DropForge affiche dans ce cas. Si un message
 ne correspond à rien ici, c'est un défaut de documentation : à signaler.
 
+## Windows : je lance DropForge et rien ne s'ouvre
+
+C'était un vrai défaut, il est corrigé — mais la réponse reste utile si vous utilisez
+une version plus ancienne, ou si un échec de démarrage se produit malgré tout.
+
+**Ce que fait DropForge maintenant.** Il ouvre sa fenêtre même quand son interface ne
+démarre pas :
+
+1. la fenêtre est demandée **avant** tout le reste ;
+2. deux contrôles de secours (Rust) l'affichent après 700 ms puis 12 s si personne ne
+   l'a demandée — vous voyez alors l'écran d'attente, puis soit l'application, soit un
+   écran qui dit ce qui a échoué ;
+3. un échec affiche l'étape concernée, la cause, le chemin du journal de diagnostic et
+   un bouton **Réessayer** ;
+4. si vous relancez l'application alors qu'une instance tourne déjà, la fenêtre de cette
+   instance revient au premier plan (au lieu d'un second processus invisible).
+
+**Si rien ne s'ouvre encore**, dans l'ordre :
+
+| À vérifier | Comment | Ce que cela veut dire |
+| --- | --- | --- |
+| L'application tourne-t-elle ? | `Gestionnaire des tâches` → onglet **Détails** → `DropForge.exe` | Présente : la fenêtre est ouverte ailleurs (autre bureau virtuel, écran secondaire hors ligne) ou minimisée dans la zone de notification. Cliquez sur l'icône DropForge près de l'horloge |
+| Que dit le journal ? | Ouvrez `%APPDATA%\org.dropforge.app\diagnostics.log` (collez ce chemin dans la barre d'adresse de l'explorateur) | La dernière ligne donne l'étape et la cause : `data` (base SQLite), `identity`, `settings`, `updates`, `tray`, `window`, `interface`, `render`, `panic` |
+| Le fichier existe-t-il ? | Le dossier `%APPDATA%\org.dropforge.app` doit contenir `dropforge.sqlite3` | Absent ou vide alors que le journal dit `data` : l'antivirus ou une règle de dossier a bloqué la création de la base |
+| Un antivirus bloque-t-il ? | Journaux de l'antivirus | Certains outils bloquent une application non signée au premier lancement. Autorisez-la explicitement, ou signez l'installateur (`docs/OWNER-GUIDE.md` §3) |
+| La version est-elle à jour ? | `Paramètres` › `À propos` | Une version installée antérieure à la correction peut encore présenter le défaut : réinstallez depuis la dernière version |
+
+**Ce qu'il ne faut pas faire** : réinstaller en boucle. Le journal de diagnostic dit
+laquelle des cinq causes ci-dessus s'applique, et c'est plus rapide qu'une
+réinstallation. Le fichier ne contient aucun contenu de fichier, aucune clé et aucun
+jeton : vous pouvez le transmettre tel quel.
+
 ## Connexion
 
 ### « Aucun chemin commun » (`NO_COMMON_TRANSPORT`)

@@ -117,8 +117,18 @@ jobs:
           git diff --exit-code -- apps/web/public/icons apps/desktop/src-tauri/icons apps/desktop/src-tauri/installer \
             || { echo "::error::les visuels versionnés ne correspondent plus à leur générateur (node scripts/generate-icons.mjs)"; exit 1; }
 
-      - name: Types, tests et configuration
-        run: npm run verify
+      # Quatre étapes plutôt qu'un seul `npm run verify` : un échec doit dire *laquelle*
+      # a échoué. C'est ce découpage qui a permis de localiser, en une lecture, le
+      # « spawn EINVAL » des scripts `.cmd` et les chemins de test non portables, deux
+      # défauts propres à Windows qu'un seul `verify` aurait noyés dans la sortie.
+      - name: Types (dépôt)
+        run: npm run typecheck
+      - name: Types (coque Windows)
+        run: npm run typecheck:desktop
+      - name: Configuration Tauri, Rust et installateur
+        run: npm run check:desktop
+      - name: Tests
+        run: npm test
 
       - name: Compilation de la coque et de l'installateur NSIS
         # `--debug` : la compilation est bien plus rapide, et ce qui est vérifié ici est

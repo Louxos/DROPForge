@@ -11,6 +11,10 @@ npm run test:integration    # transferts, reprise, sécurité, relais
 npm run verify              # typecheck + tests + configuration Tauri
 npm run check:desktop       # tauri.conf.json contre le schéma officiel de Tauri 2
 npm run smoke:release       # les archives téléchargeables (après npm run package)
+
+# Navigateurs réels (jamais lancés par `npm run verify` : ils demandent des navigateurs)
+npm run test:e2e:install    # une fois : télécharge Chromium, Firefox et WebKit
+npm run test:e2e            # deux appareils, un transfert réel, octets vérifiés
 ```
 
 `npm run check:desktop` mérite une explication : la partie bureau ne peut pas être
@@ -47,6 +51,7 @@ vrai, sur la plateforme visée, à chaque version.
 | **QR d’appairage** | `apps/web/src/components/qr.test.ts` | 7 | Structure réelle du code QR (motifs de repérage, motif de synchronisation, taille légale), refus propre au-delà de la capacité |
 | **Application web** | `apps/web/src/**` | **112** | Capacités mesurées, écriture/refus/renommage de fichiers, dossier de réception, base locale + migration, mises à jour, i18n FR/EN exhaustive, **contrôleur d'application de bout en bout (deux appareils, transfert réel, refus, conflits)** |
 | **Interface montée (DOM simulé)** | `apps/web/src/app/ui.test.tsx` | 6 | L'application est réellement rendue (React + happy-dom) : chargement puis navigation, état vide honnête quand aucun appareil n'est joignable, transfert suivi jusqu'à « Terminé » avec sa vérification, **refus affiché comme un refus**, changement de langue à chaud, fonction indisponible annoncée comme telle |
+| **Démarrage de la coque Windows** | `apps/desktop/src/platform/boot.test.ts` | 11 | La séquence de démarrage : l'ordre des étapes, l'arrêt sur l'échec avec l'étape nommée, la description d'erreur bornée sur une ligne (aucune entrée de journal ne peut être forgée), et « l'interface a-t-elle réellement rendu quelque chose » — la question qui manquait quand l'application pouvait s'ouvrir sur une fenêtre vide |
 | Transferts réels (mémoire) | `tests/loopback-transfer.test.ts` | 23 | Envoi/réception complets, conflits, écrasement, fichiers modifiés, gros fichiers, vérification |
 | Reprise | `tests/resume.test.ts` | 5 | Reprise alignée sur les morceaux, refus si l'empreinte change |
 | Sécurité (bout en bout) | `tests/security-integration.test.ts` | 11 | Relais incapable de lire, SAS falsifié, signature falsifiée, trame rejouée, traversée de chemin, écrasement refusé, disque plein, trame forgée |
@@ -54,7 +59,10 @@ vrai, sur la plateforme visée, à chaque version.
 | Relais | `apps/signaling/src/server.test.ts` | 11 | Salles, quotas, relais aveugle, expiration |
 | Paquets de publication | `tests/packaging.test.ts` | 9 | Écriture **et relecture** des archives ZIP : CRC de référence, structure du répertoire central, choix stocké/déflaté, refus d’une entrée sans nom, refus d’une archive corrompue ou étrangère |
 
-Total vérifié le 13 octobre 2026 : **388 tests, 36 fichiers**, tous au vert.
+Total vérifié le 14 octobre 2026 : **399 tests, 37 fichiers**, tous au vert.
+
+Et, en plus de ces tests unitaires et d'intégration, **11 scénarios dans de vrais
+navigateurs**, sur trois moteurs (Chromium, Firefox, WebKit) — voir la section suivante.
 
 Le test d'interface a une histoire : il a été écrit pour vérifier que l'écran suivait
 réellement le moteur, et il a immédiatement échoué sur un défaut grave — le contrôleur
@@ -87,6 +95,37 @@ npm run smoke:release   # extrait, sert, démarre — puis échoue si ce n'est p
   dist/main.js` comme l'indique son `RUN.md`, et lit `/health`.
 
 Ce test est exécuté par la chaîne d'intégration avant chaque publication.
+
+## De bout en bout, dans de vrais navigateurs
+
+Tout ce qui précède remplace une pièce : le transport, le système de fichiers, le DOM,
+l'horloge. Cette suite ne remplace rien. Deux **contextes de navigateur** (deux identités,
+deux stockages, deux appareils), le **vrai service de signalisation**, un **vrai canal
+WebRTC**, et des **vrais fichiers** — dont les octets reçus sont hachés *en dehors de
+l'application*, puis comparés à ceux qui ont été envoyés.
+
+```bash
+npm run test:e2e
+```
+
+Elle s'exécute contre l'application **construite** (`vite build` puis `vite preview`) et
+le service de signalisation, démarrés automatiquement par la configuration Playwright.
+
+| Scénario | Navigateur | Ce qui est prouvé |
+| --- | --- | --- |
+| Transfert de deux fichiers (un texte, quelques Mio binaires) | Chromium, Firefox | Les deux appareils se découvrent par code, comparent leur code de sécurité, et les fichiers arrivent **octet pour octet** : les empreintes SHA-256 des téléchargements capturés sont identiques à celles des fichiers envoyés |
+| Refus de la réception | Chromium | L'expéditeur voit un **échec**, avec la raison affichée, et jamais « Terminé » ; aucune des deux interfaces ne prétend que le fichier est arrivé |
+| Appareil refusé à l'appairage | Chromium | Le côté qui refuse n'obtient aucune connexion, et aucun transfert n'est possible ensuite |
+| Historique après rechargement | Chromium | Après un rechargement complet de la page, l'historique est toujours là (IndexedDB) et l'entrée s'ouvre |
+| Hors ligne | Chromium | Une fois le service worker installé, l'application **se rouvre sans réseau** : la promesse « PWA installable qui fonctionne hors ligne » est vérifiée, pas supposée |
+| Téléphone (Pixel 7 émulé) | Chromium mobile | La navigation basse remplace la barre latérale, et un transfert complet fonctionne depuis un écran de téléphone |
+| Ce que l'on ne promet pas sur iOS | WebKit (iPhone 14 émulé) | Le sélecteur de dossier est **absent** (iOS ne l'a pas), l'installation explique le vrai geste (« Partager → Sur l'écran d'accueil ») au lieu d'un bouton mort, et le code d'appairage peut être affiché |
+
+Ce que cette suite **ne** fait **pas** : piloter un vrai iPhone, un vrai Android ou un
+vrai Windows. Les gestes qui ne peuvent pas être automatisés (choisir un dossier dans le
+système, installer une PWA depuis le menu du navigateur, accepter un certificat) restent
+dans le protocole manuel ci-dessous — et `docs/PLATFORM-MATRIX.md` dit lesquels ont été
+réellement exécutés.
 
 ## Ce qui n'est PAS couvert (à ne pas confondre avec « testé »)
 

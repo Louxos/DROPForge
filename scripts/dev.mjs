@@ -26,7 +26,13 @@ function stop(code = 0) {
 }
 
 for (const service of services) {
-  const child = spawn(npm, service.args, { stdio: ['ignore', 'pipe', 'pipe'], env: process.env });
+  // Un `.cmd` ne se lance pas directement sous Windows (Node refuse : « spawn EINVAL ») :
+  // le shell est requis là, et seulement là.
+  const child = spawn(npm, service.args, {
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: process.env,
+    shell: process.platform === 'win32',
+  });
   children.push(child);
   const prefix = `${service.color}[${service.name}]\u001b[0m `;
   const forward = (stream, target) => {

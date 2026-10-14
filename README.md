@@ -19,7 +19,7 @@ jamais le contenu des fichiers.
 | Vous êtes sur | Prenez | Comment |
 | --- | --- | --- |
 | **Windows** | l'installateur de la dernière version | page **[Releases](../../releases)** → `DropForge_<version>_x64-setup.exe` (par utilisateur, sans droits administrateur) |
-| **Téléphone, tablette, autre ordinateur** | l'application web | `dropforge-pwa-<version>.zip` de la dernière version, servi en **HTTPS**, puis « Installer l'application » / « Sur l'écran d'accueil ». La page hébergée (GitHub Pages) n'existe pas encore : elle demande une activation manuelle dans les réglages du dépôt |
+| **Téléphone, tablette, autre ordinateur** | l'application web | `dropforge-pwa-<version>.zip` de la dernière version, servi en **HTTPS**, puis « Installer l'application » / « Sur l'écran d'accueil ». La page hébergée (GitHub Pages) demande une activation manuelle du dépôt — deux minutes, expliquées dans [`docs/OWNER-GUIDE.md`](docs/OWNER-GUIDE.md) |
 | **N'importe où, sans réseau** | le même dossier, hors ligne | une fois le service worker installé, l'application fonctionne sans réseau ; l'archive se sert depuis n'importe quel dossier |
 | **Deux réseaux différents** | le serveur optionnel | `dropforge-signaling-<version>.zip` : `npm install --omit=dev && npm start` |
 | **Un serveur à vous** | les conteneurs | `cd deploy && docker compose up -d --build` → `http://localhost:8080` |
@@ -37,13 +37,14 @@ fonctionnalité, est dans [`docs/PLATFORM-MATRIX.md`](docs/PLATFORM-MATRIX.md).
 
 | Partie | Statut |
 | --- | --- |
-| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** (388 tests automatisés) |
+| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** (399 tests automatisés, 37 fichiers) |
 | Interface partagée React/TypeScript (FR/EN, thème sombre/clair) | ✅ Implémentée et **testée** au niveau du contrôleur d'application |
 | Application web progressive (PWA) installable | ✅ Implémentée et **testée** (pas encore testée sur téléphone réel) |
 | Serveur de signalisation / relais aveugle | ✅ Implémenté et **testé** (Node) |
-| Application Windows (Tauri + Rust) | ✅ **Compilée et empaquetée** par la chaîne d'intégration (version 0.1.0 : `DropForge_0.1.0_x64-setup.exe` et `.msi` publiés). Aucune chaîne d'outils Rust dans l'environnement de développement utilisé : deux défauts invisibles ici n'ont été trouvés que par une compilation réelle — et l'application n'a **pas encore été lancée** sur Windows |
-| Installateur Windows, sommes de contrôle | ✅ **Publiés** avec la version 0.1.0, vérifiés par la chaîne d'intégration ; non signés « éditeur » (certificat commercial), et les mises à jour signées demandent une clé à configurer |
-| Tests dans un vrai navigateur (E2E), tests sur appareils mobiles réels | ❌ Non exécutés — le rendu de l'interface est vérifié dans un DOM simulé |
+| Application Windows (Tauri + Rust) | ✅ **Compilée et empaquetée** par la chaîne d'intégration (version 0.1.0 : `DropForge_0.1.0_x64-setup.exe` et `.msi` publiés), et recompilée à **chaque envoi** par la tâche Windows de l'intégration continue. La fenêtre ne peut plus rester invisible : ouverture demandée avant tout le reste, contrôles de secours côté Rust, écran d'échec avec la cause et le journal (`docs/TROUBLESHOOTING.md`). L'application n'a **pas encore été ouverte** sur un vrai Windows : c'est la seule chose que la chaîne d'intégration ne peut pas faire |
+| Installateur et désinstallateur Windows | ✅ **Soignés** : WebView2 embarqué (premier lancement sans réseau), images d'en-tête et de bandeau aux dimensions exactes, icône d'installateur, choix de la langue, démarrage en français, fermeture des instances en cours, désinstallation proposant (décoché) la suppression des données locales. Non signés « éditeur » (certificat payant) et les mises à jour signées attendent une clé (`docs/OWNER-GUIDE.md`) |
+| Tests dans un vrai navigateur (E2E) | ✅ **Écrits et exécutés à chaque envoi** : deux navigateurs réels, transfert réel, **octets reçus hachés et comparés** — plus le refus, l'appareil refusé, l'historique après rechargement et le fonctionnement hors ligne. Chromium, Firefox, WebKit (`docs/TESTING.md`) |
+| Tests sur appareils mobiles réels | ❌ Non exécutés — l'émulation de téléphone est couverte, un vrai iPhone/Android ne l'est pas |
 | Liens de partage hébergés | ⚠️ Code client implémenté et testé ; nécessite un hébergement (optionnel) |
 
 ## Comment DropForge se connecte
@@ -133,10 +134,11 @@ fonctionne sans lui.
 ## Tests
 
 ```bash
-npm run verify           # typecheck + tous les tests
-npm test                 # 36 fichiers, 388 tests
+npm run verify           # typecheck + tous les tests + configuration Windows
+npm test                 # 37 fichiers, 399 tests
 npm run test:unit        # paquets et application
 npm run test:integration # transferts réels en mémoire, reprise, sécurité, relais
+npm run test:e2e         # de vrais navigateurs, deux appareils, un transfert réel
 ```
 
 Ce qui est couvert — et surtout **ce qui ne l'est pas** — est détaillé dans
@@ -189,12 +191,14 @@ packages/
 apps/
   web/                l'interface + la PWA (React, TypeScript, Vite)
   desktop/            la coque Windows (Tauri 2 + Rust) réutilisant l'interface
+                      (démarrage surveillé, greffons Tauri, installateur NSIS/WiX)
   signaling/          serveur de signalisation et relais aveugle (Node, WebSocket)
 deploy/               déploiement maison (nginx, Docker, compose)
 .github/workflows/    intégration continue, publication de l'application, versions
 docs/                 architecture, modèle de données, sécurité, tests, dépannage…
 tests/                transferts de bout en bout en mémoire, reprise, sécurité
-scripts/              icônes, liste des licences
+e2e/                  navigateurs réels : deux appareils, transfert vérifié (Playwright)
+scripts/              icônes, visuels d'installateur, licences, inventaire, paquets
 ```
 
 L'interface ne contient **aucune** logique de transfert : elle pilote un contrôleur
@@ -211,12 +215,14 @@ d'application qui s'appuie sur les paquets. Le même code sert la PWA et Windows
 | [`docs/PRIVACY.md`](docs/PRIVACY.md) | Ce qui ne quitte jamais l'appareil |
 | [`docs/FREE-DEPLOYMENT.md`](docs/FREE-DEPLOYMENT.md) | Coûts réels, quotas, alternatives |
 | [`docs/PLATFORM-MATRIX.md`](docs/PLATFORM-MATRIX.md) | Implémenté / testé / partiel / bloqué |
+| [`docs/OWNER-GUIDE.md`](docs/OWNER-GUIDE.md) | Les trois actions réservées au propriétaire du dépôt (Pages, clés de mise à jour, signature, licence) |
 | [`docs/TESTING.md`](docs/TESTING.md) | Tests, et protocoles à exécuter à la main |
 | [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) | Chaque erreur, sa cause, sa solution |
 | [`docs/UPDATE-PROCEDURE.md`](docs/UPDATE-PROCEDURE.md) | Comment publier une mise à jour signée |
 | [`docs/DOWNLOAD.md`](docs/DOWNLOAD.md) | Télécharger, vérifier, installer, construire |
 | [`deploy/README.md`](deploy/README.md) | Déployer soi-même (statique, conteneurs, Internet) |
-| [`docs/LICENCES.md`](docs/LICENCES.md) | Licences des dépendances (généré) |
+| [`docs/LICENCES.md`](docs/LICENCES.md) | Licences des dépendances directes (généré) |
+| [`docs/DEPENDENCIES.md`](docs/DEPENDENCIES.md) | Inventaire complet : directes, transitives, licences (généré) |
 
 ## Sécurité
 
