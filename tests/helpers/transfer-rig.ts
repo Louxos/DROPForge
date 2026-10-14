@@ -254,7 +254,11 @@ export async function runTransfer(r: Rig, options: RunOptions = {}): Promise<Run
       offerTimeoutMs: options.timeoutMs ?? 4000,
       progressIntervalMs: options.progressIntervalMs ?? 25,
       progressThrottleMs: options.progressThrottleMs ?? 250,
-      stallTimeoutMs: options.stallTimeoutMs ?? 1200,
+      // Cinq secondes, et non une : les tests de reprise ne parlent pas du détecteur
+      // d'immobilité, et sur une machine d'intégration chargée une pause de
+      // planification d'une seconde entre deux morceaux est normale. Le détecteur,
+      // lui, a ses propres tests — qui passent un délai court *exprès*.
+      stallTimeoutMs: options.stallTimeoutMs ?? 5_000,
       requestDecision: async (request) => {
         if (!options.requestDecision) return { accepted: true, decisions: options.decisions ?? [] };
         const answer = await options.requestDecision({
