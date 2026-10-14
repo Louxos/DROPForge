@@ -15,7 +15,7 @@ peut vérifier qu'il provient bien de ce dépôt.
 3. Vérifiez le fichier :
 
    ```powershell
-   Get-FileHash -Algorithm SHA256 .\DropForge_0.1.0_x64-setup.exe
+   Get-FileHash -Algorithm SHA256 .\DropForge_0.1.1_x64-setup.exe
    ```
 
    Comparez avec la ligne correspondante de `SHA256SUMS-windows.txt`, joint à la
@@ -69,7 +69,7 @@ Toute version publiée fournit `dropforge-pwa-<version>.zip` : l'application com
 servable depuis **n'importe quel dossier** (les chemins sont relatifs).
 
 ```bash
-unzip dropforge-pwa-0.1.0.zip -d dropforge
+unzip dropforge-pwa-0.1.1.zip -d dropforge
 cd dropforge && python3 -m http.server 8000
 # ouvrez http://localhost:8000 — puis installez l'application depuis le navigateur
 ```
@@ -86,7 +86,7 @@ que des messages de négociation et des octets déjà chiffrés.
 
 ```bash
 # version publiée (Node 22 suffit, pas de compilation)
-unzip dropforge-signaling-0.1.0.zip -d signaling
+unzip dropforge-signaling-0.1.1.zip -d signaling
 cd signaling && npm install --omit=dev && npm start
 # écoute sur 0.0.0.0:8787, santé sur /health
 ```
@@ -133,7 +133,7 @@ pas être mise en ligne.
 
 C'est exactement ce que fait la chaîne d'intégration : `.github/workflows/ci.yml`
 vérifie chaque changement, `pages.yml` publie l'application web, `release.yml` produit
-les installateurs sur un tag (`git tag v0.1.0 && git push origin v0.1.0`).
+les installateurs sur un tag (`git tag v0.1.1 && git push origin v0.1.1`).
 
 ## Ce qui n'existe pas encore — et pourquoi
 

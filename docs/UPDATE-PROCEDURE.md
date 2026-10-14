@@ -104,7 +104,7 @@ La publication part de la branche par défaut (`main`) : c'est là que GitHub d�
 les chaînes d'intégration. La version publiée doit donc être un commit de `main`.
 
 ```bash
-git tag v0.1.0 && git push origin v0.1.0
+git tag v0.1.1 && git push origin v0.1.1
 ```
 
 Avant de pousser le tag : `npm run verify` et `npm run package` doivent passer, et

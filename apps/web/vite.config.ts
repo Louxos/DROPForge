@@ -129,7 +129,7 @@ export default defineConfig({
     chunkSizeWarningLimit: 800,
     // The version is compiled in so "À propos" shows the real one, never a guess.
     define: {
-      'import.meta.env.VITE_APP_VERSION': JSON.stringify(process.env['DROPFORGE_VERSION'] ?? '0.1.0'),
+      'import.meta.env.VITE_APP_VERSION': JSON.stringify(process.env['DROPFORGE_VERSION'] ?? '0.1.1'),
     },
     target: 'es2022',
     sourcemap: true,

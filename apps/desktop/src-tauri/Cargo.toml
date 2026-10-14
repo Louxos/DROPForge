@@ -6,7 +6,7 @@
 # `npm run build:windows` (à la racine du dépôt) fait la même chose.
 [package]
 name = "dropforge"
-version = "0.1.0"
+version = "0.1.1"
 description = "Transfert de fichiers entre appareils, sans compte, chiffré de bout en bout."
 authors = ["DropForge"]
 edition = "2021"

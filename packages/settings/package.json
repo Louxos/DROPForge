@@ -14,5 +14,5 @@
     "@dropforge/app-core": "*",
     "@dropforge/protocol": "*"
   },
-  "version": "0.1.0"
+  "version": "0.1.1"
 }

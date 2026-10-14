@@ -30,8 +30,8 @@ Statut exact, sans arrondi optimiste. Quatre niveaux :
 
 ## Windows (application Tauri 2 + Rust)
 
-**État : compilé et empaqueté par la chaîne d'intégration** (version 0.1.0 publiée :
-`DropForge_0.1.0_x64-setup.exe`, 3,4 Mo). Le TypeScript est vérifié et testé ici, mais
+**État : compilé et empaqueté par la chaîne d'intégration** (version 0.1.1 publiée :
+`DropForge_0.1.1_x64-setup.exe`, 3,4 Mo). Le TypeScript est vérifié et testé ici, mais
 **aucune compilation Rust n'est possible dans cet environnement** : chaque correction
 du code Rust a été trouvée par une compilation réelle, sur une machine Windows.
 

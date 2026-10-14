@@ -1,6 +1,6 @@
 {
   "name": "dropforge",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "DropForge — transfert de fichiers entre appareils, sans compte, chiffré de bout en bout.",
   "license": "SEE LICENSE IN docs/LICENCES.md",
