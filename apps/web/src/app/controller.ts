@@ -653,7 +653,7 @@ export class AppController {
         factory: this.resolveLinks() as ConnectionFactory,
         clock: this.clock,
         ...(this.options.logger ? { logger: this.options.logger } : {}),
-        requestTrust: async (peer, method) => await this.askForNewDevice(peer, method),
+        requestTrust: async (peer, method, sas) => await this.askForNewDevice(peer, method, sas),
       });
       const connection = await manager.connect(target);
       this.connectionManager = manager;
@@ -828,7 +828,7 @@ export class AppController {
       factory: this.resolveLinks() as ConnectionFactory,
       clock: this.clock,
       ...(this.options.logger ? { logger: this.options.logger } : {}),
-      requestTrust: async (peer, method) => await this.askForNewDevice(peer, method),
+      requestTrust: async (peer, method, sas) => await this.askForNewDevice(peer, method, sas),
     });
     const connection = await manager.accept(transport, options.expect ?? {}, {
       requestTrust: true,

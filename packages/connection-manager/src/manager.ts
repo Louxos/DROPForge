@@ -119,7 +119,13 @@ export interface ConnectionManagerOptions {
    * a device it never approved. A manager without this callback announces nothing —
    * inventing a request nobody can answer would leave the other side waiting forever.
    */
-  requestTrust?: (peer: PeerInfo, method: TransportMethod) => Promise<boolean>;
+  /**
+   * Asks the user to approve a brand-new device. The comparison code travels with
+   * the question: a dialog that cannot show it asks someone to approve a device they
+   * have no way to check — which is exactly what happened when the code was left out
+   * and both devices displayed a dash instead of six digits.
+   */
+  requestTrust?: (peer: PeerInfo, method: TransportMethod, sas: string) => Promise<boolean>;
   /** Secret from the QR code, when the devices were paired that way. */
   pairingSecret?: Uint8Array;
   /** Time allowed to open one transport. */
@@ -400,7 +406,7 @@ export class ConnectionManager {
     outcome: HandshakeOutcome,
   ): Promise<Connection> {
     if (outcome.peerRequestedTrust && this.options.requestTrust) {
-      const approved = await this.options.requestTrust(outcome.peer, method);
+      const approved = await this.options.requestTrust(outcome.peer, method, outcome.sas);
       if (!approved) {
         throw new DropForgeError(ERROR_CODES.DEVICE_NOT_TRUSTED, 'This device was not approved', {
           context: { method },

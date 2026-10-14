@@ -213,6 +213,28 @@ describe('AppController: pairing', () => {
     expect(rig.host.state.connection?.fingerprint).toBe(rig.guest.state.identityFingerprint);
     expect(rig.host.state.pairingRoom).toBeUndefined();
   });
+
+  it('shows the comparison code inside the question, on both devices', async () => {
+    const rig = await makeRig();
+    await rig.host.start();
+    await rig.guest.start();
+    const room = await rig.host.hostRoom();
+    expect(room).toBeDefined();
+    const connecting = rig.guest.connectWithCode(room!.code);
+    await settle();
+
+    // La question demande de comparer un code : ce code doit donc être **dans** la
+    // question. Il ne l'était pas — les deux appareils affichaient un tiret, et
+    // demandaient de vérifier six chiffres que personne ne voyait.
+    expect(rig.host.state.newDevice?.sas).toMatch(/^[0-9]{6}$/);
+    expect(rig.guest.state.newDevice?.sas).toMatch(/^[0-9]{6}$/);
+    expect(rig.host.state.newDevice?.sas).toBe(rig.guest.state.newDevice?.sas);
+
+    rig.host.answerNewDevice(true, false);
+    await settle();
+    rig.guest.answerNewDevice(true, false);
+    expect(await connecting).toBe(true);
+  });
 });
 
 /* ------------------------------------------------------------------ *

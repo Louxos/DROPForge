@@ -276,9 +276,11 @@ describe('ConnectionManager', () => {
     const aliceId = crypto.randomUUID();
     const bobId = crypto.randomUUID();
 
-    const questions: Array<{ who: 'alice' | 'bob'; resolve: (answer: boolean) => void }> = [];
-    const ask = (who: 'alice' | 'bob') => async (): Promise<boolean> =>
-      await new Promise<boolean>((resolve) => questions.push({ who, resolve }));
+    const questions: Array<{ who: 'alice' | 'bob'; sas: string; resolve: (answer: boolean) => void }> = [];
+    const ask =
+      (who: 'alice' | 'bob') =>
+      async (_peer: unknown, _method: unknown, sas: string): Promise<boolean> =>
+        await new Promise<boolean>((resolve) => questions.push({ who, sas, resolve }));
 
     let pendingAccept: Promise<Connection> | undefined;
     const alice = new ConnectionManager({
@@ -323,6 +325,14 @@ describe('ConnectionManager', () => {
       await new Promise((resolve) => setTimeout(resolve, 5));
     }
     expect(questions.map((question) => question.who).sort()).toEqual(['alice', 'bob']);
+    // Le code de comparaison fait partie de la question. Sans lui, la personne ne peut
+    // rien comparer : les deux appareils affichaient un tiret à la place de six chiffres,
+    // et demandaient de vérifier un code que personne ne voyait.
+    expect(questions.map((question) => question.sas)).toEqual([
+      expect.stringMatching(/^[0-9]{6}$/),
+      expect.stringMatching(/^[0-9]{6}$/),
+    ]);
+    expect(questions[0]?.sas).toBe(questions[1]?.sas);
 
     for (const question of questions.splice(0)) question.resolve(true);
     const connection = await connecting;
