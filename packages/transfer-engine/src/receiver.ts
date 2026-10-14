@@ -113,6 +113,8 @@ export interface ReceiverOutcome {
   failed: Array<{ index: number; reason: 'digestMismatch' | 'writeFailed' | 'noSpace' }>;
   bytesDone: number;
   errorCode?: string;
+  /** Whether trying the same transfer again may succeed (see `SenderOutcome`). */
+  retryable?: boolean;
 }
 
 interface FileState {
@@ -247,6 +249,7 @@ export class TransferReceiver {
           .map((f) => ({ index: f.index, reason: 'writeFailed' as const })),
         bytesDone: this.bytesDone,
         errorCode: dfError.code,
+        retryable: dfError.retryable,
       };
     } finally {
       this.options.clock.clearInterval(this.stallHandle);

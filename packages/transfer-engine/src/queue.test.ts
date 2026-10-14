@@ -188,7 +188,10 @@ describe('TransferQueue', () => {
     const flaky = controlledJob('flaky');
     queue.enqueue(flaky.job);
     await idle();
-    flaky.finish({ outcome: 'failed', errorCode: ERROR_CODES.CONNECTION_LOST });
+    // `retryable` is what a transient failure looks like coming out of the engine:
+    // a connection that dropped can succeed on the next attempt. A refusal does not
+    // say so, and is therefore never replayed behind the user's back.
+    flaky.finish({ outcome: 'failed', errorCode: ERROR_CODES.CONNECTION_LOST, retryable: true });
     await idle();
 
     // The first backoff is drawn from [375, 750] ms: just under it, nothing runs.
@@ -197,6 +200,21 @@ describe('TransferQueue', () => {
     // …then it runs again, without the user touching anything.
     await clock.advance(800);
     expect(flaky.started).toBe(2);
+  });
+
+  it('never replays a failure that did not ask to be retried', async () => {
+    const clock = new FakeClock();
+    const queue = new TransferQueue({ clock, concurrency: 1, maxAttempts: 3 });
+    const refused = controlledJob('refused');
+    queue.enqueue(refused.job);
+    await idle();
+    refused.finish({ outcome: 'failed', errorCode: ERROR_CODES.TRANSFER_DECLINED });
+    await idle();
+
+    // Nothing says this may succeed again: the other person already answered.
+    await clock.advance(60_000);
+    expect(refused.started).toBe(1);
+    expect(queue.list()[0]?.state).toBe('failed');
   });
 
   it('turns an unexpected throw into a failed job, keeping the error code', async () => {

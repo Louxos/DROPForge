@@ -214,6 +214,38 @@ export async function acceptIncoming(page: Page): Promise<void> {
   });
 }
 
+/**
+ * Allows more than one file to land as a download without asking.
+ *
+ * Chromium downloads the first automatic download and then blocks the next one behind
+ * a permission prompt (a real browser behaviour: it protects against a page quietly
+ * dropping a pile of files). A person answers it once; here the answer is given through
+ * the browser's own protocol, exactly like `acceptDownloads` answers the download
+ * prompt itself. Without it, a two-file transfer downloads one file and the second is
+ * blocked — which is what made the suite see « 1/2 téléchargement(s) reçu(s) ».
+ *
+ * Other engines have no such limit: the call is a no-op there.
+ */
+export async function allowMultipleDownloads(page: Page): Promise<void> {
+  if (page.context().browser()?.browserType().name() !== 'chromium') return;
+  const session = await page.context().newCDPSession(page);
+  try {
+    await session.send('Browser.grantPermissions', {
+      origin: new URL(page.url()).origin,
+      // Not every Chromium build exposes this permission type. When it does not, the
+      // call fails and is ignored: the browser then behaves exactly as it would for a
+      // person who ignored the prompt, which is what `docs/PLATFORM-MATRIX.md`
+      // documents. A test must never be made to pass by an API the runtime rejects.
+      permissions: ['multipleAutomaticDownloads'] as unknown as never[],
+    });
+  } catch {
+    // Documented, not hidden: see `docs/PLATFORM-MATRIX.md`, « téléchargements
+    // multiples ». The suite continues without it.
+  } finally {
+    await session.detach();
+  }
+}
+
 /** Refuses an incoming transfer offer. */
 export async function refuseIncoming(page: Page): Promise<void> {
   return attempt(page, 'refus de la réception', async () => {
@@ -322,7 +354,7 @@ export function collectDownloads(page: Page, count: number): Promise<Map<string,
     const collected = new Map<string, Buffer>();
     const timeout = setTimeout(() => {
       reject(new Error(`${collected.size}/${count} téléchargement(s) reçu(s) : ${[...collected.keys()].join(', ')}`));
-    }, 90_000);
+    }, 120_000);
 
     page.on('download', (download) => {
       void readDownload(download)

@@ -1013,7 +1013,7 @@ export class AppController {
     prepared: ReturnType<typeof prepareTransfer>,
     hooks: Parameters<Parameters<TransferQueue['enqueue']>[0]['run']>[0],
     record: TransferRecord,
-  ): Promise<{ outcome: SenderOutcome['outcome']; errorCode?: string; bytesDone?: number; verifiedFiles?: number }> {
+  ): Promise<TaskResult> {
     const result = await sendTransfer({
       session: connection.session,
       offer: prepared.offer,
@@ -1049,6 +1049,12 @@ export class AppController {
       ...(failureCode ? { errorCode: failureCode } : {}),
       bytesDone: result.outcome.bytesDone,
       verifiedFiles: result.outcome.verifiedFiles,
+      // Only a failure the engine itself called retryable may be replayed: a refusal
+      // is the other person's answer, not a passing network problem. Before this, a
+      // refused transfer was silently re-offered up to three times, and the row went
+      // back to « En attente » — the interface said "waiting" about something that
+      // was already over.
+      retryable: result.outcome.retryable === true,
     };
   }
 
@@ -1215,6 +1221,7 @@ export class AppController {
         ...(received.outcome.errorCode ? { errorCode: received.outcome.errorCode } : {}),
         bytesDone: received.outcome.bytesDone,
         verifiedFiles: received.outcome.verifiedFiles,
+        retryable: false,
       };
     } catch (error) {
       this.activeReceiver = undefined;

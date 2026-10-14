@@ -74,6 +74,15 @@ export interface SenderOutcome {
   unavailable: Array<{ index: number; reason: UnavailableReason }>;
   failed: Array<{ index: number; reason: FailedReason }>;
   errorCode?: string;
+  /**
+   * Whether trying the same transfer again may succeed.
+   *
+   * A refusal, a cancelled transfer, a device that is not trusted: retrying those
+   * repeats a decision the user already took. A connection that dropped is the
+   * opposite — the same attempt deserves another run. The queue reads this flag
+   * instead of guessing from the code.
+   */
+  retryable?: boolean;
 }
 
 export interface SenderOptions {
@@ -424,6 +433,8 @@ export class TransferSender {
         unavailable: this.unavailable,
         failed: this.failed,
         errorCode: dfError.code,
+        // A refusal and a cancellation are decisions: the queue must not replay them.
+        retryable: dfError.retryable,
       };
     } finally {
       this.unsubscribe?.();

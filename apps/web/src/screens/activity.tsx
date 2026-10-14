@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SPACE, formatBytes, formatDateTime, shortFingerprint } from '@dropforge/design-system';
-import type { AppController, AppState } from '../app/controller.js';
+import { transferLabel, type AppController, type AppState } from '../app/controller.js';
 import { EmptyState, PageHeader, StateBadge } from '../components/atoms.js';
 
 export function ActivityScreen({ controller, state }: { controller: AppController; state: AppState }): React.ReactElement {
@@ -77,11 +77,16 @@ export function ActivityScreen({ controller, state }: { controller: AppControlle
                   <strong>
                     {entry.direction === 'send' ? t('activity.filterSend') : t('activity.filterReceive')}
                   </strong>{' '}
-                  <span className="df-faint">
-                    {entry.peerName} · {formatDateTime(entry.updatedAt, locale)}
-                  </span>
+                  {/* Ce qui a été transféré, nommé : une entrée qui ne dit que
+                      « Envoi · Windows · 2 · 3,0 Mio / 3,0 Mio » oblige à ouvrir les
+                      détails pour savoir de quel fichier il s'agit — dans un écran
+                      dont le seul but est de retrouver ce qu'on a envoyé. */}
+                  <span>{transferLabel(entry.files)}</span>
                   <div className="df-faint">
-                    {entry.files.length} · {formatBytes(entry.bytesDone, locale)} / {formatBytes(entry.totalBytes, locale)}
+                    {entry.peerName} · {formatDateTime(entry.updatedAt, locale)}
+                  </div>
+                  <div className="df-faint">
+                    {formatBytes(entry.bytesDone, locale)} / {formatBytes(entry.totalBytes, locale)}
                     {entry.transport ? ` · ${entry.transport}` : ''}
                   </div>
                 </div>

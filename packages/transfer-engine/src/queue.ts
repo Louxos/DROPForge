@@ -49,6 +49,13 @@ export interface TaskResult {
   /** Files actually verified on the receiving side. */
   verifiedFiles?: number;
   detail?: string;
+  /**
+   * Whether the same job may succeed if it is run again. Defaults to `false`: a job
+   * that does not say it can succeed again is not retried behind the user's back. A
+   * refusal, a cancellation or a failed integrity check are decisions or facts, and
+   * replaying them would offer the same transfer again to someone who already said no.
+   */
+  retryable?: boolean;
 }
 
 export interface QueueJob {
@@ -393,6 +400,7 @@ export class TransferQueue {
       }
       if (
         result.outcome === 'failed' &&
+        result.retryable === true &&
         entry.job.retry !== false &&
         entry.attempts < this.maxAttempts &&
         !entry.cancelRequested

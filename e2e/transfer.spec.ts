@@ -11,6 +11,7 @@ import { createHash } from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
 import {
   acceptIncoming,
+  allowMultipleDownloads,
   answerNewDevice,
   collectDownloads,
   connectionMethod,
@@ -27,8 +28,16 @@ import {
   type Device,
 } from './helpers/app.js';
 
-/** The files this suite sends: a small text file and a few MiB of binary data. */
-const FIXTURE = createTestFiles();
+/**
+ * The files this suite sends: a small text file and a quarter-megabyte of binary data.
+ *
+ * Both stay small on purpose. What this file proves is that real bytes cross a real
+ * WebRTC channel and are handed to the browser **as downloads**, whose content is then
+ * hashed outside the application. A 3 MiB second file made that download take over a
+ * minute on a shared runner without proving anything more; the multi-megabyte path is
+ * covered by `tests/loopback-transfer.test.ts` (4 MiB) and by the phone suite.
+ */
+const FIXTURE = createTestFiles({ largeBytes: 256 * 1024 });
 const files = FIXTURE.files;
 const sha256 = (data: Buffer): string => createHash('sha256').update(data).digest('hex');
 
@@ -75,6 +84,9 @@ test.describe('transfert entre deux appareils réels', () => {
     await pairAndConnect(a, b);
     test.info().annotations.push({ type: 'méthode de connexion', description: await connectionMethod(a.page) });
 
+    // Two files land as two downloads: the browser must be allowed to do that before
+    // the first one starts (see `allowMultipleDownloads`).
+    await allowMultipleDownloads(b.page);
     // Start watching for downloads before sending: the receiver answers with a stream
     // of data, and the first file can arrive before the dialog has even closed.
     const downloads = collectDownloads(b.page, files.length);
