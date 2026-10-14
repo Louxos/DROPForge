@@ -69,7 +69,16 @@ jobs:
       - name: Navigateurs
         run: npx playwright install --with-deps chromium firefox webkit
       - name: Transfert réel entre deux navigateurs
-        run: npm run test:e2e
+        shell: bash
+        # Le journal est conservé et, en cas d'échec, publié en **annotation** : le
+        # journal complet d'un travail n'est pas toujours récupérable depuis
+        # l'extérieur de GitHub, une annotation l'est toujours.
+        run: |
+          set -o pipefail
+          npm run test:e2e 2>&1 | tee e2e.log || {
+            node scripts/ci-annotate.mjs e2e.log "Tests de bout en bout" 60
+            exit 1
+          }
       - name: Traces en cas d'échec
         if: failure()
         uses: actions/upload-artifact@v7
@@ -122,19 +131,52 @@ jobs:
       # « spawn EINVAL » des scripts `.cmd` et les chemins de test non portables, deux
       # défauts propres à Windows qu'un seul `verify` aurait noyés dans la sortie.
       - name: Types (dépôt)
-        run: npm run typecheck
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run typecheck 2>&1 | tee step.log || {
+            node scripts/ci-annotate.mjs step.log "Types (dépôt)" 40
+            exit 1
+          }
       - name: Types (coque Windows)
-        run: npm run typecheck:desktop
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run typecheck:desktop 2>&1 | tee step.log || {
+            node scripts/ci-annotate.mjs step.log "Types (coque Windows)" 40
+            exit 1
+          }
       - name: Configuration Tauri, Rust et installateur
-        run: npm run check:desktop
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run check:desktop 2>&1 | tee step.log || {
+            node scripts/ci-annotate.mjs step.log "Configuration Tauri et Rust" 40
+            exit 1
+          }
       - name: Tests
-        run: npm test
+        shell: bash
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee step.log || {
+            node scripts/ci-annotate.mjs step.log "Tests (Windows)" 40
+            exit 1
+          }
 
       - name: Compilation de la coque et de l'installateur NSIS
+        shell: bash
         # `--debug` : la compilation est bien plus rapide, et ce qui est vérifié ici est
         # que le code compile et que l'installateur se construit avec ses hooks. La
         # version publiée, elle, est compilée en mode release par `release.yml`.
-        run: npm run build:windows:check
+        #
+        # La sortie de cargo est la seule chose qui explique un échec de compilation
+        # Rust : elle est donc publiée en annotation, où elle reste lisible.
+        run: |
+          set -o pipefail
+          npm run build:windows:check 2>&1 | tee build.log || {
+            node scripts/ci-annotate.mjs build.log "Compilation Windows (cargo)" 60
+            exit 1
+          }
 
       - name: Installateur produit
         shell: bash

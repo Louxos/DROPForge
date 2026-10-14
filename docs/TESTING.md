@@ -59,7 +59,7 @@ vrai, sur la plateforme visée, à chaque version.
 | Relais | `apps/signaling/src/server.test.ts` | 11 | Salles, quotas, relais aveugle, expiration |
 | Paquets de publication | `tests/packaging.test.ts` | 9 | Écriture **et relecture** des archives ZIP : CRC de référence, structure du répertoire central, choix stocké/déflaté, refus d’une entrée sans nom, refus d’une archive corrompue ou étrangère |
 
-Total vérifié le 14 octobre 2026 : **399 tests, 37 fichiers**, tous au vert.
+Total vérifié le 14 octobre 2026 : **400 tests, 37 fichiers**, tous au vert.
 
 Et, en plus de ces tests unitaires et d'intégration, **11 scénarios dans de vrais
 navigateurs**, sur trois moteurs (Chromium, Firefox, WebKit) — voir la section suivante.
@@ -133,9 +133,10 @@ réellement exécutés.
 | --- | --- | --- |
 | Compilation et exécution Rust/Tauri | ❌ Environnement sans Rust | `docs/PLATFORM-MATRIX.md` |
 | Coque Windows au-delà des chemins | ❌ `tauri-fs`, `tauri-store`, `tauri-updater` n'importent les plugins Tauri : aucun test automatique, seule la vérification de types | ci-dessus |
-| Navigateur réel (Chromium/Safari/Firefox) | ❌ Aucun test dans un vrai navigateur. Le rendu est vérifié dans un DOM simulé (`ui.test.tsx`) : ni CSS, ni gestes tactiles, ni sélecteurs de fichiers du système | `docs/PLATFORM-MATRIX.md` |
-| Appareils mobiles réels | ❌ Non testé | plus bas |
+| Navigateur réel (Chromium/Safari/Firefox) | ✅ Couvert par `npm run test:e2e` — sauf les gestes que l'automatisation ne peut pas faire : choisir un dossier dans la boîte de dialogue du système, installer une PWA depuis le menu du navigateur, accepter une permission native | section précédente |
+| Appareils mobiles réels | ❌ Non testé : l'émulation de téléphone (Chromium Pixel 7, WebKit iPhone 14) est couverte, un vrai iPhone et un vrai Android non | plus bas |
 | Service d'hébergement de partage | ❌ Non configuré ; seul le code client est testé | `docs/FREE-DEPLOYMENT.md` |
+| Compilation Rust | ⚠️ Faite par la chaîne d'intégration sur Windows à chaque envoi, jamais dans l'environnement de développement | `docs/PLATFORM-MATRIX.md` |
 | Signature d'un installateur Windows | ❌ Aucun certificat disponible | `docs/UPDATE-PROCEDURE.md` |
 
 ## Protocole à exécuter sur une machine Windows (à faire)

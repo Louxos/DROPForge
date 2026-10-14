@@ -37,7 +37,7 @@ fonctionnalité, est dans [`docs/PLATFORM-MATRIX.md`](docs/PLATFORM-MATRIX.md).
 
 | Partie | Statut |
 | --- | --- |
-| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** (399 tests automatisés, 37 fichiers) |
+| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** (400 tests automatisés, 37 fichiers) |
 | Interface partagée React/TypeScript (FR/EN, thème sombre/clair) | ✅ Implémentée et **testée** au niveau du contrôleur d'application |
 | Application web progressive (PWA) installable | ✅ Implémentée et **testée** (pas encore testée sur téléphone réel) |
 | Serveur de signalisation / relais aveugle | ✅ Implémenté et **testé** (Node) |
@@ -135,7 +135,7 @@ fonctionne sans lui.
 
 ```bash
 npm run verify           # typecheck + tous les tests + configuration Windows
-npm test                 # 37 fichiers, 399 tests
+npm test                 # 37 fichiers, 400 tests
 npm run test:unit        # paquets et application
 npm run test:integration # transferts réels en mémoire, reprise, sécurité, relais
 npm run test:e2e         # de vrais navigateurs, deux appareils, un transfert réel
