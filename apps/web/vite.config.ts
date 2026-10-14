@@ -10,12 +10,30 @@
  *  - the signaling service is proxied on the same origin (`/ws`), so the browser
  *    never needs a second origin and no CORS rule has to be relaxed.
  */
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 const fromHere = (path: string): string => fileURLToPath(new URL(path, import.meta.url));
+
+/**
+ * The version of the product, read from the root `package.json`.
+ *
+ * Read here rather than written by hand: the release script can still override it with
+ * `DROPFORGE_VERSION`, and a plain `npm run build:web` (what a host like Netlify runs)
+ * then shows the true version too.
+ */
+function appVersion(): string {
+  try {
+    const manifest = JSON.parse(readFileSync(fromHere('../../package.json'), 'utf8')) as { version?: string };
+    return manifest.version ?? '0.0.0-unknown';
+  } catch {
+    // A build must not fail over a line in "À propos": the version says it is unknown.
+    return '0.0.0-unknown';
+  }
+}
 
 /** The workspace packages the application consumes, as TypeScript sources. */
 const WORKSPACE_PACKAGES = [
@@ -91,6 +109,14 @@ export default defineConfig({
       },
     }),
   ],
+  // The version is compiled in so "À propos" shows the real one, never a guess. This
+  // belongs at the top level: Vite 8 has no `build.define`, and the option written
+  // there was silently ignored — the published application announced `0.0.0-dev`
+  // instead of the version it was built from. The fallback reads `package.json` rather
+  // than repeating a string here, which would stay behind on the next release.
+  define: {
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(process.env['DROPFORGE_VERSION'] ?? appVersion()),
+  },
   resolve: {
     // Exact matches plus sub-paths (the design system also ships a stylesheet):
     // a prefix alias would rewrite `@dropforge/design-system/styles.css` into
@@ -127,10 +153,6 @@ export default defineConfig({
     // The application is meant to run offline from a cold start, so it is served as
     // one bundle rather than split into lazy chunks the user would have to fetch.
     chunkSizeWarningLimit: 800,
-    // The version is compiled in so "À propos" shows the real one, never a guess.
-    define: {
-      'import.meta.env.VITE_APP_VERSION': JSON.stringify(process.env['DROPFORGE_VERSION'] ?? '0.1.1'),
-    },
     target: 'es2022',
     sourcemap: true,
     outDir: 'dist',

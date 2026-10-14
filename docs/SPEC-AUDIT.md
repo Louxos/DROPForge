@@ -164,7 +164,7 @@ manque.
 
 | Exigence | État | Preuve / limite |
 | --- | --- | --- |
-| Tests unitaires, intégration, sécurité, bout en bout | ✅ | `npm run verify` : **441 tests, 41 fichiers** (unitaires et intégration) ; suite navigateur Playwright sur Chromium, Firefox et WebKit (iPhone). |
+| Tests unitaires, intégration, sécurité, bout en bout | ✅ | `npm run verify` : **449 tests, 42 fichiers** (unitaires et intégration) ; suite navigateur Playwright sur Chromium, Firefox et WebKit (iPhone). |
 | Gros et petits fichiers, plusieurs fichiers, conflits, espace insuffisant, coupure, reprise, annulation, permission refusée, intégrité, appareil non approuvé, révocation, liens expirés/révoqués, quotas, accès non autorisé, fermeture | ✅ | Chaque situation a son test nommé (voir `docs/TESTING.md`, tableau des cas et des fichiers). Les cas qui exigent deux appareils réels sont couverts par la suite navigateur. |
 | Navigateurs mobiles disponibles, limites iOS/Android documentées | 🟡 | Émulation iPhone (WebKit) et téléphone Chromium dans la suite ; **aucun appareil mobile réel** n'a servi aux essais. |
 | Migrations, désinstallation, mise à jour signée | 🟡 / 🔒 | Migrations ✅ testées ; désinstallation ⚠️ produite mais jamais essayée à la main ; mise à jour signée 🔒 bloquée par les secrets. |
@@ -214,7 +214,7 @@ signés par un certificat d'éditeur).
 
 **Non atteint, et ce document ne prétend pas le contraire.** Ce qui existe est la version
 **0.1.1** : installateurs Windows, application web, serveur de signalisation optionnel,
-441 tests automatiques et une suite navigateur réelle. Ce qui manque pour une 1.0
+449 tests automatiques et une suite navigateur réelle. Ce qui manque pour une 1.0
 honnête :
 
 1. **Un essai humain sur un vrai Windows** — installation, lancement, transfert local,

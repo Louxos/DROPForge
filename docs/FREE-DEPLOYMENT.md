@@ -92,7 +92,8 @@ c'est un réglage, pas une dépendance.
 | --- | --- | --- |
 | **Cloudflare Pages** | 500 builds/mois, 1 build simultané, bande passante statique **non mesurée**, 20 000 fichiers, 25 Mio par fichier, sans carte bancaire ([source](https://temps.sh/blog/cloudflare-pages-free-tier-limits-2026)) | Les fonctions dynamiques (Pages Functions) retombent sur le quota Workers (100 000 requêtes/jour) — DropForge n'en a pas besoin : tout est statique |
 | **GitHub Pages** | Gratuit pour un dépôt public | Pas d'en-têtes personnalisés, pas de WebSocket : le relais doit être ailleurs |
-| **Netlify / Vercel** | Palier gratuit existant | Limites de bande passante mensuelles : à revérifier avant de s'y fier |
+| **Netlify** | Palier gratuit existant, configuration **fournie** (`netlify.toml`, voir `docs/NETLIFY.md`) | Limites de bande passante mensuelles : à revérifier avant de s'y fier. Le service de signalisation ne peut pas y tourner (les fonctions Netlify sont des requêtes courtes, pas des WebSocket) : il va ailleurs |
+| **Vercel** | Palier gratuit existant | Mêmes limites ; aucune configuration fournie dans ce dépôt |
 
 La PWA se construit en un fichier de configuration : `npm run build:web` produit un
 dossier `apps/web/dist` **sans aucune ressource externe** (pas de police distante, pas

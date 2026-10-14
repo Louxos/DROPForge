@@ -25,6 +25,10 @@ deploy/.env
 dist/
 apps/desktop/src-tauri/tauri.updater.conf.json
 
+# Netlify (état local de `netlify dev`) : le site publié, lui, est décrit par
+# `netlify.toml`, qui est versionné.
+.netlify/
+
 # Test & coverage artifacts
 coverage/
 .vitest/

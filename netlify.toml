@@ -1,0 +1,116 @@
+# Publication de l'application web (PWA) sur Netlify.
+#
+# Ce fichier ne concerne **que** l'interface web installable. Netlify ne peut pas
+# héberger le reste de DropForge, et c'est une limite de la plateforme, pas un choix :
+#
+#   • l'installateur Windows est produit par la tâche « Application Windows » et publié
+#     sur la page des versions GitHub (`v0.1.1`), pas ici ;
+#   • le service de signalisation est un serveur WebSocket permanent. Les fonctions
+#     Netlify sont des requêtes HTTP courtes : elles ne peuvent pas garder une
+#     connexion ouverte. Le relais doit donc vivre ailleurs (voir `docs/NETLIFY.md`).
+#
+# Sans service de signalisation joignable, l'application publiée ici s'installe, se
+# charge et fonctionne hors ligne, mais ne trouve aucun appareil : elle l'affiche
+# honnêtement (« Aucun appareil joignable pour le moment ») au lieu de faire semblant.
+
+[build]
+  # Rien de particulier : `npm ci` est lancé automatiquement parce que
+  # `package-lock.json` est versionné, puis cette commande.
+  command = "npm run build:web"
+  # Le dossier produit par Vite (`outDir: 'dist'` dans `apps/web/vite.config.ts`).
+  publish = "apps/web/dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+  # Chemin servi depuis la racine du domaine. Explicitement `/` ici pour qu'une variable
+  # héritée (`/DROPForge/`, utilisée par GitHub Pages) ne puisse pas s'appliquer par
+  # erreur : les chemins de l'application partiraient alors dans le vide.
+  DROPFORGE_BASE = "/"
+  # Pour pointer un service de signalisation hébergé ailleurs, ajoutez dans
+  # Site settings → Environment variables :
+  #   VITE_SIGNALING_URL = wss://votre-relais.example.org/ws
+  # Sans elle, l'application cherche `wss://<ce-site>/ws` — c'est-à-dire nulle part.
+
+# ---------------------------------------------------------------------------- #
+# En-têtes
+# ---------------------------------------------------------------------------- #
+# Les en-têtes de sécurité d'abord, pour tout le site. Volontairement **pas** de CSP :
+# une politique mal écrite casserait l'application en silence (le service worker, les
+# WebSocket, les téléchargements par `blob:`), et elle dépendrait de l'adresse du
+# relais, choisie après coup. `docs/NETLIFY.md` dit ce qu'une CSP devrait contenir
+# pour qui veut la durcir.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
+    # Aucun cadre : l'application n'a pas à être encadrée, et le service worker d'une
+    # origine encadrée ne sert à rien. `SAMEORIGIN` plutôt que `DENY` pour ne pas
+    # bloquer un aperçu servi depuis le même domaine.
+    X-Frame-Options = "SAMEORIGIN"
+
+# Le service worker décide de ce qui est en cache et de la version installée : s'il est
+# servi depuis le cache du navigateur, une nouvelle version ne se voit **jamais**.
+# Il doit donc toujours être revalidé. Idem pour le script qui l'enregistre.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/registerSW.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# Les fichiers du dossier `assets` portent une empreinte de contenu dans leur nom
+# (`index-DXoKQcD3.js`) : leur contenu ne change jamais sous le même nom. Même chose
+# pour le morceau Workbox embarqué, dont l'empreinte change à chaque compilation.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/workbox-*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Les icônes et le manifeste ne sont pas empreintés : un jour de cache suffit, et une
+# modification est vue le lendemain. Le manifeste décrit l'application installée : il
+# est revalidé comme le service worker, pour qu'un changement d'icône ou de nom soit vu
+# à la prochaine ouverture.
+[[headers]]
+  for = "/icons/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# ---------------------------------------------------------------------------- #
+# Redirection
+# ---------------------------------------------------------------------------- #
+# L'application n'a aucune route par chemin : la navigation vit en mémoire et les liens
+# partagés utilisent le fragment (`/#c=CODE`), que le serveur ne voit jamais. Cette
+# réécriture existe pour qu'une adresse saisie à la main (`/reglages`) affiche
+# l'application au lieu d'une page 404 de Netlify. Les fichiers réels ont la priorité.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# ---------------------------------------------------------------------------- #
+# Développement local (facultatif)
+# ---------------------------------------------------------------------------- #
+# Pour tester cette configuration avant de publier (`npx netlify dev`) : Netlify lance
+# le serveur de développement de l'application et met ses propres en-têtes devant.
+[dev]
+  command = "npm run dev:web"
+  targetPort = 5173

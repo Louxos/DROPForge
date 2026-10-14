@@ -27,7 +27,12 @@ import { useAppState } from './app/use-app-state.js';
 import { BrandMark } from './components/atoms.js';
 import { SPACE } from '@dropforge/design-system';
 
-const APP_VERSION = import.meta.env['VITE_APP_VERSION'] ?? '0.0.0-dev';
+// Point d'accès **avec des points**, et non `['VITE_APP_VERSION']` : la substitution
+// faite à la compilation (`define` dans `vite.config.ts`) ne reconnaît que cette
+// écriture. En notation crochets, la version n'était jamais remplacée et « À propos »
+// annonçait `0.0.0-dev` dans l'application publiée — une version qui ne veut rien dire,
+// alors que le dépôt, lui, savait laquelle il venait de construire.
+const APP_VERSION = import.meta.env.VITE_APP_VERSION ?? '0.0.0-dev';
 
 async function boot(): Promise<void> {
   const capabilities = detectCapabilities();

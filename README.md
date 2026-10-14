@@ -41,7 +41,7 @@ fonctionnalité, est dans [`docs/PLATFORM-MATRIX.md`](docs/PLATFORM-MATRIX.md).
 
 | Partie | Statut |
 | --- | --- |
-| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** (441 tests automatisés, 41 fichiers) |
+| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** (449 tests automatisés, 42 fichiers) |
 | Interface partagée React/TypeScript (FR/EN, thème sombre/clair) | ✅ Implémentée et **testée** au niveau du contrôleur d'application |
 | Application web progressive (PWA) installable | ✅ Implémentée et **testée** (pas encore testée sur téléphone réel) |
 | Serveur de signalisation / relais aveugle | ✅ Implémenté et **testé** (Node) |
@@ -139,7 +139,7 @@ fonctionne sans lui.
 
 ```bash
 npm run verify           # typecheck + tous les tests + configuration Windows
-npm test                 # 41 fichiers, 441 tests
+npm test                 # 42 fichiers, 449 tests
 npm run test:unit        # paquets et application
 npm run test:integration # transferts réels en mémoire, reprise, sécurité, relais
 npm run test:e2e         # de vrais navigateurs, deux appareils, un transfert réel
@@ -226,6 +226,7 @@ d'application qui s'appuie sur les paquets. Le même code sert la PWA et Windows
 | [`docs/UPDATE-PROCEDURE.md`](docs/UPDATE-PROCEDURE.md) | Comment publier une mise à jour signée |
 | [`docs/DOWNLOAD.md`](docs/DOWNLOAD.md) | Télécharger, vérifier, installer, construire |
 | [`deploy/README.md`](deploy/README.md) | Déployer soi-même (statique, conteneurs, Internet) |
+| [`docs/NETLIFY.md`](docs/NETLIFY.md) | Publier la PWA sur Netlify (configuration fournie), et brancher un relais |
 | [`docs/LICENCES.md`](docs/LICENCES.md) | Licences des dépendances directes (généré) |
 | [`docs/DEPENDENCIES.md`](docs/DEPENDENCIES.md) | Inventaire complet : directes, transitives, licences (généré) |
 
