@@ -57,9 +57,15 @@ vrai, sur la plateforme visée, à chaque version.
 | Sécurité (bout en bout) | `tests/security-integration.test.ts` | 11 | Relais incapable de lire, SAS falsifié, signature falsifiée, trame rejouée, traversée de chemin, écrasement refusé, disque plein, trame forgée |
 | Connexion | `tests/connection-manager.test.ts` | 7 | Choix de méthode, échecs cumulés, changement d'identité = arrêt |
 | Relais | `apps/signaling/src/server.test.ts` | 11 | Salles, quotas, relais aveugle, expiration |
+| Hooks de l’installateur | `tests/nsis.test.ts` | 11 | Le fichier de hooks NSIS : les mêmes macros lues dans un extrait Linux et dans un extrait Windows, la macro de fermeture insérée par les deux chemins, et le refus des trois erreurs silencieuses (macro insérée mais jamais définie, hook que Tauri n’appelle pas, macro morte) — ces tests viennent d’un échec réel de la tâche Windows |
 | Paquets de publication | `tests/packaging.test.ts` | 9 | Écriture **et relecture** des archives ZIP : CRC de référence, structure du répertoire central, choix stocké/déflaté, refus d’une entrée sans nom, refus d’une archive corrompue ou étrangère |
 
-Total vérifié le 14 octobre 2026 : **400 tests, 37 fichiers**, tous au vert.
+Total vérifié le 14 octobre 2026 : **411 tests, 38 fichiers**, tous au vert, sur Linux.
+La même suite tourne aussi sur Windows à chaque envoi (tâche `windows` de
+`.github/workflows/ci.yml`) : c'est ce qui a fait apparaître les deux défauts propres à
+Windows corrigés depuis — des scripts `.cmd` lancés sans shell, et un contrôle de
+l'installateur qui comparait des chaînes avec `\n` sur un fichier extrait en CRLF (voir
+`scripts/lib/nsis.mjs` et `.gitattributes`).
 
 Et, en plus de ces tests unitaires et d'intégration, **11 scénarios dans de vrais
 navigateurs**, sur trois moteurs (Chromium, Firefox, WebKit) — voir la section suivante.

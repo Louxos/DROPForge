@@ -1,0 +1,43 @@
+# Fins de ligne et nature des fichiers, décidées par le dépôt plutôt que par la machine
+# de qui clone.
+#
+# Pourquoi ce fichier existe : sous Windows, Git extrait les fichiers texte en CRLF par
+# défaut (`core.autocrlf=true`). Un contrôle de la chaîne d'intégration cherchait la
+# chaîne « !macro X\n » dans `installer/hooks.nsh` : elle n'existait pas dans un extrait
+# Windows, et la tâche Windows annonçait donc un fichier « non défini » alors qu'il était
+# correct. Deux corrections ont été faites — le contrôle normalise désormais les fins de
+# ligne (`scripts/lib/nsis.mjs`), et ce fichier fait en sorte que tout le monde travaille
+# sur les mêmes octets en premier lieu.
+#
+# Tout ce qui est texte est stocké et extrait en LF, sur les trois systèmes. Tout ce qui
+# est binaire est déclaré comme tel, pour ne jamais être converti ni « diff » ligne à
+# ligne.
+
+* text=auto eol=lf
+
+# Scripts exécutés directement par un shell.
+*.sh   text eol=lf
+*.bash text eol=lf
+
+# Fichiers de commande Windows : ils tolèrent les deux, mais Git est formel — un `.bat`
+# ou un `.cmd` avec des fins de ligne Unix fonctionne, l'inverse casse les outils Unix.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Ressources graphiques et archives : jamais converties.
+*.bmp   binary
+*.ico   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.webp  binary
+*.woff  binary
+*.woff2 binary
+*.exe   binary
+*.msi   binary
+*.zip   binary
+*.gz    binary
+
+# Verrou de dépendances : outil, pas du code à relire — GitHub le replie dans les
+# différences. Il reste entièrement diffable quand c'est lui qu'on veut lire.
+package-lock.json linguist-generated=true

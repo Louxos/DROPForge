@@ -26,6 +26,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readBmpHeader } from './lib/bmp.mjs';
+import { analyseHooks, TAURI_HOOKS } from './lib/nsis.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const desktop = join(root, 'apps', 'desktop');
@@ -122,20 +123,12 @@ for (const crate of pluginCrates) {
   }
 }
 
-// 2d. Hooks NSIS : seuls quatre noms sont acceptés par Tauri, et un hook écrit mais
-//     jamais appelé est du code mort dans l'installateur.
+// 2d. Hooks NSIS : seuls quatre noms sont acceptés par Tauri, et une macro insérée mais
+//     jamais définie arrête la compilation NSIS. L'analyse vit dans `lib/nsis.mjs` pour
+//     être testable — c'est elle qui a révélé que l'ancienne version de ce contrôle
+//     comparait des chaînes avec « \n » et échouait donc sur un extrait Windows en CRLF.
 const hooks = readFileSync(join(tauriDir, 'installer', 'hooks.nsh'), 'utf8');
-const allowedHooks = ['NSIS_HOOK_PREINSTALL', 'NSIS_HOOK_POSTINSTALL', 'NSIS_HOOK_PREUNINSTALL', 'NSIS_HOOK_POSTUNINSTALL'];
-for (const macro of [...hooks.matchAll(/!macro\s+([A-Z_]+)/g)].map((match) => match[1])) {
-  if (macro.startsWith('NSIS_HOOK_') && !allowedHooks.includes(macro)) {
-    fail(`installer/hooks.nsh définit « ${macro} », que Tauri n'appelle pas.`);
-  }
-}
-for (const macro of [...hooks.matchAll(/!insertmacro\s+(DROPFORGE_[A-Z_]+)/g)].map((match) => match[1])) {
-  if (!hooks.includes(`!macro ${macro}\n`)) {
-    fail(`installer/hooks.nsh insère « ${macro} », qui n'est pas défini.`);
-  }
-}
+for (const problem of analyseHooks(hooks)) fail(problem);
 
 // 2e. Permissions : chaque permission déclarée pour un greffon doit correspondre à un
 //     greffon réellement utilisé. C'est la vérification qui aurait attrapé
@@ -225,6 +218,6 @@ if (problems.length > 0) {
 console.log('Configuration Tauri valide (schéma officiel).');
 console.log(
   `Code Rust cohérent : ${exposed.size} commandes exposées, ${pluginCrates.length} greffons déclarés et enregistrés, ` +
-    `${allowedHooks.length} hooks NSIS autorisés.`,
+    `${TAURI_HOOKS.length} hooks NSIS autorisés.`,
 );
 console.log(`Images de l'installateur présentes et aux bonnes dimensions (${IMAGES.length} images, ${NSIS_ICONS.length} icônes).`);
