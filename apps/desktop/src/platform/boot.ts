@@ -10,6 +10,7 @@
  * Everything here is pure logic, testable without Tauri: run the steps, stop at the
  * first failure, name it, and sanitise what is shown and logged.
  */
+import { describeError } from '@dropforge/app-core';
 
 /** The boot phases, in order. Names are shown to the person and written to the log. */
 export type BootStepName = 'data' | 'identity' | 'settings' | 'updates' | 'interface';
@@ -66,23 +67,7 @@ export async function runBootSteps<const T extends readonly unknown[]>(
   return results as unknown as T;
 }
 
-/**
- * Turns any thrown value into one bounded, single-line description.
- *
- * Diagnostics go to a file the user may hand to someone else: the text must be
- * useful, never multi-line (which could forge log entries) and never unbounded. A
- * failure that carries no message at all says so, rather than showing a bare "Error:".
- */
-export function describeError(error: unknown): string {
-  const raw = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-  const cleaned = raw.replace(/\s+/g, ' ').trim();
-  // "Error:" alone, or "TypeError:" alone: the name without any message is not a
-  // diagnosis, so it is treated as an empty description.
-  const bareName = /^[A-Za-z0-9_$.]*(Error|Exception)$/.test(cleaned.replace(/[:]+$/, '').trim());
-  const useful = bareName ? '' : cleaned;
-  const bounded = useful.length > 600 ? `${useful.slice(0, 597)}…` : useful;
-  return bounded.length > 0 ? bounded : 'cause inconnue / unknown cause';
-}
+export { describeError };
 
 /** The message shown on the recovery screen: what failed, in both languages. */
 export function failureText(failure: unknown): { step: BootStepName | 'unknown'; detail: string } {

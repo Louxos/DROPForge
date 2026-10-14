@@ -96,5 +96,14 @@ describe('entrée réelle de l’application', () => {
     await waitFor(() => globalThis.document.querySelector('[role="alert"]') !== null);
 
     expect(globalThis.document.querySelector(SHELL)).not.toBeNull();
+
+    // Et il dit *pourquoi*, borné sur une ligne : le code seul (« STORAGE_UNAVAILABLE »)
+    // est vrai et inutilisable. C'est ce détail qui a permis de diagnostiquer l'échec
+    // des onze scénarios navigateur en une seule lecture.
+    const lines = [...globalThis.document.querySelectorAll('[role="alert"] .df-faint')].map(
+      (node) => (node.textContent ?? '').trim(),
+    );
+    expect(lines.length).toBe(2);
+    expect(lines[1]!.length).toBeGreaterThan(0);
   }, 30_000);
 });

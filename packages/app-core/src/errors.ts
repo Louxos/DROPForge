@@ -156,3 +156,24 @@ export function fromPlatformError(value: unknown): DropForgeError {
       return new DropForgeError(ERROR_CODES.WRITE_FAILED, 'This action could not be completed', { retryable: true });
   }
 }
+
+/**
+ * Turns any thrown value into one bounded, single-line description.
+ *
+ * This is what a person sees under an error message, and what a log line may contain:
+ * the text must be useful, never multi-line (which could forge log entries), and never
+ * unbounded. A failure that carries no message says so, rather than showing a bare
+ * "Error:" — the name alone is not a diagnosis.
+ *
+ * It lives here, with `DropForgeError`, because both hosts need exactly this wording:
+ * the Windows shell (which writes it to its diagnostics log) and the web application
+ * (which shows it under an honest failure screen).
+ */
+export function describeError(error: unknown): string {
+  const raw = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+  const cleaned = raw.replace(/\s+/g, ' ').trim();
+  const bareName = /^[A-Za-z0-9_$.]*(Error|Exception)$/.test(cleaned.replace(/[:]+$/, '').trim());
+  const useful = bareName ? '' : cleaned;
+  const bounded = useful.length > 600 ? `${useful.slice(0, 597)}…` : useful;
+  return bounded.length > 0 ? bounded : 'cause inconnue / unknown cause';
+}

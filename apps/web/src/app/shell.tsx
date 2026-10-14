@@ -25,7 +25,16 @@ export type Route = 'transfer' | 'devices' | 'activity' | 'settings';
  * for that marker on a screen that rendered fine but did not carry it, and every one
  * of them failed with "element not found" — the least useful possible message.
  */
-export function FatalScreen({ code, message }: { code: string; message: string }): React.ReactElement {
+export function FatalScreen({
+  code,
+  message,
+  detail,
+}: {
+  code: string;
+  message: string;
+  /** The underlying reason, already bounded to one line (`describeError`). */
+  detail?: string;
+}): React.ReactElement {
   // `main.tsx` can reach here before the dictionaries are loaded (a failure while
   // setting them up is one of the ways in). Showing the platform's own sentence is
   // then the honest answer — it is English, and it is true.
@@ -38,6 +47,14 @@ export function FatalScreen({ code, message }: { code: string; message: string }
         <div className="df-error" role="alert" style={{ marginTop: SPACE.xl }}>
           <strong>{text}</strong>
           <span className="df-faint">{code}</span>
+          {detail ? (
+            // The reason, not a stack trace: one line, and it is what makes a report
+            // useful. A person who sees "the local database could not be opened
+            // (InvalidStateError)" can act; the code alone says nothing.
+            <span className="df-faint" style={{ marginTop: SPACE.sm }}>
+              {detail}
+            </span>
+          ) : null}
         </div>
       </div>
     </div>
@@ -115,7 +132,13 @@ export function Shell({ controller, state, install }: ShellProps): React.ReactEl
   );
 
   if (state.fatalError) {
-    return <FatalScreen code={state.fatalError.code} message={state.fatalError.message} />;
+    return (
+      <FatalScreen
+        code={state.fatalError.code}
+        message={state.fatalError.message}
+        {...(state.fatalError.detail ? { detail: state.fatalError.detail } : {})}
+      />
+    );
   }
 
   if (!state.ready) {

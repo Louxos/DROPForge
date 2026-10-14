@@ -20,7 +20,7 @@ import { ReceiveFolderService } from './platform/receive-folder.js';
 import { WebRtcLinkFactory } from './platform/webrtc-link.js';
 import { ServiceWorkerUpdateSource, noUpdateSource, type UpdateSource } from './platform/updater.js';
 import { createInstallWatch } from './platform/install.js';
-import { fromPlatformError } from '@dropforge/app-core';
+import { describeError, fromPlatformError } from '@dropforge/app-core';
 import { AppController } from './app/controller.js';
 import { FatalScreen, Shell } from './app/shell.js';
 import { useAppState } from './app/use-app-state.js';
@@ -90,14 +90,12 @@ async function boot(): Promise<void> {
  */
 function reportBootFailure(error: unknown): void {
   const dfError = fromPlatformError(error);
-  const detail = error instanceof Error && error.message ? error.message : dfError.message;
-  // eslint-disable-next-line no-console
   console.error('[DropForge] démarrage impossible', error);
   const root = document.getElementById('root');
   if (!root) return;
   createRoot(root).render(
     <StrictMode>
-      <FatalScreen code={dfError.code} message={detail} />
+      <FatalScreen code={dfError.code} message={dfError.message} detail={describeError(error)} />
     </StrictMode>,
   );
 }

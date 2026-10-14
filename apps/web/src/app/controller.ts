@@ -13,6 +13,7 @@
 import {
   DropForgeError,
   ERROR_CODES,
+  describeError,
   fromPlatformError,
   isTerminal,
   type DropForgeError as DropForgeErrorType,
@@ -173,7 +174,7 @@ export interface AppNotice {
 
 export interface AppState {
   ready: boolean;
-  fatalError?: { code: string; message: string };
+  fatalError?: { code: string; message: string; detail?: string };
   identityFingerprint: string | undefined;
   deviceName: string;
   settings: Preferences;
@@ -341,7 +342,15 @@ export class AppController {
       this.emit();
     } catch (error) {
       const dfError = fromPlatformError(error);
-      this.state.fatalError = { code: dfError.code, message: dfError.message };
+      // The screen shows a sentence; the reason has to be available too. Without it the
+      // only symptom is "local storage is unavailable" — true, and useless to anyone
+      // trying to understand *why* (a refused database, a blocked profile, no WebCrypto).
+      this.state.fatalError = {
+        code: dfError.code,
+        message: dfError.message,
+        detail: describeError(dfError.cause ?? error),
+      };
+      console.error('[DropForge] démarrage impossible', error);
       this.emit();
     }
   }
