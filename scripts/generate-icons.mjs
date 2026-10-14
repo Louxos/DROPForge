@@ -199,6 +199,13 @@ writeFileSync(join(DESKTOP_OUT, '32x32.png'), encodePng(32, 32, renderMark(32)))
 writeFileSync(join(DESKTOP_OUT, '128x128.png'), encodePng(128, 128, renderMark(128)));
 writeFileSync(join(DESKTOP_OUT, '128x128@2x.png'), encodePng(256, 256, renderMark(256)));
 
+// L'icône de la zone de notification, à part des autres : Windows y dessine 16 px (20,
+// 24 ou 32 selon la mise à l'échelle), et lui donner l'image de 256 px l'obligeait à la
+// réduire lui-même — un logo mou dans la barre des tâches. 32 px, rendus avec 4 × 4
+// échantillons par pixel, couvrent exactement le cas 200 % et laissent une réduction
+// propre pour les autres ; c'est la taille que `trayIcon.iconPath` référence.
+writeFileSync(join(DESKTOP_OUT, 'tray-icon.png'), encodePng(32, 32, renderMark(32)));
+
 // Les tailles que Windows demande réellement : 16 (menu Démarrer, barre de titre),
 // 24 et 32 (barre des tâches selon la mise à l'échelle), 48 (Explorateur), 64 et
 // 128 (grandes icônes), 256 (aperçu). Les six premières en DIB, la dernière en PNG.

@@ -108,6 +108,21 @@ describe('icône de l’exécutable Windows', () => {
   });
 });
 
+describe('icône de la zone de notification', () => {
+  it('est livrée à la taille que Windows y dessine, et la configuration la référence', () => {
+    // Windows dessine 16 px dans la zone de notification (20, 24 ou 32 selon la mise à
+    // l'échelle). Lui donner l'image de 256 px l'oblige à la réduire elle-même : un logo
+    // mou, et personne ne s'en aperçoit avant de l'avoir sous les yeux.
+    const config = JSON.parse(read('apps/desktop/src-tauri/tauri.conf.json'));
+    expect(config.app.trayIcon.iconPath).toBe('icons/tray-icon.png');
+
+    const png = bytes('apps/desktop/src-tauri/icons/tray-icon.png');
+    expect([...png.subarray(0, 8)]).toEqual([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    expect(png.readUInt32BE(16)).toBe(32);
+    expect(png.readUInt32BE(20)).toBe(32);
+  });
+});
+
 describe('écriture d’un .ico', () => {
   it('range les pixels en BGRA, de bas en haut, comme le veut un DIB', () => {
     // Une image 2×2 : rouge en haut à gauche, vert en haut à droite, bleu en bas à

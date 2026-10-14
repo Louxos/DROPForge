@@ -43,7 +43,7 @@ du code Rust a été trouvée par une compilation réelle, sur une machine Windo
 | Identité | ✅ SQLite local, refus d'un enregistrement inutilisable | `apps/desktop/src/platform/tauri-identity-store.ts` |
 | Mises à jour | ✅ Plugin Tauri, clé publique compilée, installation après accord | `apps/desktop/src/platform/tauri-updater.ts` |
 | Rust : fenêtre, fermeture, autostart, espace libre | ✅ Écrit | `apps/desktop/src-tauri/src/lib.rs` |
-| Icône de la zone de notification | ✅ Menu (ouvrir / quitter) et clic gauche | Menu **construit en Rust** : la configuration de Tauri 2.2+ ne porte plus de menu d'icône. Le dépôt de fichiers **sur l'icône** n'est pas proposé : `TrayIconEvent` (2.12) n'expose que Click, DoubleClick, Enter, Move, Leave — glisser-déposer dans la **fenêtre**, oui |
+| Icône de la zone de notification | ✅ Logo dédié de 32 px (`icons/tray-icon.png`), menu (ouvrir / quitter) et clic gauche | Menu **construit en Rust** : la configuration de Tauri 2.2+ ne porte plus de menu d'icône. Le dépôt de fichiers **sur l'icône** n'est pas proposé : `TrayIconEvent` (2.12) n'expose que Click, DoubleClick, Enter, Move, Leave — glisser-déposer dans la **fenêtre**, oui |
 | Configuration (fenêtre, CSP, bundle MSI/NSIS, capacités) | ✅ Écrite | `tauri.conf.json`, `capabilities/default.json` |
 | Icônes | ✅ Générées (dont un `.ico`) | `apps/desktop/src-tauri/icons/` |
 | **Compilation Rust** | ✅ **Faite par la chaîne d'intégration** | `.github/workflows/release.yml`, à chaque tag. Elle a servi deux fois : elle a rejeté une API de tray inexistante puis une permission mal nommée, défauts invisibles ici |

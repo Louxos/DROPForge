@@ -205,6 +205,32 @@ for (const icon of BUNDLE_ICONS) {
   if (!existsSync(join(tauriDir, icon.path))) fail(`l'icône « ${icon.path} » est introuvable.`);
 }
 
+// 3a-bis. L'icône de la zone de notification : Windows la réduit à 16 px (20, 24 ou 32
+//     selon la mise à l'échelle). Une image trop grande y arrive floue, une image trop
+//     petite y arrive pixelisée — les deux sans le moindre message d'erreur.
+// `trayIcon` vit à la racine de la configuration (section `app`), pas dans `bundle`.
+const trayRelative = config.app?.trayIcon?.iconPath;
+if (!trayRelative) {
+  fail('tauri.conf.json ne définit pas « trayIcon.iconPath » : le menu de la zone de notification serait sans icône.');
+} else {
+  const trayPath = join(tauriDir, trayRelative);
+  if (!existsSync(trayPath)) {
+    fail(`l'icône de la zone de notification « ${trayRelative} » est introuvable.`);
+  } else {
+    const header = readFileSync(trayPath);
+    const isPng = header.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+    if (!isPng) {
+      fail(`« ${trayRelative} » n'est pas un PNG : la zone de notification de Windows attend un PNG.`);
+    } else {
+      const width = header.readUInt32BE(16);
+      const height = header.readUInt32BE(20);
+      if (width !== 32 || height !== 32) {
+        fail(`« ${trayRelative} » mesure ${width}×${height} : la zone de notification attend 32×32 (« npm run icons »).`);
+      }
+    }
+  }
+}
+
 // 3b. Le `.ico` de l'exécutable : c'est lui qui donne à `DropForge.exe` son visage dans
 //     l'Explorateur, le menu Démarrer, la barre des tâches et la boîte de dialogue
 //     d'installation. Un `.ico` mal formé ne casse aucune compilation : il donne juste
@@ -261,4 +287,7 @@ console.log(
     `${TAURI_HOOKS.length} hooks NSIS autorisés.`,
 );
 console.log(`Images de l'installateur présentes et aux bonnes dimensions (${IMAGES.length} images, ${NSIS_ICONS.length} icônes).`);
-console.log('Icône de l’exécutable complète (7 tailles, 16 à 256) et logo de démarrage en place.');
+console.log(
+  'Icône de l’exécutable complète (7 tailles, 16 à 256), icône de zone de notification à 32 px, ' +
+    'et logo de démarrage en place.',
+);

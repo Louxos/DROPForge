@@ -69,12 +69,12 @@ en relais sans que l'autre ait répondu.
 | Connexion | `tests/connection-manager.test.ts` | 7 | Choix de méthode, échecs cumulés, changement d'identité = arrêt |
 | Relais | `apps/signaling/src/server.test.ts` | 13 | Salles, quotas, relais aveugle, expiration, et l'accord **à deux** avant de basculer une salle en relais (un pair qui demande, l'autre qui répond — jamais l'inverse) |
 | **Repli par relais, bout en bout** | `tests/relay-fallback.test.ts` | 3 | Une tentative en mode relais **aboutit** (elle expirait avant : le transport était marqué ouvert mais jamais remis à la tentative en cours), les trames traversent le relais dans les deux sens, et la moitié qui attend accepte le relais sans jamais le subir |
-| Logo et icônes | `tests/icons.test.ts` | 15 | Le `.ico` de l’exécutable (sept tailles, DIB de 16 à 128 et PNG pour 256, cadres dans le fichier), l’écriture d’un DIB (BGRA, de bas en haut, masque), le SVG livré **identique à la description partagée**, l’écran de démarrage, le bloc de marque de l’interface, l’icône masquable |
+| Logo et icônes | `tests/icons.test.ts` | 16 | Le `.ico` de l’exécutable (sept tailles, DIB de 16 à 128 et PNG pour 256, cadres dans le fichier), l’écriture d’un DIB (BGRA, de bas en haut, masque), le SVG livré **identique à la description partagée**, l’écran de démarrage, le bloc de marque de l’interface, l’icône masquable, et l’icône de la **zone de notification** livrée à 32 px (celle que Windows réduit à 16) |
 | **Entrée réelle de l’application** | `apps/web/src/entry.test.tsx` | 3 | `main.tsx` démarré pour de vrai, hors navigateur : IndexedDB simulée mais conforme, WebCrypto réel — la coque s’affiche ; et privée de WebCrypto, l’application **dit ce qui manque** au lieu de rester blanche (l’entrée finissait par un `void boot()` sans `catch` : n’importe quel échec laissait une page vide) |
 | Hooks de l’installateur | `tests/nsis.test.ts` | 11 | Le fichier de hooks NSIS : les mêmes macros lues dans un extrait Linux et dans un extrait Windows, la macro de fermeture insérée par les deux chemins, et le refus des trois erreurs silencieuses (macro insérée mais jamais définie, hook que Tauri n’appelle pas, macro morte) — ces tests viennent d’un échec réel de la tâche Windows |
 | Paquets de publication | `tests/packaging.test.ts` | 9 | Écriture **et relecture** des archives ZIP : CRC de référence, structure du répertoire central, choix stocké/déflaté, refus d’une entrée sans nom, refus d’une archive corrompue ou étrangère |
 
-Total vérifié le 14 octobre 2026 : **437 tests, 41 fichiers**, tous au vert, sur Linux.
+Total vérifié le 14 octobre 2026 : **438 tests, 41 fichiers**, tous au vert, sur Linux.
 La même suite tourne aussi sur Windows à chaque envoi (tâche `windows` de
 `.github/workflows/ci.yml`) : c'est ce qui a fait apparaître les deux défauts propres à
 Windows corrigés depuis — des scripts `.cmd` lancés sans shell, et un contrôle de
