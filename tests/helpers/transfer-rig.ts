@@ -262,7 +262,7 @@ export async function runTransfer(r: Rig, options: RunOptions = {}): Promise<Run
       // d'immobilité, et sur une machine d'intégration chargée une pause de
       // planification d'une seconde entre deux morceaux est normale. Le détecteur,
       // lui, a ses propres tests — qui passent un délai court *exprès*.
-      stallTimeoutMs: options.stallTimeoutMs ?? 5_000,
+      stallTimeoutMs: options.stallTimeoutMs ?? 15_000,
       requestDecision: async (request) => {
         if (!options.requestDecision) return { accepted: true, decisions: options.decisions ?? [] };
         const answer = await options.requestDecision({
@@ -284,7 +284,7 @@ export async function runTransfer(r: Rig, options: RunOptions = {}): Promise<Run
       logger: r.logger,
       streamIndex,
       acceptTimeoutMs: options.timeoutMs ?? 15_000,
-      ackTimeoutMs: options.ackTimeoutMs ?? 10_000,
+      ackTimeoutMs: options.ackTimeoutMs ?? 20_000,
       progressThrottleMs: options.progressThrottleMs ?? 250,
       onProgress: (progress, running) => {
         sender = running;

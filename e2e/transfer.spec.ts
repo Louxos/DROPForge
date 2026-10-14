@@ -72,7 +72,10 @@ async function pairAndConnect(a: Device, b: Device): Promise<void> {
 
 /** Waits for the queue of a page to show a row matching a file name. */
 async function queueRow(page: Page, name: string): Promise<ReturnType<Page['locator']>> {
-  const row = page.locator('li.df-card', { hasText: escapeRegExp(name) }).first();
+  // A **regular expression**, not a string: `hasText` with a string looks for the
+  // literal characters, so an escaped name like `rapport\.txt` searches for a
+  // backslash that no file name contains. The row was on screen the whole time.
+  const row = page.locator('li.df-card', { hasText: new RegExp(escapeRegExp(name)) }).first();
   await expect(row).toBeVisible({ timeout: 30_000 });
   return row;
 }
