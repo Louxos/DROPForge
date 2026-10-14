@@ -27,8 +27,11 @@ export default defineConfig({
   forbidOnly: process.env['CI'] !== undefined,
   retries: process.env['CI'] !== undefined ? 1 : 0,
   workers: process.env['CI'] !== undefined ? 1 : undefined,
-  timeout: 90_000,
-  expect: { timeout: 20_000 },
+  // A shared CI runner is slow: the browser starts cold, the application builds its
+  // identity with real WebCrypto, and two contexts hand a real file to each other.
+  // A timeout that is too tight turns a slow machine into a false failure.
+  timeout: 150_000,
+  expect: { timeout: 25_000 },
   reporter: process.env['CI'] !== undefined ? [['list'], ['github']] : [['list']],
   use: {
     baseURL: WEB_ORIGIN,

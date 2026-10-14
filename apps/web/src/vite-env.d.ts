@@ -10,6 +10,12 @@ interface ImportMetaEnv {
   readonly VITE_SIGNALING_URL?: string;
   /** Origin of the optional hosted-sharing service. */
   readonly VITE_SHARE_ORIGIN?: string;
+  /**
+   * ICE servers for connections that leave the local network, comma-separated
+   * (`stun:…` or `turn:…`). Empty by default: the client then contacts nothing but its
+   * own signaling service.
+   */
+  readonly VITE_ICE_URLS?: string;
 }
 
 interface ImportMeta {

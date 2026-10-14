@@ -48,6 +48,20 @@ Les deux appareils ne partagent aucune méthode utilisable. Causes réelles :
 À essayer : mettre les deux appareils sur le même Wi-Fi, puis relancer l'appairage.
 DropForge affiche la liste des méthodes essayées et leur échec, pas un message vague.
 
+### Deux appareils sur deux réseaux différents ne se trouvent pas
+
+C'est une limite **documentée**, pas une panne : DropForge n'utilise aucun serveur STUN
+par défaut, donc deux appareils qui ne sont pas sur le même réseau local n'ont souvent
+aucun chemin direct. Les solutions, dans l'ordre :
+
+- mettre les deux appareils sur le même Wi-Fi (le cas normal, et le seul promis) ;
+- configurer un serveur STUN/TURN et reconstruire l'application :
+  `VITE_ICE_URLS=stun:stun.exemple.org:3478,turn:turn.exemple.org npm run build:web`.
+  Attention : ce serveur voit alors votre adresse IP publique (voir
+  `docs/PRIVACY.md`). Sans serveur TURN, une connexion derrière un routeur symétrique
+  peut rester impossible — c'est le seul cas où un relais de contenu serait nécessaire,
+  et DropForge n'en propose pas.
+
 ### « L'appareil est injoignable » (`PEER_UNREACHABLE`)
 
 La connexion n'a pas abouti dans le délai (30 s de handshake). Vérifier :

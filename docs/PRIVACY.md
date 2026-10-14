@@ -19,7 +19,14 @@ logiciel, et n'exige aucun compte.**
 | L'appareil d'en face | Les fichiers que vous envoyez, leurs noms et leurs tailles | C'est le but du transfert |
 | Le service de signalisation (relais aveugle) | Adresses IP, horaires, volume échangé, identifiant de salle. **Pas** les noms de fichiers, **pas** le contenu : tout est chiffré de bout en bout | Mettre deux appareils en relation, et relayer si la connexion directe est impossible |
 | Le service de partage (optionnel, désactivé si vous le souhaitez) | Une copie **chiffrée**, sa taille, sa date d'expiration, le nombre de téléchargements | Héberger temporairement un fichier pour un destinataire qui n'est pas en ligne |
-| Serveurs STUN publics (par défaut) | Votre adresse IP publique, pour découvrir votre routeur | Trouver un chemin direct entre deux appareils |
+| Serveurs STUN/TURN (uniquement si un déploiement en configure un) | Votre adresse IP publique, pour découvrir votre routeur | Trouver un chemin direct entre deux appareils éloignés |
+
+**Aucun serveur STUN n'est utilisé par défaut.** La version livrée ne contacte que son
+propre service de signalisation : sur le réseau local, les deux appareils se trouvent
+directement, sans intermédiaire. Un déploiement peut en configurer un
+(`VITE_ICE_URLS`) pour traverser des routeurs distants — c'est alors un choix explicite,
+visible dans l'application construite, et il doit être annoncé aux personnes qui
+l'utilisent (un serveur STUN voit votre adresse IP publique).
 
 Rien n'est envoyé à l'auteur de DropForge, ni à un service d'analyse, ni à un
 gestionnaire d'erreurs distant.

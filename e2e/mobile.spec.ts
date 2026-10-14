@@ -33,8 +33,20 @@ test.describe('PWA sur un écran de téléphone', () => {
     await expect(device.page.locator('.df-bottom-nav')).toBeVisible();
     await expect(device.page.locator('.df-sidebar')).toBeHidden();
 
-    // Every screen is reachable from the bottom bar.
+    // The bar is anchored to the bottom of the screen and covers the width: that is
+    // what makes it reachable with a thumb.
+    const bar = await device.page.locator('.df-bottom-nav').boundingBox();
+    const viewport = device.page.viewportSize();
+    expect(bar).not.toBeNull();
+    expect(viewport).not.toBeNull();
+    expect(Math.abs(bar!.y + bar!.height - viewport!.height)).toBeLessThan(2);
+    expect(bar!.width).toBeGreaterThanOrEqual(viewport!.width - 2);
+
+    // Every screen is reachable from the bottom bar. The page is scrolled to the top
+    // first: with a fixed bar, the click point depends on the scroll position, and a
+    // test that fails on that would be blaming the interface for its own arithmetic.
     for (const label of [L.devicesNavigation, L.history, L.settings, 'Transfert']) {
+      await device.page.evaluate(() => window.scrollTo(0, 0));
       const button = device.page.locator('.df-bottom-nav__item', { hasText: label }).first();
       await expect(button).toBeVisible();
       await button.click();

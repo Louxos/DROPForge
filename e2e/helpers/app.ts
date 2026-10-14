@@ -39,6 +39,42 @@ export interface Device {
 }
 
 /**
+ * What each page said, collected from the moment it opened.
+ *
+ * A failure that reports only "selector not found" costs a whole round of debugging:
+ * the browser console and the text on screen are the only things that know why. Every
+ * page opened by `openDevice` is registered here, so any helper can attach them.
+ */
+const journals = new WeakMap<Page, string[]>();
+
+/** Everything a person would see and everything the browser complained about. */
+export async function describePage(page: Page): Promise<string> {
+  const text = await page
+    .locator('body')
+    .innerText({ timeout: 5_000 })
+    .catch(() => '');
+  const problems = journals.get(page) ?? [];
+  return [
+    `Écran : ${text.replace(/\s+/g, ' ').trim() || '(vide)'}`,
+    problems.length > 0 ? `Journal du navigateur :\n${problems.join('\n')}` : 'Journal du navigateur : vide',
+  ].join('\n');
+}
+
+/**
+ * Runs one interaction and, if it fails, says what the page showed.
+ *
+ * The message is deliberately verbose: a failing browser test is read from a CI
+ * annotation, where the only cheap thing to add is context.
+ */
+export async function attempt<T>(page: Page, what: string, action: () => Promise<T>): Promise<T> {
+  try {
+    return await action();
+  } catch (error) {
+    throw new Error(`${what} : échec.\n${await describePage(page)}\n\n${String(error)}`);
+  }
+}
+
+/**
  * Opens a fresh device. Each context has its own IndexedDB, its own identity key pair
  * and its own service worker: two contexts really are two devices.
  */
@@ -52,6 +88,7 @@ export async function openDevice(context: BrowserContext): Promise<Device> {
   page.on('console', (message) => {
     if (message.type() === 'error') problems.push(`console : ${message.text()}`);
   });
+  journals.set(page, problems);
 
   await page.goto('/');
 
@@ -62,47 +99,41 @@ export async function openDevice(context: BrowserContext): Promise<Device> {
   // "the interface rendered something". If it is missing, nothing rendered at all —
   // and the failure must say what the page contained, not just that a selector missed.
   try {
-    await expect(page.locator('[data-dropforge-shell]')).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator('[data-dropforge-shell]')).toBeVisible({ timeout: 45_000 });
   } catch (error) {
-    throw new Error(`La coque n'est jamais apparue.\n${await describeScreen(page, problems)}\n\n${String(error)}`);
+    throw new Error(`La coque n'est jamais apparue.\n${await describePage(page)}\n\n${String(error)}`);
   }
 
   // A failure screen is a screen: it satisfies the check above, so it is caught here,
   // with the sentence it shows.
   if (await page.locator('.df-app--error').isVisible().catch(() => false)) {
-    throw new Error(`L'application refuse de démarrer.\n${await describeScreen(page, problems)}`);
+    throw new Error(`L'application refuse de démarrer.\n${await describePage(page)}`);
   }
 
   return { context, page };
 }
 
-/** What a person would see and what the browser complained about, in one message. */
-async function describeScreen(page: Page, problems: string[]): Promise<string> {
-  const text = await page
-    .locator('body')
-    .innerText({ timeout: 5_000 })
-    .catch(() => '');
-  return [
-    `Écran : ${text.replace(/\s+/g, ' ').trim() || '(vide)'}`,
-    problems.length > 0 ? `Journal du navigateur :\n${problems.join('\n')}` : 'Journal du navigateur : vide',
-  ].join('\n');
-}
+
 
 /** Starts showing a pairing code and returns it. */
 export async function hostRoom(page: Page): Promise<string> {
-  await page.getByRole('button', { name: L.receiveDevice }).click();
+  return attempt(page, 'affichage du code d’appairage', async () => {
+    await page.getByRole('button', { name: L.receiveDevice }).click();
 
-  const codePanel = page.locator('.df-code');
-  await expect(codePanel).toBeVisible({ timeout: 20_000 });
-  const code = (await codePanel.textContent())?.trim() ?? '';
-  expect(code.length).toBeGreaterThanOrEqual(4);
-  return code;
+    const codePanel = page.locator('.df-code');
+    await expect(codePanel).toBeVisible({ timeout: 20_000 });
+    const code = (await codePanel.textContent())?.trim() ?? '';
+    expect(code.length).toBeGreaterThanOrEqual(4);
+    return code;
+  });
 }
 
 /** Types a pairing code and connects. */
 export async function joinRoom(page: Page, code: string): Promise<void> {
-  await page.locator('#df-code').fill(code);
-  await page.getByRole('button', { name: L.connect }).click();
+  return attempt(page, 'saisie du code et connexion', async () => {
+    await page.locator('#df-code').fill(code);
+    await page.getByRole('button', { name: L.connect }).click();
+  });
 }
 
 /**
@@ -113,36 +144,46 @@ export async function joinRoom(page: Page, code: string): Promise<void> {
  * accepts — exactly what the interface asks a person to do.
  */
 export async function answerNewDevice(page: Page, accept: boolean): Promise<string> {
-  const dialog = page.locator('div[role="dialog"]', { hasText: L.confirmDevice });
-  await expect(dialog).toBeVisible({ timeout: 30_000 });
-  const sas = (await dialog.locator('.df-sas').textContent())?.trim() ?? '';
-  await dialog.getByRole('button', { name: accept ? L.accept : L.refuse }).click();
-  return sas;
+  return attempt(page, 'question « nouvel appareil »', async () => {
+    const dialog = page.locator('div[role="dialog"]', { hasText: L.confirmDevice });
+    await expect(dialog).toBeVisible({ timeout: 45_000 });
+    const sas = (await dialog.locator('.df-sas').textContent())?.trim() ?? '';
+    await dialog.getByRole('button', { name: accept ? L.accept : L.refuse }).click();
+    return sas;
+  });
 }
 
 /** Attaches files to the send form (the input is hidden, as in the real interface). */
 export async function selectFiles(page: Page, paths: string[]): Promise<void> {
-  await page.locator('input[type="file"]').setInputFiles(paths);
-  await expect(page.getByText(/élément\(s\) sélectionné/)).toBeVisible();
+  return attempt(page, 'sélection de fichiers', async () => {
+    await page.locator('input[type="file"]').setInputFiles(paths);
+    await expect(page.getByText(/élément\(s\) sélectionné/)).toBeVisible();
+  });
 }
 
 /** Sends the current selection to the connected device. */
 export async function sendSelection(page: Page): Promise<void> {
-  await page.getByRole('button', { name: L.sendTo }).click();
+  return attempt(page, 'envoi', async () => {
+    await page.getByRole('button', { name: L.sendTo }).click();
+  });
 }
 
 /** Accepts an incoming transfer offer (the second dialog, after the device question). */
 export async function acceptIncoming(page: Page): Promise<void> {
-  const dialog = page.locator('div[role="dialog"]', { hasText: L.incomingRequest });
-  await expect(dialog).toBeVisible({ timeout: 30_000 });
-  await dialog.getByRole('button', { name: L.accept }).click();
+  return attempt(page, 'acceptation de la réception', async () => {
+    const dialog = page.locator('div[role="dialog"]', { hasText: L.incomingRequest });
+    await expect(dialog).toBeVisible({ timeout: 45_000 });
+    await dialog.getByRole('button', { name: L.accept }).click();
+  });
 }
 
 /** Refuses an incoming transfer offer. */
 export async function refuseIncoming(page: Page): Promise<void> {
-  const dialog = page.locator('div[role="dialog"]', { hasText: L.incomingRequest });
-  await expect(dialog).toBeVisible({ timeout: 30_000 });
-  await dialog.getByRole('button', { name: L.refuse }).click();
+  return attempt(page, 'refus de la réception', async () => {
+    const dialog = page.locator('div[role="dialog"]', { hasText: L.incomingRequest });
+    await expect(dialog).toBeVisible({ timeout: 45_000 });
+    await dialog.getByRole('button', { name: L.refuse }).click();
+  });
 }
 
 /** Waits until the queue shows the given state on a row whose label matches. */

@@ -52,6 +52,7 @@ async function boot(): Promise<void> {
     links: (info) =>
       new WebRtcLinkFactory({
         signalingUrl: signalingUrlFor(),
+        ...(iceServers().length > 0 ? { iceServers: iceServers() } : {}),
         deviceId: info.deviceId,
         displayName: info.displayName,
         platform: info.platform,
@@ -132,6 +133,24 @@ function signalingUrlFor(): string {
   const secure = location?.protocol === 'https:';
   const host = location?.host ?? 'localhost:5173';
   return `${secure ? 'wss' : 'ws'}://${host}/ws`;
+}
+
+/**
+ * ICE servers, when a deployment configured some.
+ *
+ * `VITE_ICE_URLS=stun:stun.example.org:3478,turn:turn.example.org` — a comma-separated
+ * list. Empty by default: DropForge then contacts nothing but its own signaling
+ * service, which is the promise. Adding one is a deliberate act, and it is visible in
+ * the built application.
+ */
+function iceServers(): RTCIceServer[] {
+  const configured = import.meta.env['VITE_ICE_URLS'];
+  if (!configured) return [];
+  return configured
+    .split(',')
+    .map((url) => url.trim())
+    .filter((url) => url.length > 0)
+    .map((urls) => ({ urls }));
 }
 
 function updateSourceFor(capabilities: PlatformCapabilities): UpdateSource {

@@ -28,14 +28,28 @@ export interface WebRtcLinkOptions {
   platform: string;
   fingerprint?: string;
   capabilities: string[];
-  /** STUN servers; public ones by default, and none is needed on a local network. */
+  /**
+   * ICE servers (STUN/TURN), for connections that leave the local network.
+   *
+   * **None by default, and that is a decision, not an oversight.** The product's rule
+   * is that the client contacts nothing but its own signaling service: a public STUN
+   * server sees this device's address and learns when it connects, which is exactly the
+   * kind of third party DropForge exists to avoid. On the local network — what this
+   * version promises — no server is needed at all: the peers find each other directly.
+   *
+   * A deployment that needs to cross NATs (a friend's network, a mobile connection)
+   * can configure one with `VITE_ICE_URLS`, and then says so to its users. The previous
+   * default was a hard-coded Google STUN server, which both broke that rule and made
+   * every connection attempt depend on a third party being reachable.
+   */
   iceServers?: RTCIceServer[];
   /** How long one attempt may take before it is reported as failed. */
   timeoutMs?: number;
   logger?: { log: (level: 'info' | 'warn', message: string, fields?: Record<string, unknown>) => void };
 }
 
-const DEFAULT_ICE: RTCIceServer[] = [{ urls: 'stun:stun.l.google.com:19302' }];
+/** No ICE server unless one is configured: see `iceServers` above. */
+const DEFAULT_ICE: RTCIceServer[] = [];
 
 export class WebRtcLinkFactory implements LinkFactory {
   private session: PeerAttempt | undefined;
