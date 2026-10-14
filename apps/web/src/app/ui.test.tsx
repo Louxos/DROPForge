@@ -170,6 +170,10 @@ describe('interface montée de bout en bout', () => {
     expect(row).toContain(i18n.t('activity.filterSend'));
     expect(row).toContain(i18n.t('states.completed'));
     expect(row).not.toContain(i18n.t('states.failed'));
+    // The name of what was transferred is on the row itself, without opening the
+    // details: a history whose entries say « Envoi · 1 · 3,0 Mio » makes the person
+    // open every entry to find the file they are looking for.
+    expect(row).toContain('rapport.txt');
 
     // Details: the file is listed, and its verification status is the engine's, not
     // something the interface decided.

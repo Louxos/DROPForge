@@ -13,6 +13,7 @@ import {
   acceptIncoming,
   allowMultipleDownloads,
   answerNewDevice,
+  attempt,
   collectDownloads,
   connectionMethod,
   createTestFiles,
@@ -178,8 +179,27 @@ test.describe('transfert entre deux appareils réels', () => {
     // A reload is the moment where local persistence either exists or does not.
     await b.page.reload();
     await expect(b.page.locator('[data-dropforge-shell]')).toBeVisible();
-    await b.page.getByRole('button', { name: L.history }).first().click();
-    await queueRow(b.page, files[0]!.name);
+    // The application is ready when the controller says so — the shell is on screen
+    // before the identity, the settings and the history have been read back.
+    await attempt(b.page, 'attente du redémarrage après rechargement', async () => {
+      await expect
+        .poll(
+          async () =>
+            await b.page.evaluate(
+              () =>
+                (globalThis as { dropforge?: { controller?: { state?: { ready?: boolean } } } }).dropforge
+                  ?.controller?.state?.ready === true,
+            ),
+          { timeout: 30_000 },
+        )
+        .toBe(true);
+    });
+    await attempt(b.page, 'ouverture de l’historique', async () => {
+      await b.page.getByRole('button', { name: L.history }).first().click();
+    });
+    await attempt(b.page, 'ligne d’historique après rechargement', async () => {
+      await queueRow(b.page, files[0]!.name);
+    });
 
     await a.context.close();
     await b.context.close();

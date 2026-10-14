@@ -384,6 +384,15 @@ export function TransferScreen({ controller, state }: { controller: AppControlle
                   filesTotal={entry.filesTotal}
                 />
               </div>
+              {/* Why it failed, in the row itself. A red « Échec » without a reason
+                  leaves the person with nothing to act on — and the reason is already
+                  known (the engine reported a stable code), so hiding it behind the
+                  history screen is a choice, not a limitation. */}
+              {entry.errorCode ? (
+                <p className="df-badge df-badge--error" style={{ marginTop: SPACE.sm }}>
+                  {t(`errors.${entry.errorCode}` as never)}
+                </p>
+              ) : null}
               <div className="df-row" style={{ marginTop: SPACE.sm, flexWrap: 'wrap' }}>
                 {entry.paused ? (
                   <button type="button" className="df-button df-button--small" onClick={() => controller.resumeTransfer(entry.id)}>
