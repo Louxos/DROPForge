@@ -3,6 +3,91 @@
 Chaque entrée dit quoi faire, et ce que DropForge affiche dans ce cas. Si un message
 ne correspond à rien ici, c'est un défaut de documentation : à signaler.
 
+## Windows : deux défauts connus de l'installateur publié (0.1.1)
+
+**Statut, sans embellissement.** Les deux défauts ci-dessous ont été signalés, leur cause
+est identifiée dans le code de l'installateur, et les corrections sont écrites et
+couvertes par les tests du dépôt (voir `docs/PLATFORM-MATRIX.md`). **Aucun installateur
+corrigé n'a encore été publié** : tant que ce n'est pas le cas, n'installez pas les
+fichiers de la version 0.1.1, et suivez les étapes de récupération ci-dessous.
+
+### 1. L'écran de démarrage reste affiché, l'interface n'arrive pas
+
+**Ce qui se passe.** La fenêtre s'ouvre — les contrôles de secours côté Rust font leur
+travail — mais elle reste sur le texte « DropForge — démarrage… » : le paquet de
+l'interface n'a pas démarré (fichier manquant, erreur de syntaxe, exception avant le
+premier rendu), et **rien à l'écran ne le disait**. C'est le vrai défaut : l'écran de
+démarrage ne disait pas pourquoi il restait là.
+
+**Ce qui est corrigé.** Un contrôle de secours écrit dans la page
+(`apps/desktop/index.html`) s'exécute **avant** le paquet de l'interface, n'importe rien
+— il ne peut donc pas échouer pour la même raison — et :
+
+1. écoute les erreurs de chargement, les exceptions et les promesses rejetées ;
+2. au bout de **15 secondes**, ou dès qu'une erreur est connue, il **remplace l'écran de
+   démarrage par la cause réelle**, avec le chemin du journal de diagnostic et un bouton
+   pour copier le détail ;
+3. écrit aussi la cause dans le journal de diagnostic via la commande `report_problem`.
+
+**En attendant une version corrigée**, ce que le journal dit et ce que ça veut dire :
+
+| Ligne du journal (`%APPDATA%\org.dropforge.app\diagnostics.log`) | Cause | Ce qu'on peut faire |
+| --- | --- | --- |
+| `interface` / `render` | Le paquet de l'interface n'a pas démarré | Utiliser l'application web (`docs/DOWNLOAD.md`) ; l'application Windows sera corrigée dans la prochaine version |
+| `window` | La fenêtre n'a pas pu être affichée | Vérifier les pilotes d'affichage et la mise à jour de WebView2 |
+| `data`, `identity`, `settings` | La base SQLite locale n'a pas pu être ouverte | Antivirus ou dossier protégé : autoriser `%APPDATA%\org.dropforge.app` |
+
+### 2. « L'application est en cours d'exécution » — désinstallation refusée, réinstallation impossible
+
+**Ce qui se passe.** L'installateur et le désinstallateur NSIS de Tauri ne cherchent pas
+de processus : ils demandent au **Windows Restart Manager** qui utilise le fichier
+`%LOCALAPPDATA%\DropForge\DropForge.exe`. Dès que la réponse est « des programmes
+utilisent ce fichier », ils affichent « l'application est en cours d'exécution » et
+s'arrêtent — **même quand l'application ne tourne pas**. Tiennent ce fichier, tour à
+tour : une instance restée en arrière-plan (le réglage « continuer en arrière-plan » la
+garde vivante), le démarrage automatique, un antivirus qui l'analyse, l'Explorateur, ou
+un processus laissé par une version précédente.
+
+**Pourquoi supprimer les fichiers à la main ne suffit pas.** L'entrée de désinstallation
+reste dans le registre (`HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\
+DropForge`) : Windows continue de proposer une désinstallation qui vise un fichier
+absent, et la page de réinstallation de l'installateur, qui ne consulte **que le
+registre**, propose de désinstaller d'abord une installation qui n'existe plus.
+
+**Ce qui est corrigé.** Le hook `installer/hooks.nsh` ferme d'abord l'application
+(`taskkill`), puis **écarte l'exécutable du chemin exact que le contrôle interroge**
+(`DropForge.exe` → `DropForge.exe.df-ecarte`) : un fichier renommé n'a plus
+d'utilisateurs, donc le contrôle passe. Le fichier écarté est supprimé juste après, et
+si le renommage échoue parce qu'un autre programme tient réellement le fichier, le
+journal d'installation le dit au lieu de laisser croire à une application fantôme.
+
+**Récupérer une installation coincée, maintenant.** Dans l'ordre — chaque étape est
+indépendante :
+
+1. **Réessayer en cliquant OK** (et non Annuler) dans la boîte « fermer l'application » :
+   OK demande à Windows de fermer les programmes qui tiennent le fichier.
+2. **Fermer l'application puis redésinstaller** : `taskkill /F /IM DropForge.exe` dans
+   une invite de commandes, puis relancer la désinstallation.
+3. **Écarter le fichier à la main, puis redésinstaller** :
+   `ren "%LOCALAPPDATA%\DropForge\DropForge.exe" DropForge.exe.ecarte`
+4. **Nettoyage complet** (installations dont les fichiers ont été supprimés à la main) :
+   le script du dépôt fait le constat puis, seulement sur demande, le nettoyage —
+   processus, entrées de désinstallation, démarrage automatique, dossiers du programme,
+   raccourcis. Il ne touche **jamais** aux fichiers reçus, et les données locales
+   (historique, appareils de confiance, réglages) ne partent qu'avec `-RemoveData` :
+
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File scripts\unblock-windows.ps1            # constat, rien n'est modifié
+   powershell -ExecutionPolicy Bypass -File scripts\unblock-windows.ps1 -Apply     # nettoyage, étape par étape
+   ```
+
+   Si vous ne voulez pas exécuter de script, les commandes équivalentes sont listées
+   dans `docs/OWNER-GUIDE.md` § 5 (rubrique « réinstallation impossible »), et elles se
+   lisent avant d'être collées.
+
+5. **Ne réinstallez pas en boucle** : chaque tentative laisse une entrée de registre
+   supplémentaire. Terminez le nettoyage d'abord.
+
 ## Windows : je lance DropForge et rien ne s'ouvre
 
 C'était un vrai défaut, il est corrigé — mais la réponse reste utile si vous utilisez
@@ -15,6 +100,9 @@ démarre pas :
 2. deux contrôles de secours (Rust) l'affichent après 700 ms puis 12 s si personne ne
    l'a demandée — vous voyez alors l'écran d'attente, puis soit l'application, soit un
    écran qui dit ce qui a échoué ;
+2 bis. l'écran d'attente lui-même porte un contrôle de secours **écrit dans la page** :
+   au bout de 15 s, ou dès qu'une erreur de chargement est vue, il remplace le texte de
+   démarrage par la cause réelle (voir la section précédente) ;
 3. un échec affiche l'étape concernée, la cause, le chemin du journal de diagnostic et
    un bouton **Réessayer** ;
 4. si vous relancez l'application alors qu'une instance tourne déjà, la fenêtre de cette

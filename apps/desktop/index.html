@@ -43,6 +43,28 @@
         color: #6f6f80;
         font-size: 12px;
       }
+      #df-boot__failure {
+        max-width: 46rem;
+        padding: 14px 16px;
+        border: 1px solid #6b2b2b;
+        border-left: 3px solid #ff6b6b;
+        border-radius: 10px;
+        background: #1a0f12;
+        color: #ffd9d9;
+        font-size: 13px;
+        line-height: 1.5;
+        white-space: pre-wrap;
+      }
+      #df-boot__failure button {
+        margin-top: 10px;
+        padding: 7px 12px;
+        border: 1px solid #6b2b2b;
+        border-radius: 8px;
+        background: #24151a;
+        color: #ffd9d9;
+        font: inherit;
+        cursor: pointer;
+      }
     </style>
   </head>
   <body>
@@ -60,6 +82,109 @@
 </svg>
           <!-- DROPFORGE_MARK:END --></span><strong id="df-boot__title">DropForge — démarrage…</strong><span id="df-boot__hint">Si ce message reste affiché, l’interface n’a pas pu démarrer ; le journal de diagnostic se trouve dans %APPDATA%\org.dropforge.app\diagnostics.log</span></div></div>
     <noscript>DropForge a besoin de JavaScript pour chiffrer et transférer vos fichiers.</noscript>
+    <!-- Contrôle de secours de l'interface, exécuté AVANT le paquet de l'application.
+         Il n'importe rien : il ne peut donc pas échouer pour la même raison que ce
+         qu'il surveille. Si le paquet ne démarre pas — fichier manquant, erreur de
+         syntaxe, exception avant le premier rendu — ce bloc remplace l'écran de
+         démarrage et **écrit la cause** au lieu de faire tourner un indicateur pour
+         toujours, et la consigne dans le journal de diagnostic.
+         Voir `docs/TROUBLESHOOTING.md`, section « l'écran de démarrage reste affiché ». -->
+    <script>
+      (function () {
+        var failures = [];
+        var MAX = 6;
+        var JOURNAL = '%APPDATA%\\org.dropforge.app\\diagnostics.log';
+
+        function remember(message) {
+          var text = String(message || 'erreur sans message');
+          if (failures.indexOf(text) !== -1) return;
+          if (failures.length < MAX) failures.push(text);
+          window.setTimeout(show, 0);
+        }
+
+        window.addEventListener(
+          'error',
+          function (event) {
+            var target = event && event.target;
+            if (event && event.message) remember(event.message);
+            else if (target && target.src) remember('fichier introuvable : ' + target.src);
+          },
+          true,
+        );
+
+        window.addEventListener('unhandledrejection', function (event) {
+          var reason = event && event.reason;
+          remember('promesse rejetée : ' + ((reason && reason.message) || reason || 'sans détail'));
+        });
+
+        // Un fichier de l'interface qui ne se charge pas ne produit aucune erreur
+        // visible du reste de la page : il faut l'écouter sur la balise elle-même.
+        window.addEventListener('DOMContentLoaded', function () {
+          var scripts = document.querySelectorAll('script[type="module"]');
+          for (var i = 0; i < scripts.length; i += 1) {
+            scripts[i].addEventListener('error', function (event) {
+              var src = event && event.target && event.target.src ? event.target.src : "paquet de l'interface";
+              remember('chargement impossible : ' + src);
+            });
+          }
+        });
+
+        function report() {
+          var internals = window.__TAURI_INTERNALS__;
+          if (!internals || typeof internals.invoke !== 'function') return;
+          try {
+            internals.invoke('report_problem', {
+              scope: 'splash',
+              message: failures.length > 0 ? failures.join(' · ') : "l'interface n'a pas démarré",
+            });
+          } catch (error) {
+            /* le contrôle de secours ne fait jamais tomber la page */
+          }
+        }
+
+        function show() {
+          var boot = document.getElementById('df-boot');
+          if (!boot) return; // React a monté l'interface : il n'y a rien à signaler.
+          var box = document.getElementById('df-boot__failure');
+          if (!box) {
+            box = document.createElement('div');
+            box.id = 'df-boot__failure';
+            var button = document.createElement('button');
+            button.type = 'button';
+            button.textContent = 'Copier ce détail';
+            button.addEventListener('click', function () {
+              var text = box.getAttribute('data-detail') || '';
+              try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                  navigator.clipboard.writeText(text);
+                  button.textContent = 'Copié';
+                  return;
+                }
+              } catch (error) {
+                /* le presse-papiers peut être refusé : le texte reste sélectionnable */
+              }
+              button.textContent = 'Sélectionnez le texte ci-dessus';
+            });
+            box.appendChild(button);
+            boot.appendChild(box);
+          }
+          var detail =
+            "L'interface n'a pas démarré : " +
+            (failures.length > 0 ? failures.join(' · ') : 'aucune erreur rapportée') +
+            '.\nLe détail est écrit dans ' + JOURNAL + '.';
+          box.setAttribute('data-detail', detail);
+          var button = box.querySelector('button');
+          box.textContent = detail + '\n';
+          if (button) box.appendChild(button);
+          report();
+        }
+
+        // Une erreur connue s'affiche tout de suite ; sinon, l'écran de démarrage
+        // cède la place à ce diagnostic au bout de 15 secondes. Si l'interface
+        // démarre entre-temps, elle remplace `#root` et ce bloc disparaît avec.
+        window.setTimeout(show, 15000);
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

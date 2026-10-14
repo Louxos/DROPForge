@@ -164,7 +164,7 @@ manque.
 
 | Exigence | État | Preuve / limite |
 | --- | --- | --- |
-| Tests unitaires, intégration, sécurité, bout en bout | ✅ | `npm run verify` : **462 tests, 43 fichiers** (unitaires et intégration) ; suite navigateur Playwright sur Chromium, Firefox et WebKit (iPhone). |
+| Tests unitaires, intégration, sécurité, bout en bout | ✅ | `npm run verify` : **478 tests, 45 fichiers** (unitaires et intégration) ; suite navigateur Playwright sur Chromium, Firefox et WebKit (iPhone). |
 | Gros et petits fichiers, plusieurs fichiers, conflits, espace insuffisant, coupure, reprise, annulation, permission refusée, intégrité, appareil non approuvé, révocation, liens expirés/révoqués, quotas, accès non autorisé, fermeture | ✅ | Chaque situation a son test nommé (voir `docs/TESTING.md`, tableau des cas et des fichiers). Les cas qui exigent deux appareils réels sont couverts par la suite navigateur. |
 | Navigateurs mobiles disponibles, limites iOS/Android documentées | 🟡 | Émulation iPhone (WebKit) et téléphone Chromium dans la suite ; **aucun appareil mobile réel** n'a servi aux essais. |
 | Migrations, désinstallation, mise à jour signée | 🟡 / 🔒 | Migrations ✅ testées ; désinstallation ⚠️ produite mais jamais essayée à la main ; mise à jour signée 🔒 bloquée par les secrets. |
@@ -213,12 +213,20 @@ signés par un certificat d'éditeur).
 ## Objectif final — version 1.0
 
 **Non atteint, et ce document ne prétend pas le contraire.** Ce qui existe est la version
-**0.1.1** : installateurs Windows, application web, serveur de signalisation optionnel,
-462 tests automatiques et une suite navigateur réelle. Ce qui manque pour une 1.0
+**0.1.1** : installateurs Windows (deux défauts connus, voir § « version 1.0 »),
+application web, serveur de signalisation optionnel, 478 tests automatiques et une suite navigateur réelle. Ce qui manque pour une 1.0
 honnête :
 
 1. **Un essai humain sur un vrai Windows** — installation, lancement, transfert local,
    désinstallation. La chaîne d'intégration ne peut pas ouvrir la fenêtre à votre place.
+   **Deux défauts réels ont été trouvés par cet essai, sur la 0.1.1** : l'écran de
+   démarrage peut rester affiché sans dire pourquoi, et la désinstallation peut refuser
+   en annonçant que l'application tourne alors que ce n'est pas le cas (le contrôle NSIS
+   du modèle officiel interroge le Windows Restart Manager sur le chemin de
+   l'exécutable, pas sur les processus). Les deux corrections sont écrites et testées
+   (`tests/desktop-splash.test.ts`, `tests/nsis.test.ts`), aucune version corrigée n'est
+   publiée à ce jour, et la récupération d'une installation coincée est documentée
+   (`docs/TROUBLESHOOTING.md`, `scripts/unblock-windows.ps1`).
 2. **Les mises à jour signées** (deux secrets) et, si souhaité, un certificat d'éditeur.
 3. **La licence du projet**, décision du propriétaire.
 4. **Un service d'hébergement** si le partage par lien doit exister (mode B), ou

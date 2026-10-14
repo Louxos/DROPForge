@@ -168,6 +168,52 @@ choisi (`MIT`, `Apache-2.0`, `GPL-3.0-only`…), et retirez la phrase correspond
 
 ---
 
+## 5. Réinitialiser Windows quand une installation précédente coince
+
+**Dépannage, pas une action du cahier des charges** — mais c'est ce qui débloque un
+poste. Symptômes couverts : « l'application est en cours d'exécution » alors qu'elle ne
+tourne pas, désinstallation refusée, réinstallation impossible après une suppression de
+fichiers faite à la main. La cause et la correction dans l'installateur sont expliquées
+dans [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md) (section « deux défauts connus »).
+
+**Le script du dépôt** fait le constat, puis le nettoyage — seulement si on le lui
+demande, et étape par étape :
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\unblock-windows.ps1         # constat : rien n'est modifié
+powershell -ExecutionPolicy Bypass -File scripts\unblock-windows.ps1 -Apply  # nettoyage, confirmé à chaque étape
+```
+
+Il ne supprime que les dossiers du programme, les raccourcis, l'entrée de
+désinstallation, l'entrée de démarrage automatique et les processus DropForge. Les
+**fichiers reçus** (Téléchargements, Documents, Bureau) ne sont jamais touchés, et les
+**données locales** (historique, appareils de confiance, réglages) ne partent qu'avec
+`-RemoveData`.
+
+**Commandes équivalentes**, à lire avant de les coller (invite de commandes du
+propriétaire du poste, sans droits administrateur : l'installation est « par
+utilisateur ») :
+
+```bat
+taskkill /F /IM DropForge.exe
+taskkill /F /IM dropforge.exe
+reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\DropForge" /f
+reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v DropForge /f
+rmdir /s /q "%LOCALAPPDATA%\DropForge"
+del "%APPDATA%\Microsoft\Windows\Start Menu\Programs\DropForge.lnk"
+del "%USERPROFILE%\Desktop\DropForge.lnk"
+```
+
+Pour supprimer **aussi** l'historique et les appareils de confiance :
+
+```bat
+rmdir /s /q "%APPDATA%\org.dropforge.app"
+rmdir /s /q "%LOCALAPPDATA%\org.dropforge.app"
+```
+
+Ensuite, la page de réinstallation de l'installateur ne voit plus d'installation
+précédente : l'installation repart proprement.
+
 ## Ce qui se passe quand une étape est faite
 
 | Après l'étape | Ce qui change, concrètement |

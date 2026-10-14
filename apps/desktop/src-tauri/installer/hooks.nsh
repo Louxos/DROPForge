@@ -2,8 +2,8 @@
 ;
 ; Ce fichier est compilé par le modèle NSIS officiel de Tauri
 ; (`bundle.windows.nsis.installerHooks`, voir `tauri.conf.json`). Il ne remplace pas ce
-; modèle : il ajoute seulement le geste que Windows exige pour qu'une installation et
-; une désinstallation se passent proprement.
+; modèle : il ajoute seulement les deux gestes que Windows exige pour qu'une
+; installation et une désinstallation se passent proprement.
 ;
 ; Ce qui n'est **pas** fait ici, et c'est volontaire : la suppression des données
 ; locales. Le modèle officiel affiche déjà, sur la page de confirmation de la
@@ -28,8 +28,58 @@
   Pop $0
 !macroend
 
-!macro NSIS_HOOK_PREINSTALL
+; Écarte l'exécutable principal du chemin exact que le modèle officiel interroge.
+;
+; Défaut réel signalé deux fois : « l'application est en cours d'exécution » alors
+; qu'elle ne tourne pas, installation comme désinstallation refusées. Le contrôle du
+; modèle (`CheckIfAppIsRunning`, `utils.nsh`) ne cherche pas de processus : il demande au
+; **Windows Restart Manager** qui utilise le fichier `$INSTDIR\DropForge.exe`
+; (`RmRegisterResources` puis `RmGetList`), et il considère toute réponse « il y a des
+; utilisateurs » comme « l'application tourne ». Or ce fichier peut être tenu par autre
+; chose que l'application : un antivirus qui l'analyse, l'Explorateur, un processus
+; laissé par une version précédente, une instance lancée par le démarrage automatique.
+; Windows répond alors `ERROR_MORE_DATA` (234) et l'installateur s'arrête ou propose de
+; fermer une application qui n'existe pas.
+;
+; Un fichier **renommé n'a plus d'utilisateurs** : le contrôle enregistre le chemin
+; `$INSTDIR\DropForge.exe`, qui n'existe plus, et passe. Le modèle écrit ensuite le
+; nouvel exécutable (même nom), et le fichier écarté est supprimé juste après — jamais
+; silencieusement laissé en place, jamais confondu avec les fichiers de la personne.
+; Si le renommage échoue (fichier réellement verrouillé), le comportement d'origine est
+; conservé : le modèle affiche son message, et le journal d'installation explique
+; pourquoi.
+!macro DROPFORGE_RELEASE_MAIN_BINARY
+  ; 1. La voie normale : fermer l'application si elle tourne.
   !insertmacro DROPFORGE_STOP_RUNNING_APP
+
+  ; 2. Le fichier que le contrôle du modèle interroge n'est plus à son emplacement.
+  ${If} ${FileExists} "$INSTDIR\DropForge.exe"
+    ClearErrors
+    Rename "$INSTDIR\DropForge.exe" "$INSTDIR\DropForge.exe.df-ecarte"
+    ${If} ${Errors}
+      DetailPrint "DropForge : $INSTDIR\DropForge.exe est verrouillé par un autre programme ; le contrôle de Windows peut se plaindre à tort."
+    ${EndIf}
+  ${EndIf}
+  ${If} ${FileExists} "$INSTDIR\dropforge.exe"
+    ClearErrors
+    Rename "$INSTDIR\dropforge.exe" "$INSTDIR\dropforge.exe.df-ecarte"
+    ${If} ${Errors}
+      DetailPrint "DropForge : $INSTDIR\dropforge.exe est verrouillé par un autre programme ; le contrôle de Windows peut se plaindre à tort."
+    ${EndIf}
+  ${EndIf}
+
+  ; 3. Un redémarrage automatique entre les deux gestes est improbable, mais un
+  ;    fichier renommé pendant qu'un processus tourne est une anomalie : on referme.
+  !insertmacro DROPFORGE_STOP_RUNNING_APP
+
+  ; 4. Le fichier écarté est retiré. S'il est encore tenu, il reste sur le disque :
+  ;    ce n'est pas un échec de l'installation, et ces deux noms sont les nôtres.
+  Delete "$INSTDIR\DropForge.exe.df-ecarte"
+  Delete "$INSTDIR\dropforge.exe.df-ecarte"
+!macroend
+
+!macro NSIS_HOOK_PREINSTALL
+  !insertmacro DROPFORGE_RELEASE_MAIN_BINARY
 !macroend
 
 !macro NSIS_HOOK_POSTINSTALL
@@ -38,7 +88,7 @@
 !macroend
 
 !macro NSIS_HOOK_PREUNINSTALL
-  !insertmacro DROPFORGE_STOP_RUNNING_APP
+  !insertmacro DROPFORGE_RELEASE_MAIN_BINARY
 !macroend
 
 !macro NSIS_HOOK_POSTUNINSTALL

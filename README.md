@@ -41,12 +41,12 @@ fonctionnalité, est dans [`docs/PLATFORM-MATRIX.md`](docs/PLATFORM-MATRIX.md).
 
 | Partie | Statut |
 | --- | --- |
-| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** (462 tests automatisés, 43 fichiers) |
+| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** (478 tests automatisés, 45 fichiers) |
 | Interface partagée React/TypeScript (FR/EN, thème sombre/clair) | ✅ Implémentée et **testée** au niveau du contrôleur d'application |
 | Application web progressive (PWA) installable | ✅ Implémentée et **testée** (pas encore testée sur téléphone réel) |
 | Serveur de signalisation / relais aveugle | ✅ Implémenté et **testé** (Node) |
 | Application Windows (Tauri + Rust) | ✅ **Compilée et empaquetée** par la chaîne d'intégration (version 0.1.1 : `DropForge_0.1.1_x64-setup.exe` et `.msi` publiés — la 0.1.0 ne s’ouvrait pas, la fenêtre était masquée par configuration), et recompilée à **chaque envoi** par la tâche Windows de l'intégration continue. La fenêtre ne peut plus rester invisible : ouverture demandée avant tout le reste, contrôles de secours côté Rust, écran d'échec avec la cause et le journal (`docs/TROUBLESHOOTING.md`). L'application n'a **pas encore été ouverte** sur un vrai Windows : c'est la seule chose que la chaîne d'intégration ne peut pas faire |
-| Installateur et désinstallateur Windows | ⚠️ **Deux défauts signalés, en cours de correction** : l'écran de démarrage peut rester affiché, et la désinstallation peut refuser de se lancer en annonçant que l'application est en cours d'exécution (le contrôle de Windows employé par l'installateur réagit à tout ce qui tient le fichier `.exe`, pas seulement à l'application). Le WebView2 embarqué, les images aux dimensions exactes, l'icône d'installateur, le choix de la langue, le démarrage en français, la fermeture des instances avant installation et la proposition (décochée) de supprimer les données locales sont, eux, en place. Non signés « éditeur » (certificat payant) et les mises à jour signées attendent une clé (`docs/OWNER-GUIDE.md`) |
+| Installateur et désinstallateur Windows | ⚠️ **Deux défauts signalés, corrections écrites mais pas encore publiées** : l'écran de démarrage peut rester affiché, et la désinstallation peut refuser de se lancer en annonçant que l'application est en cours d'exécution (le contrôle de Windows employé par l'installateur réagit à tout ce qui tient le fichier `.exe`, pas seulement à l'application). Le WebView2 embarqué, les images aux dimensions exactes, l'icône d'installateur, le choix de la langue, le démarrage en français, la fermeture des instances avant installation et la proposition (décochée) de supprimer les données locales sont, eux, en place. Non signés « éditeur » (certificat payant) et les mises à jour signées attendent une clé (`docs/OWNER-GUIDE.md`) |
 | Tests dans un vrai navigateur (E2E) | ✅ **Écrits et exécutés à chaque envoi** : deux navigateurs réels, transfert réel, **octets reçus hachés et comparés** — plus le refus, l'appareil refusé, l'historique après rechargement et le fonctionnement hors ligne. Chromium, Firefox, WebKit (`docs/TESTING.md`) |
 | Tests sur appareils mobiles réels | ❌ Non exécutés — l'émulation de téléphone est couverte, un vrai iPhone/Android ne l'est pas |
 | Liens de partage hébergés | ⚠️ Code client implémenté et testé ; nécessite un hébergement (optionnel) |
@@ -139,7 +139,7 @@ fonctionne sans lui.
 
 ```bash
 npm run verify           # typecheck + tous les tests + configuration Windows
-npm test                 # 43 fichiers, 462 tests
+npm test                 # 45 fichiers, 478 tests
 npm run test:unit        # paquets et application
 npm run test:integration # transferts réels en mémoire, reprise, sécurité, relais
 npm run test:e2e         # de vrais navigateurs, deux appareils, un transfert réel

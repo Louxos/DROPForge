@@ -22,6 +22,13 @@ const realHooks = readFileSync(join(root, 'apps/desktop/src-tauri/installer/hook
 /** Le fichier réel, tel qu'un Windows l'extrait par défaut avec `core.autocrlf=true`. */
 const asWindowsCheckout = (source: string): string => source.replace(/\n/g, '\r\n');
 
+/** Le code réellement exécuté par NSIS : les commentaires (lignes `;`) sont retirés. */
+const codeOnly = (source: string): string =>
+  source
+    .split('\n')
+    .filter((line) => !line.trimStart().startsWith(';'))
+    .join('\n');
+
 describe('fin de ligne', () => {
   it('normalise CRLF et CR isolé sans toucher aux LF', () => {
     expect(normalizeNewlines('a\r\nb\r\n')).toBe('a\nb\n');
@@ -41,32 +48,63 @@ describe('fin de ligne', () => {
 });
 
 describe('hooks livrés', () => {
-  it('le fichier réel est accepté, avec ses quatre hooks et sa macro de fermeture', () => {
+  it('le fichier réel est accepté, avec ses quatre hooks et ses deux macros', () => {
     expect(analyseHooks(realHooks)).toEqual([]);
-    // La macro de fermeture est définie avant les hooks qui l'insèrent.
-    expect([...definedMacros(realHooks)]).toEqual(['DROPFORGE_STOP_RUNNING_APP', ...TAURI_HOOKS]);
-    expect([...insertedMacros(realHooks)]).toEqual(['DROPFORGE_STOP_RUNNING_APP']);
+    // Les macros sont définies avant les hooks qui les insèrent.
+    expect([...definedMacros(realHooks)]).toEqual([
+      'DROPFORGE_STOP_RUNNING_APP',
+      'DROPFORGE_RELEASE_MAIN_BINARY',
+      ...TAURI_HOOKS,
+    ]);
+    expect([...insertedMacros(realHooks)]).toEqual([
+      'DROPFORGE_STOP_RUNNING_APP',
+      'DROPFORGE_RELEASE_MAIN_BINARY',
+    ]);
   });
 
-  it('la macro de fermeture est bien insérée par les deux hooks qui en ont besoin', () => {
+  it('les deux hooks qui en ont besoin libèrent l’exécutable principal', () => {
     // Installer par-dessus une application qui tourne laisse des fichiers verrouillés ;
-    // désinstaller pendant qu'elle tourne, aussi. Les deux chemins doivent la fermer.
-    const preinstall = realHooks.slice(realHooks.indexOf('!macro NSIS_HOOK_PREINSTALL'));
+    // désinstaller pendant qu'elle tourne, aussi. Les deux chemins doivent la fermer,
+    // et écarter le fichier que le contrôle du modèle interroge.
+    const preinstall = realHooks.slice(realHooks.indexOf('!macro NSIS_HOOK_PREINSTALL'), realHooks.indexOf('!macro NSIS_HOOK_POSTINSTALL'));
     const preuninstall = realHooks.slice(realHooks.indexOf('!macro NSIS_HOOK_PREUNINSTALL'), realHooks.indexOf('!macro NSIS_HOOK_POSTUNINSTALL'));
     for (const block of [preinstall, preuninstall]) {
-      expect(block).toContain('!insertmacro DROPFORGE_STOP_RUNNING_APP');
+      expect(block).toContain('!insertmacro DROPFORGE_RELEASE_MAIN_BINARY');
     }
+  });
+
+  it('écarte l’exécutable du chemin exact que le modèle interroge', () => {
+    // Défaut réel, signalé deux fois : « l'application est en cours d'exécution » alors
+    // qu'elle ne tourne pas. Le contrôle du modèle (`CheckIfAppIsRunning`) interroge le
+    // Windows Restart Manager sur `$INSTDIR\DropForge.exe` — un fichier renommé n'a
+    // plus d'utilisateurs, donc le contrôle passe. Les deux noms possibles du binaire
+    // (le nom du produit et le nom du binaire Rust) doivent être traités.
+    const code = codeOnly(realHooks);
+    expect(code).toContain('Rename "$INSTDIR\\DropForge.exe"');
+    expect(code).toContain('Rename "$INSTDIR\\dropforge.exe"');
+    // Le nom écarté est le nôtre, et il n'est jamais confondu avec un fichier reçu.
+    expect(code.match(/\.df-ecarte/g)?.length ?? 0).toBeGreaterThanOrEqual(4);
+    // L'échec du renommage est expliqué dans le journal, jamais avalé.
+    expect(code).toContain('DetailPrint');
+    // Et le fichier écarté est retiré : rien ne traîne dans le dossier d'installation.
+    expect(code).toMatch(/Delete "\$INSTDIR\\(DropForge|dropforge)\.exe\.df-ecarte"/g);
   });
 
   it('ne supprime jamais de données locales : la case du modèle officiel s’en charge', () => {
     // Une seconde question posée par nos hooks supprimerait des données que la personne
     // a explicitement choisi de garder (voir l'en-tête du fichier). Les commentaires
     // parlent évidemment de cette case : seul le code exécuté est examiné.
-    const code = realHooks
-      .split('\n')
-      .filter((line) => !line.trimStart().startsWith(';'))
-      .join('\n');
-    expect(code).not.toMatch(/RmDir|RMDir|Delete|SetShellVarContext/i);
+    const code = codeOnly(realHooks);
+    // Aucun dossier de données, aucune suppression récursive : les deux gestes qui
+    // détruiraient des données locales sont interdits ici.
+    expect(code).not.toMatch(/RmDir|RMDir|SetShellVarContext/i);
+    expect(code).not.toMatch(/APPDATA|LOCALAPPDATA|org\.dropforge\.app|DropForge\\data/i);
+    // Les seules suppressions autorisées sont les fichiers écartés, créés par ce fichier.
+    const deletions = [...code.matchAll(/Delete\s+"([^"]*)"/gi)].map((match) => match[1]);
+    expect(deletions.length).toBeGreaterThan(0);
+    for (const target of deletions) {
+      expect(target).toMatch(/^\$INSTDIR\\(DropForge|dropforge)\.exe\.df-ecarte$/);
+    }
   });
 });
 
