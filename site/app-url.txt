@@ -15,3 +15,5 @@
 # GitHub Pages. La constante `WEB_APP_URL` est lue uniquement ici : elle
 # n'existe nulle part ailleurs dans la page.
 #
+
+https://dropforge-webapp.netlify.app
