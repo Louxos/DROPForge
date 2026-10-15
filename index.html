@@ -785,8 +785,10 @@ footer a:hover {
             </span>
             <h3>Direct dès que possible</h3>
             <p>
-              Même réseau : le transfert ne sort jamais du réseau local. Réseaux différents : un canal chiffré est
-              négocié de machine à machine, et le serveur ne voit jamais les fichiers.
+              Même réseau : le transfert ne sort jamais du réseau local, et rien d'autre que vos deux appareils
+              n'intervient. Entre deux réseaux différents, un canal chiffré est négocié de machine à machine — le
+              serveur ne voit jamais les fichiers — mais cette mise en relation demande un relais que vous hébergez :
+              c'est la feuille de route, pas la promesse du jour.
             </p>
           </div>
           <div class="card">
@@ -866,9 +868,9 @@ footer a:hover {
             clairement au lieu de faire semblant.
           </p>
           <ol class="flow">
-            <li><strong>Réseau local</strong> Les deux appareils sont sur le même réseau : rien ne sort du réseau local.</li>
-            <li><strong>Direct (WebRTC)</strong> Un canal chiffré de bout en bout est négocié avec l'aide d'un serveur de signalisation qui ne voit que de la négociation.</li>
-            <li><strong>Relais aveugle</strong> En dernier recours, un serveur relaie des octets déjà chiffrés qu'il ne peut pas lire.</li>
+            <li><strong>Réseau local</strong> Les deux appareils sont sur le même réseau : rien ne sort du réseau local. <em>C'est ce qui est prêt aujourd'hui</em>, et une seule commande le met en place : <code>npm run lan</code>.</li>
+            <li><strong>Direct (WebRTC)</strong> Un canal chiffré de bout en bout est négocié avec l'aide d'un serveur de signalisation qui ne voit que de la négociation. Le code est écrit et testé ; il attend un relais que vous hébergez.</li>
+            <li><strong>Relais aveugle</strong> En dernier recours, un serveur relaie des octets déjà chiffrés qu'il ne peut pas lire. Même chose : implémenté et testé, hors de l'interface tant qu'aucun relais n'est déclaré.</li>
           </ol>
         </div>
       </section>
@@ -955,8 +957,13 @@ footer a:hover {
               </tr>
               <tr>
                 <td>Deux réseaux différents</td>
-                <td><span class="badge">Serveur de relais</span></td>
-                <td><code>dropforge-signaling-0.1.2.zip</code>, puis <code>npm install --omit=dev &amp;&amp; npm start</code>.</td>
+                <td><span class="badge">Feuille de route</span></td>
+                <td>
+                  Le service de relais est dans le dépôt (<code>dropforge-signaling-0.1.2.zip</code>, puis
+                  <code>npm install --omit=dev &amp;&amp; npm start</code>) et son code est testé, mais le chemin
+                  « deux réseaux » n'est pas encore annoncé comme prêt : il demande un relais joignable en permanence,
+                  et une adresse à configurer à la compilation.
+                </td>
               </tr>
             </tbody>
           </table>
