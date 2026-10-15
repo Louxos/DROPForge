@@ -8,13 +8,14 @@ Ce qui se passe **dedans** (architecture, sécurité, tests, état réel) est da
 **Sommaire** — [1. Ce que c'est](#1-ce-que-cest) ·
 [2. Comment ça se connecte](#2-comment-ça-se-connecte) ·
 [3. Installer](#3-installer) ·
-[4. S'en servir](#4-sen-servir) ·
-[5. Application Windows](#5-application-windows) ·
-[6. Dépannage](#6-dépannage) ·
-[7. Réparer une installation Windows coincée](#7-réparer-une-installation-windows-coincée) ·
-[8. Vos données, et comment tout enlever](#8-vos-données-et-comment-tout-enlever) ·
-[9. Propriétaire du dépôt](#9-propriétaire-du-dépôt) ·
-[10. Déployer soi-même](#10-déployer-soi-même)
+[4. Deux appareils sur le même Wi‑Fi](#4-le-plus-simple-et-ce-qui-est-prêt-aujourdhui-deux-appareils-sur-le-même-wi-fi) ·
+[5. S'en servir](#5-sen-servir) ·
+[6. Application Windows](#6-application-windows) ·
+[7. Dépannage](#7-dépannage) ·
+[8. Réparer une installation Windows coincée](#8-réparer-une-installation-windows-coincée) ·
+[9. Vos données, et comment tout enlever](#9-vos-données-et-comment-tout-enlever) ·
+[10. Propriétaire du dépôt](#10-propriétaire-du-dépôt) ·
+[11. Déployer soi-même](#11-déployer-soi-même)
 
 ---
 
@@ -85,7 +86,40 @@ sha256sum -c SHA256SUMS
 > corrigés en **0.1.2**. Si vous êtes sur la 0.1.1, lisez le § 6 avant d'installer quoi
 > que ce soit ; si vous êtes bloqué, allez directement au § 7.
 
-## 4. S'en servir
+## 4. Le plus simple, et ce qui est prêt aujourd'hui : deux appareils sur le même Wi‑Fi
+
+Une commande, une adresse, deux appareils. Rien ne sort du réseau : l'application, le
+service qui met les appareils en relation, et les fichiers eux-mêmes (qui passent en
+direct de l'un à l'autre).
+
+```bash
+npm run lan          # compile si besoin, démarre l'application et le service local
+```
+
+Le script affiche l'adresse à ouvrir **sur chacun des deux appareils**, par exemple
+`http://192.168.1.24:4173`. Puis :
+
+| Sur un appareil | Sur l'autre |
+| --- | --- |
+| **Recevoir** → « Recevoir d'un appareil » → le code s'affiche | **Recevoir** → saisir ce code → « Se connecter » |
+
+Le code se compare ensuite sur les deux écrans (« Code à comparer ») : identiques, la
+connexion est la bonne. **Envoyer** → « Choisir des fichiers » → « Envoyer vers
+<appareil> ». `Ctrl-C` arrête tout.
+
+Pourquoi cette commande plutôt qu'une adresse en ligne : une page servie en HTTPS n'a
+pas le droit d'ouvrir une connexion `ws://` vers la machine d'à côté, et un hébergement
+statique (Netlify, GitHub Pages) ne peut pas garder une connexion WebSocket ouverte. Le
+seul chemin qui fonctionne vraiment entre deux appareils du même Wi‑Fi est donc que
+**les deux ouvrent l'application depuis la machine qui les met en relation** — c'est
+exactement ce que fait `npm run lan`. Options : `--port`, `--signaling-port`,
+`--no-build`.
+
+**Et l'application Windows ?** Elle affiche la même interface, et se connecte au même
+service : lancez `npm run lan` sur une machine du réseau, puis indiquez son adresse dans
+Réglages → Avancé → Adresse du relais (`ws://192.168.1.24:4173/ws`).
+
+## 5. S'en servir
 
 1. **Envoyer** — choisissez des fichiers ou un dossier (glisser-déposer accepté),
    choisissez l'appareil destinataire (appareil de confiance, favori, code de salle).
@@ -139,7 +173,7 @@ déposée sur le service configuré, la clé reste dans le fragment du lien. San
 configuré, l'option n'est pas affichée — DropForge ne promet pas une fonction qu'il ne
 peut pas tenir.
 
-## 5. Application Windows
+## 6. Application Windows
 
 - **Premier lancement** : la fenêtre est demandée **avant tout le reste** ; deux
   contrôles de secours côté Rust l'affichent après 700 ms puis 12 s si personne ne l'a
@@ -157,7 +191,7 @@ peut pas tenir.
 - **Journal de diagnostic** : `%APPDATA%\org.dropforge.app\diagnostics.log`, borné,
   sans secret ni contenu de fichier. Il se transmet tel quel pour signaler un problème.
 
-## 6. Dépannage
+## 7. Dépannage
 
 | Symptôme | Cause | Action |
 | --- | --- | --- |
@@ -184,7 +218,7 @@ peut pas tenir.
 l'étape qui a échoué (`data`, `identity`, `settings`, `updates`, `tray`, `window`,
 `interface`, `render`, `startup`, `panic`). C'est plus rapide que réinstaller en boucle.
 
-## 7. Réparer une installation Windows coincée
+## 8. Réparer une installation Windows coincée
 
 **Ce qui se passe.** L'installateur et le désinstallateur (modèle NSIS de Tauri) ne
 cherchent pas de processus : ils demandent au **Windows Restart Manager** qui utilise
@@ -264,7 +298,7 @@ dit au lieu de laisser croire à une application fantôme.
 Après le nettoyage, la page de réinstallation ne voit plus d'installation précédente :
 l'installation repart proprement.
 
-## 8. Vos données, et comment tout enlever
+## 9. Vos données, et comment tout enlever
 
 | Quoi | Où |
 | --- | --- |
@@ -278,7 +312,7 @@ cette case, historique, appareils de confiance et réglages restent en place —
 sert à réinstaller sans tout reperdre. Rien de tout cela n'est envoyé où que ce soit :
 voir [`TECHNIQUE.md`](TECHNIQUE.md), section 6.
 
-## 9. Propriétaire du dépôt
+## 10. Propriétaire du dépôt
 
 Trois choses seulement ne peuvent pas être faites par un agent : deux secrets et une
 décision.
@@ -362,7 +396,7 @@ dont les notes sont extraites de [`CHANGELOG.md`](../CHANGELOG.md) pour ce tag.
 supprime l'avertissement SmartScreen. C'est indépendant des clés de mise à jour, qui
 sont gratuites.
 
-## 10. Déployer soi-même
+## 11. Déployer soi-même
 
 | Besoin | Méthode | Commande |
 | --- | --- | --- |

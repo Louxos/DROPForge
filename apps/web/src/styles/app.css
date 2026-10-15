@@ -493,8 +493,9 @@ select.df-input {
  * Boot screen
  *
  * Shown before `state.ready`: only local preparation happens here (identity,
- * storage, settings), so there is no progress to report and none is invented.
- * The mark stays put and the ring says « something is running ».
+ * storage, settings), so there is no progress to report and none is invented. The
+ * bar is deliberately indeterminate — a moving segment, never a percentage — and the
+ * whole screen is a real composition: mark, name, promise, work, detail.
  * ------------------------------------------------------------------ */
 .df-app--loading {
   display: grid;
@@ -502,25 +503,92 @@ select.df-input {
   min-height: 100dvh;
   padding: var(--df-space-xxl);
   background:
-    radial-gradient(60% 50% at 50% 0%, color-mix(in srgb, var(--df-accent) 12%, transparent), transparent 70%),
+    radial-gradient(70% 55% at 50% 8%, color-mix(in srgb, var(--df-accent) 14%, transparent), transparent 70%),
+    radial-gradient(50% 40% at 80% 100%, color-mix(in srgb, var(--df-blue) 10%, transparent), transparent 70%),
     var(--df-background);
 }
 
 .df-boot {
   display: grid;
   justify-items: center;
-  gap: var(--df-space-lg);
+  gap: var(--df-space-xl);
   text-align: center;
   animation: df-rise var(--df-motion-slow) var(--df-motion-easing) both;
 }
 
-.df-boot__ring {
-  width: 44px;
-  height: 44px;
+.df-boot__mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: var(--df-space-lg);
+}
+
+/* A slow breathing halo behind the mark: it says « alive » without saying « 42 % ». */
+.df-boot__halo {
+  position: absolute;
+  inset: 0;
   border-radius: 50%;
-  border: 2px solid color-mix(in srgb, var(--df-accent) 25%, transparent);
-  border-top-color: var(--df-accent);
-  animation: df-spin 900ms linear infinite;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--df-accent) 35%, transparent), transparent 75%);
+  animation: df-breathe 2.6s var(--df-motion-easing) infinite;
+}
+
+@keyframes df-breathe {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.05);
+  }
+}
+
+.df-boot__titles {
+  display: grid;
+  gap: var(--df-space-xs);
+}
+
+.df-boot__name {
+  font-size: var(--df-text-display);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.05;
+}
+
+.df-boot__tagline {
+  color: var(--df-text-muted);
+  font-size: var(--df-text-base);
+  max-width: 40ch;
+}
+
+/* Indeterminate on purpose: a determinate bar that stops moving is a lie about a
+   progress nobody is measuring. */
+.df-boot__bar {
+  position: relative;
+  overflow: hidden;
+  width: min(240px, 60vw);
+  height: 3px;
+  border-radius: var(--df-radius-pill);
+  background: color-mix(in srgb, var(--df-text-faint) 25%, transparent);
+}
+
+.df-boot__bar-fill {
+  position: absolute;
+  inset-block: 0;
+  width: 40%;
+  border-radius: var(--df-radius-pill);
+  background: linear-gradient(90deg, transparent, var(--df-accent), transparent);
+  animation: df-sweep 1.5s var(--df-motion-easing) infinite;
+}
+
+@keyframes df-sweep {
+  from {
+    transform: translateX(-110%);
+  }
+  to {
+    transform: translateX(320%);
+  }
 }
 
 .df-boot__text {
@@ -535,6 +603,11 @@ select.df-input {
   max-width: 34ch;
   color: var(--df-text-faint);
   font-size: var(--df-text-md);
+}
+
+/* The interface arrives in a fade instead of replacing the boot screen abruptly. */
+.df-app--ready {
+  animation: df-rise var(--df-motion-base) var(--df-motion-easing) both;
 }
 
 /* ------------------------------------------------------------------ *

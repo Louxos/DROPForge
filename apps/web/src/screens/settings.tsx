@@ -69,30 +69,6 @@ export function SettingsScreen({ controller, state }: { controller: AppControlle
           {!capabilities.notifications ? <p className="df-faint">{t('settings.notificationsUnsupported')}</p> : null}
         </Field>
 
-        <Field labelKey="settings.autostart">
-          <label className="df-switch">
-            <input
-              type="checkbox"
-              checked={settings.autostart}
-              disabled={!isDesktop}
-              onChange={(event) => void controller.updateSettings({ autostart: event.target.checked })}
-            />
-            {isDesktop ? t('common.yes') : t('capabilities.unavailable')}
-          </label>
-          {!isDesktop ? <p className="df-faint">{t('settings.autostartWindowsOnly')}</p> : null}
-        </Field>
-
-        <Field labelKey="settings.closeBehaviour">
-          <select
-            className="df-input"
-            value={settings.closeBehaviour}
-            disabled={!isDesktop}
-            onChange={(event) => void controller.updateSettings({ closeBehaviour: event.target.value as 'tray' | 'quit' })}
-          >
-            <option value="tray">{t('settings.closeTray')}</option>
-            <option value="quit">{t('settings.closeQuit')}</option>
-          </select>
-        </Field>
       </Card>
 
       <Card titleKey="settings.transfers">
@@ -137,35 +113,6 @@ export function SettingsScreen({ controller, state }: { controller: AppControlle
           </select>
         </Field>
 
-        <Field labelKey="settings.concurrency">
-          <select
-            className="df-input"
-            value={settings.maxConcurrentTransfers}
-            onChange={(event) => void controller.updateSettings({ maxConcurrentTransfers: Number(event.target.value) })}
-          >
-            {[1, 2, 3, 4, 6, 8].map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </select>
-        </Field>
-
-        <Field labelKey="settings.maxTransferSize">
-          <select
-            className="df-input"
-            value={settings.maxTransferBytes}
-            onChange={(event) => void controller.updateSettings({ maxTransferBytes: Number(event.target.value) })}
-          >
-            <option value={0}>{t('settings.noLimit')}</option>
-            {[1024 ** 3, 8 * 1024 ** 3, 64 * 1024 ** 3].map((bytes) => (
-              <option key={bytes} value={bytes}>
-                {formatBytes(bytes, locale)}
-              </option>
-            ))}
-          </select>
-        </Field>
-
         <Field labelKey="settings.trustedDevicesOnly">
           <label className="df-switch">
             <input
@@ -178,82 +125,150 @@ export function SettingsScreen({ controller, state }: { controller: AppControlle
         </Field>
       </Card>
 
-      <Card titleKey="settings.privacy">
-        <p>{t('settings.privacyText')}</p>
-        <p className="df-faint">{t('settings.diagnosticsNote')}</p>
+      {/* Tout ce qui est rare, technique ou dangereux tient ici, replié : la personne
+          qui ouvre les Réglages ne doit pas avoir à trier entre une dizaine de
+          commandes de même poids. Rien n'est caché — c'est déplié d'un clic. */}
+      <details className="df-details df-details--card">
+        <summary>{t('settings.advanced')}</summary>
 
-        <Field labelKey="settings.diagnostics">
-          <label className="df-switch">
-            <input
-              type="checkbox"
-              checked={settings.diagnostics}
-              onChange={(event) => void controller.updateSettings({ diagnostics: event.target.checked })}
-            />
-            {settings.diagnostics ? t('common.yes') : t('common.no')}
-          </label>
-        </Field>
+        <Card titleKey="settings.advancedDevice">
+          <Field labelKey="settings.autostart">
+            <label className="df-switch">
+              <input
+                type="checkbox"
+                checked={settings.autostart}
+                disabled={!isDesktop}
+                onChange={(event) => void controller.updateSettings({ autostart: event.target.checked })}
+              />
+              {isDesktop ? t('common.yes') : t('capabilities.unavailable')}
+            </label>
+            {!isDesktop ? <p className="df-faint">{t('settings.autostartWindowsOnly')}</p> : null}
+          </Field>
 
-        <Field labelKey="settings.hostedSharing">
-          <label className="df-switch">
-            <input
-              type="checkbox"
-              checked={settings.allowHostedSharing && state.hostedSharingAvailable}
-              disabled={!state.hostedSharingAvailable}
-              onChange={(event) => void controller.updateSettings({ allowHostedSharing: event.target.checked })}
-            />
-            {state.hostedSharingAvailable
-              ? settings.allowHostedSharing
-                ? t('common.yes')
-                : t('common.no')
-              : t('capabilities.unavailable')}
-          </label>
-        </Field>
-        <p className="df-faint">{t('settings.hostedSharingNote')}</p>
-        {!state.hostedSharingAvailable ? (
-          <p className="df-faint">{t('settings.hostedSharingUnavailable')}</p>
-        ) : null}
+          <Field labelKey="settings.closeBehaviour">
+            <select
+              className="df-input"
+              value={settings.closeBehaviour}
+              disabled={!isDesktop}
+              onChange={(event) => void controller.updateSettings({ closeBehaviour: event.target.value as 'tray' | 'quit' })}
+            >
+              <option value="tray">{t('settings.closeTray')}</option>
+              <option value="quit">{t('settings.closeQuit')}</option>
+            </select>
+          </Field>
 
-        {/* The relay address. It is a preference because the published web application
-            has none of its own: guessing its host turned every « Recevoir » into a
-            connection to an address that answered nothing. */}
-        <RelayField controller={controller} configured={settings.signalingUrl} />
+          <Field labelKey="settings.concurrency">
+            <select
+              className="df-input"
+              value={settings.maxConcurrentTransfers}
+              onChange={(event) => void controller.updateSettings({ maxConcurrentTransfers: Number(event.target.value) })}
+            >
+              {[1, 2, 3, 4, 6, 8].map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </select>
+          </Field>
 
-        <Field labelKey="settings.historyRetention">
-          <select
-            className="df-input"
-            value={settings.historyRetentionDays}
-            onChange={(event) => void controller.updateSettings({ historyRetentionDays: Number(event.target.value) })}
-          >
-            <option value={0}>{t('settings.keepForever')}</option>
-            {[7, 30, 90, 365].map((days) => (
-              <option key={days} value={days}>
-                {t('settings.days', { count: days })}
-              </option>
-            ))}
-          </select>
-        </Field>
+          <Field labelKey="settings.maxTransferSize">
+            <select
+              className="df-input"
+              value={settings.maxTransferBytes}
+              onChange={(event) => void controller.updateSettings({ maxTransferBytes: Number(event.target.value) })}
+            >
+              <option value={0}>{t('settings.noLimit')}</option>
+              {[1024 ** 3, 8 * 1024 ** 3, 64 * 1024 ** 3].map((bytes) => (
+                <option key={bytes} value={bytes}>
+                  {formatBytes(bytes, locale)}
+                </option>
+              ))}
+            </select>
+          </Field>
 
-        {state.storageEstimate ? (
-          <p className="df-faint">
-            {t('settings.storageEstimate', {
-              usage: formatBytes(state.storageEstimate.usage, locale),
-              quota: formatBytes(state.storageEstimate.quota, locale),
-            })}
-          </p>
-        ) : null}
+          <RelayField controller={controller} configured={settings.signalingUrl} />
+        </Card>
 
-        <div className="df-row" style={{ flexWrap: 'wrap' }}>
-          <button type="button" className="df-button df-button--small" onClick={() => void controller.exportHistory()}>
-            {t('activity.export')}
-          </button>
-          <button type="button" className="df-button df-button--small" onClick={() => void controller.clearHistory()}>
-            {t('activity.deleteAll')}
-          </button>
-          <button type="button" className="df-button df-button--small" onClick={() => void controller.resetSettings()}>
-            {t('settings.reset')}
-          </button>
-        </div>
-      </Card>
+        <Card titleKey="settings.privacy">
+          {/* Ce qui est vrai de toute façon, dit une fois : aucun réglage ne change cette
+              phrase, et elle n'est pas une option. */}
+          <p>{t('settings.privacyText')}</p>
+
+          <Field labelKey="settings.diagnostics">
+            <label className="df-switch">
+              <input
+                type="checkbox"
+                checked={settings.diagnostics}
+                onChange={(event) => void controller.updateSettings({ diagnostics: event.target.checked })}
+              />
+              {settings.diagnostics ? t('common.yes') : t('common.no')}
+            </label>
+          </Field>
+          <p className="df-faint">{t('settings.diagnosticsNote')}</p>
+
+          <Field labelKey="settings.hostedSharing">
+            <label className="df-switch">
+              <input
+                type="checkbox"
+                checked={settings.allowHostedSharing && state.hostedSharingAvailable}
+                disabled={!state.hostedSharingAvailable}
+                onChange={(event) => void controller.updateSettings({ allowHostedSharing: event.target.checked })}
+              />
+              {state.hostedSharingAvailable
+                ? settings.allowHostedSharing
+                  ? t('common.yes')
+                  : t('common.no')
+                : t('capabilities.unavailable')}
+            </label>
+          </Field>
+          <p className="df-faint">{t('settings.hostedSharingNote')}</p>
+          {!state.hostedSharingAvailable ? (
+            <p className="df-faint">{t('settings.hostedSharingUnavailable')}</p>
+          ) : null}
+
+          <Field labelKey="settings.historyRetention">
+            <select
+              className="df-input"
+              value={settings.historyRetentionDays}
+              onChange={(event) => void controller.updateSettings({ historyRetentionDays: Number(event.target.value) })}
+            >
+              <option value={0}>{t('settings.keepForever')}</option>
+              {[7, 30, 90, 365].map((days) => (
+                <option key={days} value={days}>
+                  {t('settings.days', { count: days })}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          {state.storageEstimate ? (
+            <p className="df-faint">
+              {t('settings.storageEstimate', {
+                usage: formatBytes(state.storageEstimate.usage, locale),
+                quota: formatBytes(state.storageEstimate.quota, locale),
+              })}
+            </p>
+          ) : null}
+
+          {/* Des actions irréversibles : petites, jamais au même poids que le reste, et
+              jamais à côté du bouton principal d'un écran. */}
+          <div className="df-row" style={{ flexWrap: 'wrap' }}>
+            <button type="button" className="df-button df-button--small" onClick={() => void controller.exportHistory()}>
+              {t('activity.export')}
+            </button>
+            <button type="button" className="df-button df-button--small" onClick={() => void controller.clearHistory()}>
+              {t('activity.deleteAll')}
+            </button>
+            <button type="button" className="df-button df-button--small" onClick={() => void controller.resetSettings()}>
+              {t('settings.reset')}
+            </button>
+            <button type="button" className="df-button df-button--danger df-button--small" onClick={() => void controller.resetIdentity()}>
+              {t('settings.resetIdentity')}
+            </button>
+          </div>
+          <p className="df-faint">{t('settings.resetIdentityNote')}</p>
+        </Card>
+      </details>
 
       <Card titleKey="capabilities.title">
         <ul className="df-list">
@@ -310,12 +325,6 @@ export function SettingsScreen({ controller, state }: { controller: AppControlle
           )}
         </div>
 
-        <div className="df-row" style={{ marginTop: SPACE.sm }}>
-          <button type="button" className="df-button df-button--danger df-button--small" onClick={() => void controller.resetIdentity()}>
-            {t('settings.resetIdentity')}
-          </button>
-        </div>
-        <p className="df-faint">{t('settings.resetIdentityNote')}</p>
       </Card>
     </section>
   );

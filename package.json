@@ -36,6 +36,7 @@
     "site:build": "node scripts/build-site.mjs",
     "check:site": "node scripts/build-site.mjs --check",
     "dev": "node scripts/dev.mjs",
+    "lan": "node scripts/serve-lan.mjs",
     "build:signaling": "npm run build -w @dropforge/signaling",
     "build:desktop:frontend": "npm run build -w @dropforge/desktop",
     "build": "npm run build:signaling && npm run build:web && npm run build:desktop:frontend",

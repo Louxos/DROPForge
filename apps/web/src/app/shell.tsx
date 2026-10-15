@@ -142,15 +142,25 @@ export function Shell({ controller, state, install }: ShellProps): React.ReactEl
   }
 
   if (!state.ready) {
-    // The first thing anyone sees. It carries the mark, a ring that moves while the
-    // real work happens (identity, storage, settings — all of it local), and the
-    // sentence that says what is being waited for. It invents no percentage: there is
-    // no progress to report, so none is shown.
+    // The first thing anyone sees, and the reason it is worth doing properly: a
+    // half-empty screen with the word « Loading… » on it is what makes an application
+    // feel unfinished. Here: the mark, the name, the line that says what is being
+    // prepared (identity, storage, settings — all of it local), and a bar that moves
+    // without ever claiming a percentage, because there is no percentage to claim.
     return (
       <div className="df-app df-app--loading" data-dropforge-shell="">
         <div className="df-boot" role="status" aria-live="polite">
-          <BrandMark />
-          <div className="df-boot__ring" aria-hidden="true" />
+          <div className="df-boot__mark">
+            <span className="df-boot__halo" aria-hidden="true" />
+            <BrandMark />
+          </div>
+          <div className="df-boot__titles">
+            <span className="df-boot__name">{t('app.name')}</span>
+            <span className="df-boot__tagline">{t('app.tagline')}</span>
+          </div>
+          <div className="df-boot__bar" aria-hidden="true">
+            <span className="df-boot__bar-fill" />
+          </div>
           <p className="df-boot__text">{t('app.loading')}</p>
           <p className="df-boot__hint">{t('app.loadingHint')}</p>
         </div>
@@ -162,7 +172,7 @@ export function Shell({ controller, state, install }: ShellProps): React.ReactEl
     // `data-dropforge-shell` is how a host that cannot see the screen checks that the
     // interface really rendered — the Windows shell uses it to report a blank window
     // instead of leaving it unexplained.
-    <div className="df-app" data-dropforge-shell="">
+    <div className="df-app df-app--ready" data-dropforge-shell="">
       <aside className="df-sidebar" aria-label={t('app.name')}>
         <BrandMark />
         <nav className="df-nav">

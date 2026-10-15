@@ -518,8 +518,43 @@ signalisation optionnel, 492 tests automatiques et une suite navigateur réelle.
 | **Certificat d'éditeur (SmartScreen)** | 💰 | facultatif et payant |
 | **Licence du projet** | 🔒 | décision du propriétaire ; sans fichier `LICENSE`, le code n'est pas réutilisable |
 | **Hébergement des liens de partage** | ⚠️ | aucun service retenu : le mode hébergé est indisponible, le reste fonctionne |
-| **Relais joignable en ligne** | ⚠️ | l'application publiée n'invente plus d'adresse (corrigé) ; **aucune adresse publique n'est encore retenue**, donc hors réseau local il faut indiquer la sienne dans les réglages |
+| **Deux appareils sur le même Wi‑Fi** | ✅ | c'est le mode pris en charge et éprouvé de bout en bout : `npm run lan` (`GUIDE.md` § 4), rendez-vous vérifié à travers l'application elle-même |
+| **Relais joignable en ligne** | 🗺️ **Feuille de route** | hors du périmètre assumé pour l'instant : l'application publiée n'invente plus d'adresse (corrigé) et n'essaie plus rien ; le code du relais existe et reste testé (`tests/relay-fallback.test.ts`), mais deux appareils de **réseaux différents** ne sont pas promis avant qu'un relais public soit retenu |
 | **Essais sur appareils mobiles réels** | ❌ | émulation couverte, appareil physique non |
+
+### Feuille de route
+
+Ce qui est **hors périmètre pour l'instant**, et assumé comme tel :
+
+| Sujet | État | Ce qu'il faudrait |
+| --- | --- | --- |
+| Deux appareils sur des réseaux différents | 🗺️ | une adresse de relais publique (le code du relais existe et reste testé) |
+| Liens de partage hébergés (fichier stocké, expirable) | 🗺️ | un service de stockage retenu — aucun ne l'est |
+| Mises à jour signées de l'application Windows | 🔒 | deux secrets de signature (action propriétaire) |
+| Essais sur un vrai téléphone et un vrai Windows | ⚠️ | un essai humain, décrit pas à pas dans `TECHNIQUE.md` § 9 |
+
+Ce que la feuille de route **change dans le produit aujourd'hui** : les écrans ne
+promettent plus que ce qui marche (deux appareils du même Wi‑Fi) et ne parlent plus des
+méthodes éloignées. Rien n'a été supprimé du code : le relais, les liens hébergés et le
+repli restent implémentés, documentés et testés, prêts à être branchés — ils ne sont
+simplement plus annoncés.
+
+### Décisions d'interface, et la règle qui les explique
+
+Les écrans suivent la **loi de Hick** : plus un écran propose de choix, plus chacun
+demande de temps. Trois conséquences, vérifiables dans le code et dans les tests :
+
+1. **une seule action principale par état d'écran**, et c'est la seule à porter le style
+   principal (`df-button--lead`, `df-choice--primary`) ;
+2. **les options rares attendent** dans un dépliant (« Options », « Avancé ») : rien
+   n'est caché, tout est à un clic, mais rien ne se lit par défaut ;
+3. **ce qui ne sert pas n'est pas affiché** : la file d'attente n'existe que si un
+   transfert existe, « Envoyer vers » n'apparaît que si un appareil est joignable,
+   « Vider la sélection » que si quelque chose est sélectionné.
+
+L'écran d'entrée porte la seule entorse assumée, et elle est volontaire : **Envoyer**
+et **Recevoir** y sont deux, parce que ce sont deux gestes différents — mais ils ne sont
+pas présentés au même poids (carte principale contre carte discrète).
 
 Ce qui manque pour une 1.0 honnête : **un essai humain sur un vrai Windows** (installation,
 lancement, transfert local, désinstallation), **les mises à jour signées** (deux secrets),

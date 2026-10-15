@@ -42,10 +42,7 @@ export interface Dictionary {
     selectFolder: string;
     selected: string;
     dropHint: string;
-    dropTarget: string;
     dropNothing: string;
-    quickSend: string;
-    quickSendHint: string;
     clear: string;
     sendTo: string;
     noDevices: string;
@@ -67,7 +64,6 @@ export interface Dictionary {
     accept: string;
     refuse: string;
     queue: string;
-    emptyQueue: string;
     incomingRequest: string;
     incomingFiles: string;
     conflictsFound: string;
@@ -103,9 +99,17 @@ export interface Dictionary {
     pasteCodeHint: string;
     back: string;
     connected: string;
+    /** Hick : une seule action principale par état. */
+    moreOptions: string;
+    connectFirst: string;
+    connectDevice: string;
+    sameNetwork: string;
+    conflictAsk: string;
   };
   devices: {
     title: string;
+    onNetwork: string;
+    connect: string;
     subtitle: string;
     known: string;
     trusted: string;
@@ -128,6 +132,7 @@ export interface Dictionary {
     title: string;
     subtitle: string;
     search: string;
+    filter: string;
     filterAll: string;
     filterSend: string;
     filterReceive: string;
@@ -177,6 +182,8 @@ export interface Dictionary {
     diagnostics: string;
     hostedSharing: string;
     hostedSharingUnavailable: string;
+    advanced: string;
+    advancedDevice: string;
     relay: string;
     relayAuto: string;
     relayNone: string;
@@ -310,10 +317,7 @@ export const FR: Dictionary = {
     selectFolder: 'Choisir un dossier',
     selected: '{{count}} élément(s) sélectionné(s) — {{size}}',
     dropHint: 'Vous pouvez aussi déposer des fichiers ou un dossier ici.',
-    dropTarget: 'Déposez pour ajouter',
     dropNothing: 'Rien n’a pu être lu dans ce dépôt.',
-    quickSend: 'Envoi rapide',
-    quickSendHint: 'En une seule action : connecte l’appareil si besoin, puis envoie la sélection.',
     clear: 'Vider la sélection',
     sendTo: 'Envoyer vers',
     noDevices: 'Aucun appareil joignable pour le moment.',
@@ -336,7 +340,6 @@ export const FR: Dictionary = {
     accept: 'Accepter',
     refuse: 'Refuser',
     queue: 'File d’attente',
-    emptyQueue: 'Aucun transfert en cours.',
     incomingRequest: 'Demande de réception',
     incomingFiles: '{{count}} fichier(s), {{size}}',
     conflictsFound: 'Certains fichiers existent déjà sur cet appareil.',
@@ -371,9 +374,16 @@ export const FR: Dictionary = {
     pasteCodeHint: 'Le code relie les deux appareils sans qu’aucun serveur ne voie vos fichiers.',
     back: 'Retour',
     connected: 'Appareil connecté',
+    moreOptions: 'Options',
+    connectFirst: 'Aucun appareil n’est connecté pour le moment.',
+    connectDevice: 'Connecter un appareil',
+    sameNetwork: 'Les deux appareils doivent être sur le même réseau Wi‑Fi.',
+    conflictAsk: 'Certains fichiers existent déjà : que faire ?',
   },
   devices: {
     title: 'Appareils',
+    onNetwork: 'Sur votre réseau en ce moment',
+    connect: 'Connecter',
     subtitle: 'Les appareils que cet appareil a déjà vus, et ceux que vous avez approuvés.',
     known: 'Connu',
     trusted: 'Approuvé',
@@ -396,6 +406,7 @@ export const FR: Dictionary = {
     title: 'Historique',
     subtitle: 'Tout reste sur cet appareil. Vous pouvez supprimer n’importe quelle entrée.',
     search: 'Rechercher un appareil, un nom de fichier…',
+    filter: 'Filtrer',
     filterAll: 'Tout',
     filterSend: 'Envoyés',
     filterReceive: 'Reçus',
@@ -446,6 +457,8 @@ export const FR: Dictionary = {
     hostedSharing: 'Autoriser les liens hébergés (temporaires)',
     hostedSharingUnavailable:
       'Aucun service d’hébergement n’est configuré : cette option n’est donc proposée qu’en lecture. Le transfert direct et les codes d’appairage restent disponibles et ne dépendent d’aucun serveur payant.',
+    advanced: 'Avancé',
+    advancedDevice: 'Cet appareil',
     relay: 'Adresse du relais',
     relayAuto: 'Automatique (celui de cette page, s’il existe)',
     relayNone: 'Aucun relais (réseau local uniquement)',
@@ -629,10 +642,7 @@ export const EN: Dictionary = {
     selectFolder: 'Choose a folder',
     selected: '{{count}} item(s) selected — {{size}}',
     dropHint: 'You can also drop files or a folder here.',
-    dropTarget: 'Drop to add',
     dropNothing: 'Nothing could be read from that drop.',
-    quickSend: 'Quick send',
-    quickSendHint: 'One action: connects the device if needed, then sends the selection.',
     clear: 'Clear selection',
     sendTo: 'Send to',
     noDevices: 'No device is reachable right now.',
@@ -655,7 +665,6 @@ export const EN: Dictionary = {
     accept: 'Accept',
     refuse: 'Refuse',
     queue: 'Queue',
-    emptyQueue: 'No transfer running.',
     incomingRequest: 'Incoming request',
     incomingFiles: '{{count}} file(s), {{size}}',
     conflictsFound: 'Some files already exist on this device.',
@@ -690,9 +699,16 @@ export const EN: Dictionary = {
     pasteCodeHint: 'The code links the two devices without any server seeing your files.',
     back: 'Back',
     connected: 'Device connected',
+    moreOptions: 'Options',
+    connectFirst: 'No device is connected yet.',
+    connectDevice: 'Connect a device',
+    sameNetwork: 'Both devices must be on the same Wi‑Fi network.',
+    conflictAsk: 'Some files already exist: what should happen?',
   },
   devices: {
     title: 'Devices',
+    onNetwork: 'On your network right now',
+    connect: 'Connect',
     subtitle: 'Devices this installation has seen, and the ones you approved.',
     known: 'Known',
     trusted: 'Approved',
@@ -715,6 +731,7 @@ export const EN: Dictionary = {
     title: 'Activity',
     subtitle: 'Everything stays on this device. You can delete any entry.',
     search: 'Search a device or a file name…',
+    filter: 'Filter',
     filterAll: 'All',
     filterSend: 'Sent',
     filterReceive: 'Received',
@@ -765,6 +782,8 @@ export const EN: Dictionary = {
     hostedSharing: 'Allow hosted (temporary) links',
     hostedSharingUnavailable:
       'No hosting service is configured, so this option is shown read-only. Direct transfers and pairing codes remain available and need no paid server.',
+    advanced: 'Advanced',
+    advancedDevice: 'This device',
     relay: 'Relay address',
     relayAuto: 'Automatic (this page’s own, when it has one)',
     relayNone: 'No relay (local network only)',

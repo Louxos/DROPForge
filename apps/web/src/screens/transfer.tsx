@@ -1,16 +1,29 @@
 /**
  * Transfer screen.
  *
- * The first thing it shows is a **choice of two**: send, or receive. Everything else —
- * picking files, choosing a destination, showing a pairing code, the queue — comes
- * after that choice, one step at a time. The previous version put all of it on one
- * page at once: a drop zone, a quick-send bar, a hosting code, a code input, the method
- * explanations and the queue. Nothing was hidden, and nothing was clear.
+ * Built on Hick's law: the more choices a screen offers, the longer each one takes.
+ * So this screen shows **one main action at a time**, and it is always the only button
+ * that looks important:
+ *
+ *   1. the entry screen offers two gestures, and they do not look alike — « Envoyer »
+ *      is the main one (accent card, larger), « Recevoir » is the quiet one;
+ *   2. « Envoyer » opens one form whose main action is « Choisir des fichiers » — the
+ *      destination only appears once there is something to send, and connecting is the
+ *      main action when no device is connected yet;
+ *   3. « Recevoir » opens one panel whose main action is « Afficher mon code » — the
+ *      field to paste a code someone else gave you is a separate, quieter card;
+ *   4. everything rare (pause, retry, reorder, remove) waits inside an « Options »
+ *      disclosure, and the queue itself is only shown when a transfer exists.
  *
  * What has not changed, and must not: every fact on screen comes from the controller.
  * An unreachable device is not offered, a code is only shown once the room really
- * exists, and a missing relay is stated plainly instead of turning into a red banner
- * that says nothing about what to do.
+ * exists, and a missing relay is stated plainly rather than turned into a promise.
+ *
+ * Scope, stated once here because it decides what this screen offers at all: the
+ * supported (and tested) case is **two devices on the same Wi‑Fi network**, which is
+ * what the copy says. Connecting devices that are not on the same network is left in
+ * the roadmap (see `docs/TECHNIQUE.md` § 10) — the machinery is still in the code, it
+ * is simply not what the screens promise.
  */
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -20,7 +33,7 @@ import { SIGNALING_OFF } from '@dropforge/settings';
 import { pickFolder, sourcesFromDataTransfer, sourcesFromFileList } from '../platform/browser-fs.js';
 import { signalingUrlFor } from '../platform/signaling.js';
 import type { AppController, AppState } from '../app/controller.js';
-import { EmptyState, PageHeader, ProgressView, StateBadge } from '../components/atoms.js';
+import { PageHeader, ProgressView, StateBadge } from '../components/atoms.js';
 import { QrCode } from '../components/qr.js';
 import type { SourceFile } from '@dropforge/app-core';
 
@@ -35,16 +48,16 @@ export function TransferScreen({ controller, state }: { controller: AppControlle
   const [code, setCode] = useState('');
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState<'files' | 'folder' | 'connect' | undefined>();
-  /**
-   * Whether a relay exists at all. The receiving step is where this decides something:
-   * with no relay, two devices that are not on the same network cannot be introduced to
-   * each other — so the screen says so *before* anyone waits for a code that will never
-   * be answered.
-   */
-  const relay = signalingUrlFor(state.settings.signalingUrl);
   // The native picker lives in a hidden input; the visible control is a real button,
   // so it has a button's role, its keyboard behaviour and its press feedback.
   const fileInput = useRef<HTMLInputElement>(null);
+  /**
+   * Whether a relay exists at all. It is not shown as a warning any more (the screens
+   * promise the local network, nothing else); it is what decides whether a code can be
+   * answered at all, so the receiving step says one quiet, true sentence when there is
+   * none — instead of letting someone wait for a code nobody can answer.
+   */
+  const relay = signalingUrlFor(state.settings.signalingUrl);
 
   const adopt = (files: SourceFile[]): void => {
     setPending(files);
@@ -108,18 +121,14 @@ export function TransferScreen({ controller, state }: { controller: AppControlle
     setBusy('connect');
     try {
       const transferId = await controller.quickSend(deviceId, pending);
-      if (transferId) {
-        clearSelection();
-        setStep('choose');
-      }
+      if (transferId) clearSelection();
     } finally {
       setBusy(undefined);
     }
   };
 
-  // A live connection leaves nothing to choose: what remains to be done is to send,
-  // so the screen is the send step with the peer panel above it — stated once, at the
-  // top, instead of asking a question whose answer is already known.
+  // A live connection leaves nothing to choose: what remains to be done is to send, so
+  // the screen is the send step with the peer panel above it.
   const connected = state.connection !== undefined;
   const activeStep: Step = connected ? 'send' : step;
 
@@ -146,47 +155,39 @@ export function TransferScreen({ controller, state }: { controller: AppControlle
 
       {!connected ? (
         <>
+          {/* Entry: two gestures, deliberately not shown at the same weight. */}
           {activeStep === 'choose' ? (
-            <div className="df-choices">
-              <button type="button" className="df-choice" onClick={() => setStep('send')}>
-                <span className="df-choice__icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
-                    <path d="M12 17V5m0 0-4.5 4.5M12 5l4.5 4.5M5 20h14" />
-                  </svg>
-                </span>
-                <span className="df-choice__text">
-                  <strong>{t('transfer.sendTitle')}</strong>
-                  <span className="df-faint">{t('transfer.sendSubtitle')}</span>
-                </span>
-              </button>
-              <button type="button" className="df-choice" onClick={() => setStep('receive')}>
-                <span className="df-choice__icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
-                    <path d="M12 4v12m0 0-4.5-4.5M12 16l4.5-4.5M5 20h14" />
-                  </svg>
-                </span>
-                <span className="df-choice__text">
-                  <strong>{t('transfer.receiveTitle')}</strong>
-                  <span className="df-faint">{t('transfer.receiveSubtitle')}</span>
-                </span>
-              </button>
-            </div>
+            <>
+              <div className="df-choices">
+                <button type="button" className="df-choice df-choice--primary" onClick={() => setStep('send')}>
+                  <span className="df-choice__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
+                      <path d="M12 17V5m0 0-4.5 4.5M12 5l4.5 4.5M5 20h14" />
+                    </svg>
+                  </span>
+                  <span className="df-choice__text">
+                    <strong>{t('transfer.sendTitle')}</strong>
+                    <span className="df-faint">{t('transfer.sendSubtitle')}</span>
+                  </span>
+                </button>
+                <button type="button" className="df-choice" onClick={() => setStep('receive')}>
+                  <span className="df-choice__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
+                      <path d="M12 4v12m0 0-4.5-4.5M12 16l4.5-4.5M5 20h14" />
+                    </svg>
+                  </span>
+                  <span className="df-choice__text">
+                    <strong>{t('transfer.receiveTitle')}</strong>
+                    <span className="df-faint">{t('transfer.receiveSubtitle')}</span>
+                  </span>
+                </button>
+              </div>
+              {/* What is promised, exactly: the same Wi-Fi. Said once. */}
+              <p className="df-faint">{t('transfer.sameNetwork')}</p>
+            </>
           ) : null}
 
-          {/* The entry screen also states the facts that decide which of the two is
-              possible: with no device known, sending needs a code first — and with no
-              relay configured, only devices on the same network can be reached. Said
-              once, quietly: not as an error, and never as an invented destination. */}
-          {activeStep === 'choose' && state.devices.length === 0 ? (
-            <p className="df-faint">{t('transfer.noDevices')}</p>
-          ) : null}
-          {activeStep === 'choose' && relay.length === 0 ? (
-            <p className="df-faint">
-              {state.settings.signalingUrl === SIGNALING_OFF ? t('relay.disabled') : t('relay.none')}{' '}
-              {t('relay.note')}
-            </p>
-          ) : null}
-
+          {/* Send: one main action. Files first, then the destination. */}
           {activeStep === 'send' ? (
             <section className="df-step" aria-label={t('transfer.sendTitle')}>
               <div
@@ -212,7 +213,7 @@ export function TransferScreen({ controller, state }: { controller: AppControlle
                 <div className="df-row" style={{ flexWrap: 'wrap' }}>
                   <button
                     type="button"
-                    className={`df-button df-button--primary${busy === 'files' ? ' df-button--busy' : ''}`}
+                    className={`df-button df-button--primary df-button--lead${busy === 'files' ? ' df-button--busy' : ''}`}
                     onClick={() => fileInput.current?.click()}
                   >
                     {t('transfer.selectFiles')}
@@ -224,18 +225,10 @@ export function TransferScreen({ controller, state }: { controller: AppControlle
                     hidden
                     onChange={(event) => void onFiles(event.target.files)}
                   />
-                  {state.capabilities.directoryRead ? (
-                    <button
-                      type="button"
-                      className={`df-button${busy === 'folder' ? ' df-button--busy' : ''}`}
-                      disabled={busy === 'folder'}
-                      onClick={() => void onFolder()}
-                    >
-                      {t('transfer.selectFolder')}
-                    </button>
-                  ) : null}
+                  {/* A second control only once there is something to act on: « Vider »
+                      appears with a selection, never before it. */}
                   {pending.length > 0 ? (
-                    <button type="button" className="df-button df-button--ghost" onClick={clearSelection}>
+                    <button type="button" className="df-button df-button--ghost df-button--small" onClick={clearSelection}>
                       {t('transfer.clear')}
                     </button>
                   ) : null}
@@ -244,8 +237,25 @@ export function TransferScreen({ controller, state }: { controller: AppControlle
                 <p className="df-faint" style={{ marginTop: SPACE.md }}>
                   {t('transfer.dropHint')}
                 </p>
+
+                {/* Folders are the rare case: the button waits behind the disclosure. */}
+                {state.capabilities.directoryRead && pending.length === 0 ? (
+                  <details className="df-details" style={{ marginTop: SPACE.md }}>
+                    <summary>{t('transfer.moreOptions')}</summary>
+                    <button
+                      type="button"
+                      className={`df-button df-button--small${busy === 'folder' ? ' df-button--busy' : ''}`}
+                      style={{ marginTop: SPACE.md }}
+                      disabled={busy === 'folder'}
+                      onClick={() => void onFolder()}
+                    >
+                      {t('transfer.selectFolder')}
+                    </button>
+                  </details>
+                ) : null}
+
                 {pending.length > 0 ? (
-                  <p style={{ marginTop: SPACE.sm }}>
+                  <p style={{ marginTop: SPACE.md }}>
                     {t('transfer.selected', {
                       count: pending.length,
                       size: formatBytes(pending.reduce((sum, file) => sum + file.size, 0), locale),
@@ -254,91 +264,60 @@ export function TransferScreen({ controller, state }: { controller: AppControlle
                 ) : null}
               </div>
 
-              {/* Nothing to choose while connected: the panel above carries the peer,
-                  the method and the send button. */}
-              {connected ? null : (
+              {/* The destination, and it is the main action of this step: the row's
+                  « Envoyer vers » is the primary button of the screen. */}
+              {pending.length > 0 && state.devices.length > 0 ? (
                 <>
                   <h2 className="df-section-title" style={{ marginTop: SPACE.xl }}>
                     {t('transfer.toWhichDevice')}
                   </h2>
-
-                  {/* An honest empty state: with nothing paired and nothing discovered,
-                      the screen says so — it does not offer a destination that does not
-                      exist. */}
-                  {state.devices.length === 0 ? <p className="df-faint">{t('transfer.noDevices')}</p> : null}
-
-                  {pending.length === 0 && state.devices.length > 0 ? (
-                    <p className="df-faint">{t('transfer.pickFirst')}</p>
-                  ) : null}
-
-                  {state.devices.length > 0 ? (
-                    <ul className="df-list">
-                      {state.devices.map((device) => (
-                        <li
-                          key={device.id}
-                          className="df-card df-card--tight df-row df-row--between"
-                          style={{ alignItems: 'center' }}
-                        >
-                          <span>
-                            <strong>{device.displayName}</strong>
-                            {device.favorite ? (
-                              <span className="df-badge" style={{ marginLeft: SPACE.sm }}>
-                                {t('devices.favorite')}
-                              </span>
-                            ) : null}
-                          </span>
-                          <button
-                            type="button"
-                            className="df-button df-button--small df-button--primary"
-                            disabled={pending.length === 0 || busy === 'connect' || state.connecting}
-                            onClick={() => void sendToDevice(device.id)}
-                          >
-                            {t('transfer.sendTo')}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-
-                  {/* A code also works from this side: the connection is symmetric, and
-                      someone who was handed a code should not have to guess that it only
-                      works from the « Recevoir » screen. */}
-                  {pending.length > 0 ? (
-                    <div className="df-field" style={{ marginTop: SPACE.lg }}>
-                      <label className="df-label" htmlFor="df-send-code">
-                        {t('transfer.orCode')}
-                      </label>
-                      <div className="df-row">
-                        <input
-                          id="df-send-code"
-                          className="df-input"
-                          value={code}
-                          onChange={(event) => setCode(event.target.value)}
-                          autoComplete="off"
-                          spellCheck={false}
-                          style={{ flex: 1 }}
-                          placeholder={t('transfer.codePlaceholder')}
-                        />
+                  <ul className="df-list">
+                    {state.devices.map((device) => (
+                      <li
+                        key={device.id}
+                        className="df-card df-card--tight df-row df-row--between"
+                        style={{ alignItems: 'center' }}
+                      >
+                        <span>
+                          <strong>{device.displayName}</strong>
+                          {device.favorite ? (
+                            <span className="df-badge" style={{ marginLeft: SPACE.sm }}>{t('devices.favorite')}</span>
+                          ) : null}
+                        </span>
                         <button
                           type="button"
-                          className={`df-button${busy === 'connect' ? ' df-button--busy' : ''}`}
-                          disabled={state.connecting || code.trim().length === 0}
-                          onClick={() => void connect()}
+                          className="df-button df-button--primary"
+                          disabled={busy === 'connect' || state.connecting}
+                          onClick={() => void sendToDevice(device.id)}
                         >
-                          {t('transfer.connect')}
+                          {t('transfer.sendTo')}
                         </button>
-                      </div>
-                      <p className="df-faint" style={{ marginTop: SPACE.sm }}>
-                        {t('transfer.orCodeHint')}
-                      </p>
-                    </div>
-                  ) : null}
+                      </li>
+                    ))}
+                  </ul>
                 </>
-              )}
+              ) : null}
 
+              {/* Nothing is reachable: the one action that matters is to connect a
+                  device. No empty list, no invented destination, no warning. */}
+              {pending.length > 0 && state.devices.length === 0 ? (
+                <div className="df-card" style={{ marginTop: SPACE.xl }}>
+                  <p style={{ marginTop: 0 }}>{t('transfer.connectFirst')}</p>
+                  <button type="button" className="df-button df-button--primary" onClick={() => setStep('receive')}>
+                    {t('transfer.connectDevice')}
+                  </button>
+                </div>
+              ) : null}
+
+              {pending.length === 0 ? (
+                <p className="df-faint" style={{ marginTop: SPACE.xl }}>
+                  {t('transfer.pickFirst')}
+                </p>
+              ) : null}
             </section>
           ) : null}
 
+          {/* Receive: one main action — show the code. */}
           {activeStep === 'receive' ? (
             <section className="df-step" aria-label={t('transfer.receiveTitle')}>
               {state.pairingRoom ? (
@@ -394,7 +373,7 @@ export function TransferScreen({ controller, state }: { controller: AppControlle
                   </p>
                   <button
                     type="button"
-                    className="df-button df-button--primary"
+                    className="df-button df-button--primary df-button--lead"
                     onClick={() => void controller.hostRoom()}
                   >
                     {t('transfer.receiveDevice')}
@@ -402,15 +381,9 @@ export function TransferScreen({ controller, state }: { controller: AppControlle
                 </div>
               )}
 
-              {relay.length === 0 ? (
-                <p className="df-badge df-badge--warn" style={{ marginTop: SPACE.lg }}>
-                  {state.settings.signalingUrl === SIGNALING_OFF ? t('relay.disabled') : t('relay.none')}
-                  {' '}
-                  {t('relay.note')}
-                </p>
-              ) : null}
-
-              <div className="df-field" style={{ marginTop: SPACE.xl }}>
+              {/* The other half of the same gesture, deliberately quieter: it is the
+                  other device that shows a code, and this one that types it. */}
+              <div className="df-card" style={{ marginTop: SPACE.lg }}>
                 <label className="df-label" htmlFor="df-code">
                   {t('transfer.pasteCode')}
                 </label>
@@ -439,8 +412,19 @@ export function TransferScreen({ controller, state }: { controller: AppControlle
                 </p>
               </div>
 
+              {/* The same Wi-Fi is what this promises. When there is no relay at all,
+                  a code cannot be answered — said once, quietly, and never as an error
+                  someone has to decode. */}
+              <p className="df-faint" style={{ marginTop: SPACE.lg }}>
+                {relay.length > 0
+                  ? t('transfer.sameNetwork')
+                  : state.settings.signalingUrl === SIGNALING_OFF
+                    ? t('relay.disabled')
+                    : t('relay.none')}
+              </p>
+
               {state.methodExplanation.length > 0 ? (
-                <p className="df-faint" style={{ marginTop: SPACE.md }}>
+                <p className="df-faint" style={{ marginTop: SPACE.sm }}>
                   {state.methodExplanation.map((key) => t(key as never)).join(' · ')}
                 </p>
               ) : null}
@@ -457,11 +441,13 @@ export function TransferScreen({ controller, state }: { controller: AppControlle
             <span>{state.newDevice.sas || '–'}</span>
           </div>
           <p className="df-faint df-mono">{state.newDevice.fingerprint.slice(0, 32)}…</p>
+          {/* A question is a decision, not a choice of equal options: accepting is the
+              main action, refusing is the quiet one — and refusal is always allowed. */}
           <div className="df-row" style={{ marginTop: SPACE.lg }}>
-            <button type="button" className="df-button df-button--primary" onClick={() => controller.answerNewDevice(true, true)}>
+            <button type="button" className="df-button df-button--primary df-button--lead" onClick={() => controller.answerNewDevice(true, true)}>
               {t('transfer.accept')}
             </button>
-            <button type="button" className="df-button df-button--danger" onClick={() => controller.answerNewDevice(false, false)}>
+            <button type="button" className="df-button df-button--ghost" onClick={() => controller.answerNewDevice(false, false)}>
               {t('transfer.refuse')}
             </button>
           </div>
@@ -481,34 +467,36 @@ export function TransferScreen({ controller, state }: { controller: AppControlle
           {state.incoming.conflicts.length > 0 ? (
             <div>
               <p className="df-badge df-badge--warn">{t('transfer.conflictsFound')}</p>
-              <ul className="df-list" style={{ marginTop: SPACE.sm }}>
-                {state.incoming.conflicts.slice(0, 5).map((conflict) => (
-                  <li key={conflict.index} className="df-row df-row--between">
-                    <span className="df-mono">{conflict.path}</span>
-                    <span className="df-row">
-                      {(['skip', 'rename', 'overwrite'] as const).map((action) => (
-                        <button
-                          key={action}
-                          type="button"
-                          className="df-button df-button--small"
-                          onClick={() =>
-                            controller.answerIncoming({
-                              accepted: true,
-                              decisions: decisionsFor(state, action),
-                            })
-                          }
-                        >
-                          {action === 'skip'
-                            ? t('transfer.conflictAskSkip')
-                            : action === 'rename'
-                              ? t('transfer.conflictAskRename')
-                              : t('transfer.conflictAskReplace')}
-                        </button>
-                      ))}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              {/* One question, one answer: the three policies are a decision the user
+                  makes once for the whole batch, not three equal buttons stacked. */}
+              <p className="df-faint">{t('transfer.conflictAsk')}</p>
+              <div className="df-row" style={{ marginTop: SPACE.sm, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="df-button df-button--primary"
+                  onClick={() => controller.answerIncoming({ accepted: true, decisions: decisionsFor(state, 'rename') })}
+                >
+                  {t('transfer.conflictAskRename')}
+                </button>
+                <button
+                  type="button"
+                  className="df-button"
+                  onClick={() => controller.answerIncoming({ accepted: true, decisions: decisionsFor(state, 'skip') })}
+                >
+                  {t('transfer.conflictAskSkip')}
+                </button>
+                <details className="df-details">
+                  <summary>{t('transfer.moreOptions')}</summary>
+                  <button
+                    type="button"
+                    className="df-button df-button--small"
+                    style={{ marginTop: SPACE.md }}
+                    onClick={() => controller.answerIncoming({ accepted: true, decisions: decisionsFor(state, 'overwrite') })}
+                  >
+                    {t('transfer.conflictAskReplace')}
+                  </button>
+                </details>
+              </div>
             </div>
           ) : (
             <p className="df-faint">{formatBytes(state.incoming.totalBytes, locale)}</p>
@@ -516,14 +504,14 @@ export function TransferScreen({ controller, state }: { controller: AppControlle
           <div className="df-row" style={{ marginTop: SPACE.lg }}>
             <button
               type="button"
-              className="df-button df-button--primary"
+              className="df-button df-button--primary df-button--lead"
               onClick={() => controller.answerIncoming({ accepted: true, decisions: [] })}
             >
               {t('transfer.accept')}
             </button>
             <button
               type="button"
-              className="df-button df-button--danger"
+              className="df-button df-button--ghost"
               onClick={() => controller.answerIncoming({ accepted: false, decisions: [], rejectReason: 'declined' })}
             >
               {t('transfer.refuse')}
@@ -532,82 +520,93 @@ export function TransferScreen({ controller, state }: { controller: AppControlle
         </div>
       ) : null}
 
-      <h2 className="df-section-title" style={{ marginTop: SPACE.xxl }}>
-        {t('transfer.queue')}
-      </h2>
-      {state.queue.length === 0 ? (
-        <EmptyState messageKey="transfer.emptyQueue" />
-      ) : (
-        <ul className="df-list">
-          {state.queue.map((entry, position) => (
-            <li key={entry.id} className="df-card df-card--tight">
-              <div className="df-row df-row--between">
-                <span style={{ fontWeight: 600 }}>{entry.label}</span>
-                <StateBadge state={entry.state} paused={entry.paused} />
-              </div>
-              <div style={{ marginTop: SPACE.sm }}>
-                <ProgressView
-                  state={entry.state}
-                  bytesDone={entry.progress?.bytesDone ?? 0}
-                  totalBytes={entry.totalBytes}
-                  bytesPerSecond={entry.progress?.bytesPerSecond}
-                  etaSeconds={entry.progress?.etaSeconds}
-                  reliable={entry.progress?.reliable ?? false}
-                  filesDone={entry.progress?.filesDone ?? 0}
-                  filesTotal={entry.filesTotal}
-                />
-              </div>
-              {/* Why it failed, in the row itself. A red « Échec » without a reason
-                  leaves the person with nothing to act on — and the reason is already
-                  known (the engine reported a stable code), so hiding it behind the
-                  history screen is a choice, not a limitation. */}
-              {entry.errorCode ? (
-                <p className="df-badge df-badge--error" style={{ marginTop: SPACE.sm }}>
-                  {t(`errors.${entry.errorCode}` as never)}
-                </p>
-              ) : null}
-              <div className="df-row" style={{ marginTop: SPACE.sm, flexWrap: 'wrap' }}>
-                {entry.paused ? (
-                  <button type="button" className="df-button df-button--small" onClick={() => controller.resumeTransfer(entry.id)}>
-                    {t('transfer.resume')}
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="df-button df-button--small"
-                    disabled={entry.state === 'completed' || entry.state === 'cancelled'}
-                    onClick={() => controller.pauseTransfer(entry.id)}
-                  >
-                    {t('transfer.pause')}
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className="df-button df-button--small"
-                  disabled={entry.state === 'completed' || entry.state === 'cancelled'}
-                  onClick={() => void controller.cancelTransfer(entry.id)}
-                >
-                  {t('transfer.cancel')}
-                </button>
-                {entry.state === 'failed' || entry.state === 'interrupted' ? (
-                  <button type="button" className="df-button df-button--small" onClick={() => controller.retryTransfer(entry.id)}>
-                    {t('transfer.retry')}
-                  </button>
+      {/* The queue exists only when there is something in it: an empty « File
+          d'attente » with the sentence « Aucun transfert en cours » is a heading that
+          tells nobody anything, and one more thing to read. */}
+      {state.queue.length > 0 ? (
+        <>
+          <h2 className="df-section-title" style={{ marginTop: SPACE.xxl }}>
+            {t('transfer.queue')}
+          </h2>
+          <ul className="df-list">
+            {state.queue.map((entry, position) => (
+              <li key={entry.id} className="df-card df-card--tight">
+                <div className="df-row df-row--between">
+                  <span style={{ fontWeight: 600 }}>{entry.label}</span>
+                  <StateBadge state={entry.state} paused={entry.paused} />
+                </div>
+                <div style={{ marginTop: SPACE.sm }}>
+                  <ProgressView
+                    state={entry.state}
+                    bytesDone={entry.progress?.bytesDone ?? 0}
+                    totalBytes={entry.totalBytes}
+                    bytesPerSecond={entry.progress?.bytesPerSecond}
+                    etaSeconds={entry.progress?.etaSeconds}
+                    reliable={entry.progress?.reliable ?? false}
+                    filesDone={entry.progress?.filesDone ?? 0}
+                    filesTotal={entry.filesTotal}
+                  />
+                </div>
+                {/* Why it failed, in the row itself. A red « Échec » without a reason
+                    leaves the person with nothing to act on — and the reason is already
+                    known (the engine reported a stable code), so hiding it behind the
+                    history screen is a choice, not a limitation. */}
+                {entry.errorCode ? (
+                  <p className="df-badge df-badge--error" style={{ marginTop: SPACE.sm }}>
+                    {t(`errors.${entry.errorCode}` as never)}
+                  </p>
                 ) : null}
-                <button type="button" className="df-button df-button--small" onClick={() => controller.moveTransfer(entry.id, Math.max(0, position - 1))}>
-                  {t('transfer.moveUp')}
-                </button>
-                <button type="button" className="df-button df-button--small" onClick={() => controller.moveTransfer(entry.id, position + 1)}>
-                  {t('transfer.moveDown')}
-                </button>
-                <button type="button" className="df-button df-button--ghost df-button--small" onClick={() => controller.removeTransfer(entry.id)}>
-                  {t('transfer.remove')}
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+                {/* One main action per row — pause or resume, whichever applies — and
+                    the rest behind « Options ». Six buttons of the same size on one row
+                    is exactly what Hick's law warns about. */}
+                <div className="df-row" style={{ marginTop: SPACE.sm }}>
+                  {entry.paused ? (
+                    <button type="button" className="df-button df-button--small" onClick={() => controller.resumeTransfer(entry.id)}>
+                      {t('transfer.resume')}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="df-button df-button--small"
+                      disabled={entry.state === 'completed' || entry.state === 'cancelled'}
+                      onClick={() => controller.pauseTransfer(entry.id)}
+                    >
+                      {t('transfer.pause')}
+                    </button>
+                  )}
+                  <details className="df-details">
+                    <summary>{t('transfer.moreOptions')}</summary>
+                    <div className="df-row" style={{ marginTop: SPACE.sm, flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        className="df-button df-button--small"
+                        disabled={entry.state === 'completed' || entry.state === 'cancelled'}
+                        onClick={() => void controller.cancelTransfer(entry.id)}
+                      >
+                        {t('transfer.cancel')}
+                      </button>
+                      {entry.state === 'failed' || entry.state === 'interrupted' ? (
+                        <button type="button" className="df-button df-button--small" onClick={() => controller.retryTransfer(entry.id)}>
+                          {t('transfer.retry')}
+                        </button>
+                      ) : null}
+                      <button type="button" className="df-button df-button--small" onClick={() => controller.moveTransfer(entry.id, Math.max(0, position - 1))}>
+                        {t('transfer.moveUp')}
+                      </button>
+                      <button type="button" className="df-button df-button--small" onClick={() => controller.moveTransfer(entry.id, position + 1)}>
+                        {t('transfer.moveDown')}
+                      </button>
+                      <button type="button" className="df-button df-button--ghost df-button--small" onClick={() => controller.removeTransfer(entry.id)}>
+                        {t('transfer.remove')}
+                      </button>
+                    </div>
+                  </details>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
     </section>
   );
 }
@@ -646,6 +645,7 @@ function ConnectedPanel({
             <span className="df-mono">{connection?.sas}</span>
           </div>
         </div>
+        {/* Leaving a connection is not what anyone opens this screen for: quiet. */}
         <button type="button" className="df-button df-button--ghost df-button--small" onClick={onDisconnect}>
           {t('common.close')}
         </button>
@@ -653,7 +653,7 @@ function ConnectedPanel({
       <div className="df-row" style={{ marginTop: SPACE.lg, flexWrap: 'wrap' }}>
         <button
           type="button"
-          className="df-button df-button--primary"
+          className="df-button df-button--primary df-button--lead"
           disabled={pending.length === 0}
           onClick={onSend}
         >

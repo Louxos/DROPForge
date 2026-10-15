@@ -162,25 +162,27 @@ describe('interface montée de bout en bout', () => {
     expect(buttonLabels(container)).not.toContain(i18n.t('transfer.selectFiles'));
   });
 
-  it('annonce l’absence d’appareil au lieu de montrer une liste inventée', async () => {
+  it('n’offre aucune destination inventée tant qu’aucun appareil n’est là', async () => {
     const rig = await makeRig();
     await rig.host.start();
     await rig.guest.start();
     const container = await mount(rig.host);
     await flush();
-    // With nothing paired and nothing discovered, the screen says so instead of
-    // offering a destination that does not exist — on the entry screen, and again in
-    // the send step, where the destination would be chosen.
-    expect(text(container)).toContain(i18n.t('transfer.noDevices'));
-    await click(container, i18n.t('transfer.sendTitle'));
-    expect(text(container)).toContain(i18n.t('transfer.noDevices'));
 
-    // It disappears the moment a device is really there, and the send step then shows
-    // the real device — under the real name it announced.
+    // Hick : rien à envoyer sans appareil, donc aucune destination n'est proposée —
+    // ni sur l'écran d'entrée, ni dans l'étape d'envoi. Pas de liste vide à lire, pas
+    // de bouton « Envoyer vers » qui ne pourrait viser personne.
+    expect(buttonLabels(container)).not.toContain(i18n.t('transfer.sendTo'));
+    await click(container, i18n.t('transfer.sendTitle'));
+    expect(text(container)).toContain(i18n.t('transfer.pickFirst'));
+    expect(buttonLabels(container)).not.toContain(i18n.t('transfer.sendTo'));
+
+    // L'appareil apparaît au moment où il est réellement là, sous son vrai nom, et
+    // l'action principale de l'écran devient « Envoyer vers ».
     await connectPair(rig);
     await flush();
     expect(text(container)).toContain('Téléphone');
-    expect(text(container)).not.toContain(i18n.t('transfer.noDevices'));
+    expect(buttonLabels(container)).toContain(i18n.t('transfer.sendTo'));
   });
 
   it('suit un transfert réel jusqu’à « Terminé », avec sa vérification', async () => {

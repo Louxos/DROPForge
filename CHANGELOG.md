@@ -9,22 +9,52 @@ suivent le [versionnage sémantique](https://semver.org/lang/fr/) une fois la 1.
 
 ## [Non publiée]
 
-**Refonte de l'interface de transfert et correction de l'adresse du relais.** Ces
-changements sont dans le dépôt ; ils ne sont pas encore publiés sous forme de version.
-L'application web, elle, est servie en continu : son déploiement suit la branche publiée
-du dépôt.
+**Interface revue selon la loi de Hick, mode « même Wi‑Fi » utilisable en une commande,
+et correction de l'adresse du relais.** Ces changements sont dans le dépôt ; ils ne sont
+pas encore publiés sous forme de version. L'application web, elle, est servie en continu :
+son déploiement suit la branche publiée du dépôt.
+
+### Ajouté
+
+- **`npm run lan` : le mode « deux appareils sur le même Wi‑Fi »**, une commande et une
+  adresse. Le script compile si besoin, démarre le service de mise en relation et
+  l'application compilée sur le réseau (avec `/ws` dirigé vers ce service), puis affiche
+  les adresses à ouvrir sur chaque appareil. Rien ne sort du réseau : les fichiers
+  passent en direct d'un appareil à l'autre. C'est le seul chemin qui marche vraiment en
+  local — une page servie en HTTPS n'a pas le droit d'ouvrir `ws://` vers la machine d'à
+  côté, et un hébergement statique ne garde pas une connexion WebSocket ouverte.
+  Vérifié en démarrant les deux services et en faisant aboutir un rendez-vous à deux
+  pairs **à travers l'application elle-même** (`/ws` de l'application → service).
 
 ### Modifié
 
+- **Loi de Hick appliquée à tous les écrans** : une seule action principale par état, et
+  c'est la seule à porter le style principal (`df-button--lead`, `df-choice--primary`).
+  L'écran d'entrée garde **Envoyer** et **Recevoir**, mais ne les présente plus au même
+  poids : carte principale d'un côté, carte discrète de l'autre.
+- **Les options rares sont repliées** dans un dépliant « Options » / « Avancé » : les
+  cinq boutons identiques d'une ligne d'appareil deviennent **une** action
+  (« Connecter ») plus un dépliant ; les quatre filtres de l'historique (quatre boutons
+  de même taille) deviennent une liste déroulante ; la suppression d'une entrée attend
+  que ses détails soient ouverts ; concurrence, taille maximale, relais, hébergement,
+  diagnostic, démarrage automatique et réinitialisations passent dans **Réglages →
+  Avancé**.
+- **Ce qui ne sert pas n'est plus affiché** : la file d'attente n'apparaît qu'avec un
+  transfert, « Vider la sélection » qu'avec une sélection, « Envoyer vers » qu'avec un
+  appareil joignable ; les messages « aucun appareil joignable » qui restaient affichés
+  à l'écran ont disparu — sans appareil, la seule action proposée est d'en connecter un.
+- **Barres de défilement intégrées à la direction artistique** : fines, arrondies,
+  discrètes, accentuées au survol (`::-webkit-scrollbar` **et** `scrollbar-color`,
+  gardés identiques), et plus aucune barre horizontale.
+- **Écran de chargement refait** : marque avec un halo qui respire, nom, phrase
+  d'accroche, barre indéterminée (jamais un pourcentage inventé), puis l'interface qui
+  arrive en fondu au lieu de remplacer l'écran d'un coup.
 - **L'écran de transfert ouvre sur un choix, pas sur un formulaire.** « Envoyer » ou
   « Recevoir » : deux grands boutons, et rien d'autre. Le sélecteur de fichiers, la
   saisie de code, l'affichage du code d'appairage et la liste des appareils n'apparaissent
   qu'après le choix — chacun n'existe que dans l'étape où il sert. Une fois une connexion
   ouverte, l'écran va directement à l'envoi, avec le pair, la méthode réellement utilisée
   et le code à comparer affichés une seule fois, en haut.
-- **Écran de chargement.** La marque, un anneau qui tourne et la phrase qui dit ce qui est
-  préparé (identité, stockage local, réglages). Aucun pourcentage : il n'y a pas de
-  progression à mesurer, donc aucune n'est inventée.
 - **Boutons plus francs à l'usage.** `touch-action: manipulation` et la suppression du
   halo tactile du navigateur (c'est eux qui font « traîner » un appui), un vrai
   `scale(0.97)` à l'appui — sans transition sur la descente, donc dans la même image —,

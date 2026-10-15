@@ -135,14 +135,22 @@ describe('procédure documentée : les deux chemins existent', () => {
     expect(docs).toEqual(['GUIDE.md', 'TECHNIQUE.md']);
     expect(existsSync(join(root, 'CHANGELOG.md'))).toBe(true);
     // Ce qui a remplacé les anciens documents est bien là :
+    // On vérifie les **titres**, pas les numéros : une section insérée au milieu
+    // décale la numérotation, et ce n'est pas une perte de contenu.
     const technique = read('docs/TECHNIQUE.md');
-    expect(technique).toContain('## 5. Sécurité');
-    expect(technique).toContain('## 9. Tests');
-    expect(technique).toContain('## 10. État réel du projet');
-    expect(technique).toContain('## 11. Infrastructure 100 % gratuite');
+    for (const title of [
+      'Sécurité',
+      'Tests',
+      'État réel du projet',
+      'Infrastructure 100 % gratuite',
+      'Annexes générées',
+    ]) {
+      expect(technique).toMatch(new RegExp(`^## \\d+\\. ${title}$`, 'm'));
+    }
     expect(technique).toContain('<!-- DEPENDANCES:START -->');
     expect(technique).toContain('<!-- LICENCES:START -->');
-    expect(guide).toContain('## 7. Réparer une installation Windows coincée');
-    expect(guide).toContain('## 10. Déployer soi-même');
+    for (const title of ['Dépannage', 'Réparer une installation Windows coincée', 'Déployer soi-même']) {
+      expect(guide).toMatch(new RegExp(`^## \\d+\\. ${title}$`, 'm'));
+    }
   });
 });
