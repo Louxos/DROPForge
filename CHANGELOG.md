@@ -37,6 +37,15 @@ son déploiement suit la branche publiée du dépôt.
   lancement) et refait seulement s'il ne couvre plus les adresses de la machine. Le
   message d'erreur du chiffrement manquant dit maintenant la cause et la sortie.
 
+- **`npm run check:direct` : le chemin direct (WebRTC) vérifié avec du vrai WebRTC**,
+  hors navigateur. Jusqu'ici, la négociation SDP/ICE et l'ouverture du canal n'étaient
+  prouvées par rien d'exécutable : les tests de navigateur ne tournent pas partout, et le
+  test du repli par relais dit lui-même que WebRTC n'existe pas dans Node. Avec une pile
+  WebRTC en TypeScript (`werift`, installée à la demande) et le **vrai** service de
+  signalisation du dépôt, deux pairs se rencontrent par un code, obtiennent tous les deux
+  un canal `webrtc` — aucun repli — et 64 Kio traversent le canal intacts dans les deux
+  sens. Lancé en direct : tout est au vert.
+
 ### Modifié
 
 - **Loi de Hick appliquée à tous les écrans** : une seule action principale par état, et

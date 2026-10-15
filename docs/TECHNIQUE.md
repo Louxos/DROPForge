@@ -443,6 +443,9 @@ npm run check:desktop    # configuration Windows, icônes, hooks NSIS
 npm run check:site       # la page publiée correspond à ses sources
 npm run test:e2e         # navigateurs réels (jamais lancé par verify)
 npm run test:e2e:install # installe Chromium, Firefox, WebKit
+
+npm i --no-save werift   # facultatif : une pile WebRTC en TypeScript, sans binaire
+npm run check:direct     # vérifie le chemin direct avec du vrai WebRTC (hors verify)
 ```
 
 Total vérifié le 15 octobre 2026 : **502 tests, 47 fichiers**, tous au vert sur Linux ; la
@@ -462,6 +465,7 @@ chemins de test non portables).
 | Adresse du relais | `apps/web/src/platform/signaling.test.ts` | Rien n'est inventé sur un site publié ; `Aucun relais` ne contacte rien ; une adresse écrite est respectée |
 | Réglages | `packages/settings/src/settings.test.ts` | Défauts privés, bornes, **migration 2 → 3** (l'adresse du relais arrive avec `Automatique`), adresse invalide refusée à l'écriture |
 | Repli par relais, bout en bout | `tests/relay-fallback.test.ts` | Une tentative en mode relais **aboutit**, dans les deux sens |
+| Chemin **direct** (WebRTC) | `scripts/check-direct-path.mts` (`npm run check:direct`) | Avec une vraie pile WebRTC (`werift`) et le **vrai** service de signalisation du dépôt : un code met les deux pairs en relation, la négociation aboutit, **les deux côtés obtiennent `webrtc`** (aucun repli), et 64 Kio traversent le canal intact dans les deux sens. Hors `verify` : la pile s'installe à la demande (`npm i --no-save werift`), pour ne pas alourdir la chaîne |
 | Modèle de données | `packages/*/src/*.test.ts` | Migrations, invariants (`completed` sans `completedAt` = refus), révocation |
 | Contrôleur d'application | `apps/web/src/app/controller.test.ts` | Chaque commande, chaque état publié, sans React |
 | Entrée réelle de l'application | `apps/web/src/entry.test.tsx` | L'application démarre pour de vrai ; privée de WebCrypto, elle **dit ce qui manque** au lieu de rester blanche |

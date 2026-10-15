@@ -19,8 +19,10 @@
  *
  * Ce qui n'est **pas** prouvé ici : WebRTC lui-même. Il n'existe pas dans Node, et c'est
  * dit plutôt que contourné — l'amorce (`RTCPeerConnection`) est remplacée par un objet
- * minimal, seulement pour laisser la tentative d'accueil se mettre en attente. Les tests
- * de navigateur restent la seule preuve d'un canal direct.
+ * minimal, seulement pour laisser la tentative d'accueil se mettre en attente. Un canal
+ * direct se prouve ailleurs, de deux façons : les tests de navigateur (`e2e/`), et
+ * `npm run check:direct`, qui fait tourner ce même code contre une vraie pile WebRTC
+ * (voir `docs/TECHNIQUE.md` § 9).
  */
 import { afterEach, describe, expect, it } from 'vitest';
 import WebSocket from 'ws';

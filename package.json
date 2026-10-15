@@ -22,6 +22,7 @@
     "test:integration": "vitest run --project integration",
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install --with-deps chromium firefox webkit",
+    "check:direct": "tsx scripts/check-direct-path.mts",
     "dev:web": "npm run dev -w @dropforge/web",
     "dev:signaling": "npm run dev -w @dropforge/signaling",
     "build:web": "npm run build -w @dropforge/web",
