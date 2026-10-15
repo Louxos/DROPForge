@@ -21,6 +21,7 @@ export const L = {
    */
   chooseSend: 'Envoyer',
   chooseReceive: 'Recevoir',
+  back: 'Retour',
   selectFiles: 'Choisir des fichiers',
   // Le libellé exact du dictionnaire (« Envoyer vers », `transfer.sendTo`) : le helper
   // cherchait « Envoyer à », qui n'existe nulle part dans l'interface — le clic
@@ -132,6 +133,14 @@ export async function attempt<T>(page: Page, what: string, action: () => Promise
  */
 async function openStep(page: Page, label: string, marker: (page: Page) => Locator): Promise<void> {
   if (await marker(page).count()) return;
+  // The other step may be open: the two choices only exist on the entry screen, so the
+  // way there is « Retour ». Without this, a helper called from the send step would wait
+  // twenty seconds for a button that is not on screen.
+  const back = page.getByRole('button', { name: L.back, exact: true });
+  if (await back.count()) {
+    await back.first().click();
+    await expect(page.getByRole('button', { name: L.chooseSend, exact: true })).toBeVisible({ timeout: 20_000 });
+  }
   const choice = page.getByRole('button', { name: label, exact: true });
   await expect(choice).toBeVisible({ timeout: 20_000 });
   await choice.click();
