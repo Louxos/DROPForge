@@ -568,10 +568,13 @@ mobiles réels**.
 Vérifié le 13 octobre 2026 auprès des sources citées. Les offres gratuites changent :
 revérifiez avant de vous engager.
 
-**Ce qui fonctionne sans aucun serveur** : transfert sur le réseau local, transfert
-direct par Internet (WebRTC), appairage par code ou QR. Ces trois fonctions ne dépendent
-d'aucun service payant ni d'aucun compte, et le relais n'est même pas nécessaire sur un
-réseau local. Si tout le reste disparaît, DropForge continue de fonctionner chez soi.
+**Ce qui fonctionne sans aucun serveur** : le transfert entre deux appareils du même
+réseau local — y compris la mise en relation, puisque `npm run lan` la sert depuis la
+machine qui sert aussi l'application. Aucun compte, aucun service tiers, aucune carte
+bancaire. La mise en relation entre réseaux différents et le transfert direct par
+Internet, eux, demandent un relais : accessoire par conception, puisque sa disparition ne
+casse pas le mode local. Si tout le reste disparaît, DropForge continue de fonctionner
+chez soi.
 
 | Besoin | Option gratuite | Limite honnête |
 | --- | --- | --- |
@@ -582,9 +585,27 @@ réseau local. Si tout le reste disparaît, DropForge continue de fonctionner ch
 | Publication automatisée | GitHub Actions | gratuit pour un dépôt public, aucune carte bancaire |
 | Mises à jour signées | signature Tauri (paire Ed25519) | gratuite ; indépendante de la signature de code Windows |
 | Signature de code Windows | certificat OV/EV | **le seul poste de coût réel du projet**, facultatif (un exécutable non signé s'installe avec un avertissement) |
+| Certificat TLS pour le réseau local | certificat auto-signé fabriqué par `npm run lan` | gratuit et immédiat ; le navigateur affiche un avertissement à accepter une fois par appareil (voir ci-dessous) |
+| Certificat TLS sans avertissement | un **nom de domaine** que vous possédez, pointant vers l'adresse privée, et un certificat Let's Encrypt obtenu par validation DNS-01 | gratuit, mais demande de posséder un domaine et de créer un enregistrement DNS : ce n'est pas quelque chose qu'un script peut faire à votre place |
 
-`stun.cloudflare.com` et les serveurs STUN publics sont gratuits et illimités : c'est ce
-que DropForge utilise par défaut quand un déploiement en configure un.
+**Pourquoi le réseau local a besoin de TLS.** `crypto.subtle` — le chiffrement de
+DropForge — n'est fourni par les navigateurs que dans un **contexte sécurisé** :
+`https://`, `http://localhost`, `http://127.0.0.1`, et rien d'autre. Une adresse privée en
+clair (`http://192.168.1.24`) n'en est pas un, dans aucun des trois grands moteurs. Le
+mode « deux appareils sur le même Wi‑Fi » sert donc en HTTPS, avec un certificat
+fabriqué localement (`scripts/lib/self-signed.mjs`, vérifié par une vraie poignée de
+main TLS dans `tests/lan-mode.test.ts`). Ce certificat **chiffre** sans **prouver**
+d'identité — c'est assumé, et sans conséquence sur les garanties du produit :
+l'identité vient du code à comparer affiché des deux côtés, et le contenu est scellé par
+les clés des deux appareils, pas par le TLS.
+
+**Le STUN, lui, n'est pas un défaut.** Aucun serveur ICE n'est configuré par défaut :
+c'est une décision, pas un oubli. Un serveur STUN public apprend l'adresse de l'appareil
+et le moment où il se connecte — exactement le tiers que ce produit existe pour éviter —
+et l'imposer rendrait chaque tentative dépendante d'un tiers joignable. Sur le réseau
+local, les deux appareils se trouvent directement, sans aucun serveur. Un déploiement
+qui doit traverser des NAT en configure un explicitement (`VITE_ICE_URLS`), et le dit
+alors à ses utilisateurs.
 
 ## 12. Annexes générées
 

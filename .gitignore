@@ -50,6 +50,10 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 
+# Certificat du mode « même Wi‑Fi » (`npm run lan`) : une clé privée et un certificat
+# propres à cette machine, fabriqués localement, jamais publiés.
+.lan-tls/
+
 # Local runtime data (transfer spool, dev storage)
 .data/
 .local-storage/

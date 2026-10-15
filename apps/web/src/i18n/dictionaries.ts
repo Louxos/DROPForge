@@ -593,7 +593,8 @@ export const FR: Dictionary = {
     TOO_LARGE: 'Ce transfert est trop volumineux pour la destination choisie.',
     TOO_MANY_TRANSFERS: 'Trop de transferts en cours : attendez qu’un autre se termine.',
     BUSY: 'L’autre appareil est occupé.',
-    CRYPTO_UNAVAILABLE: 'Ce navigateur ne fournit pas le chiffrement nécessaire.',
+    CRYPTO_UNAVAILABLE:
+      'Le chiffrement est indisponible ici : une adresse en clair (http://…) n’a pas le droit de l’utiliser. Ouvrez l’application en https://, ou depuis localhost.',
     IDENTITY_UNAVAILABLE: 'L’identité de cet appareil est indisponible.',
     PLATFORM_UNSUPPORTED: 'Cette fonction n’est pas disponible sur cet appareil.',
     BACKGROUND_UNSUPPORTED:
@@ -917,7 +918,8 @@ export const EN: Dictionary = {
     TOO_LARGE: 'This transfer is too large for the chosen destination.',
     TOO_MANY_TRANSFERS: 'Too many transfers running: wait for another one to finish.',
     BUSY: 'The other device is busy.',
-    CRYPTO_UNAVAILABLE: 'This browser does not provide the required encryption.',
+    CRYPTO_UNAVAILABLE:
+      'Encryption is unavailable here: a plain address (http://…) is not allowed to use it. Open the application over https://, or from localhost.',
     IDENTITY_UNAVAILABLE: 'This device identity is unavailable.',
     PLATFORM_UNSUPPORTED: 'This feature is not available on this device.',
     BACKGROUND_UNSUPPORTED:

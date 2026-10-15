@@ -97,7 +97,13 @@ npm run lan          # compile si besoin, démarre l'application et le service l
 ```
 
 Le script affiche l'adresse à ouvrir **sur chacun des deux appareils**, par exemple
-`http://192.168.1.24:4173`. Puis :
+`https://192.168.1.24:4173`. La première fois, le navigateur prévient que la connexion
+n'est pas privée : **Avancé → « Continuer vers 192.168.1.24 »**. C'est attendu — le
+certificat est signé par votre machine, pas par une autorité publique — et ce clic
+n'autorise rien d'autre que votre réseau. Sans lui, le navigateur refuse le chiffrement
+et aucun transfert ne peut aboutir (voir « Pourquoi HTTPS » plus bas).
+
+Puis, sur les deux appareils :
 
 | Sur un appareil | Sur l'autre |
 | --- | --- |
@@ -107,17 +113,46 @@ Le code se compare ensuite sur les deux écrans (« Code à comparer ») : ident
 connexion est la bonne. **Envoyer** → « Choisir des fichiers » → « Envoyer vers
 <appareil> ». `Ctrl-C` arrête tout.
 
-Pourquoi cette commande plutôt qu'une adresse en ligne : une page servie en HTTPS n'a
-pas le droit d'ouvrir une connexion `ws://` vers la machine d'à côté, et un hébergement
-statique (Netlify, GitHub Pages) ne peut pas garder une connexion WebSocket ouverte. Le
-seul chemin qui fonctionne vraiment entre deux appareils du même Wi‑Fi est donc que
-**les deux ouvrent l'application depuis la machine qui les met en relation** — c'est
-exactement ce que fait `npm run lan`. Options : `--port`, `--signaling-port`,
-`--no-build`.
+Options : `--port`, `--signaling-port`, `--no-build`, et `--http` (à réserver à
+`localhost` : en clair sur une adresse privée, le navigateur refuse le chiffrement).
+
+### Pourquoi HTTPS, et pourquoi un certificat signé par votre machine
+
+Deux obstacles se cumulent dès que deux appareils ne sont pas la même machine :
+
+1. **Le chiffrement.** DropForge scelle ce qu'il envoie avec `crypto.subtle`, que les
+   navigateurs ne fournissent que dans un **contexte sécurisé**. Sont sécurisés :
+   `https://`, `http://localhost`, `http://127.0.0.1` — et rien d'autre. Une adresse
+   privée en clair, `http://192.168.1.24`, n'en fait pas partie, dans Chrome comme dans
+   Safari et Firefox. Servi ainsi, DropForge ne peut pas chiffrer : la remise échoue
+   après que les deux appareils se sont trouvés.
+2. **La mise en relation.** Les deux appareils doivent se trouver. En ligne, cela passe
+   par un service de signalisation, sur une adresse en HTTPS/WebSocket — or un
+   hébergement statique (Netlify, GitHub Pages) ne garde pas de WebSocket ouverte, et
+   une page HTTPS n'a pas le droit d'ouvrir `ws://` vers la machine d'à côté.
+
+`npm run lan` répond aux deux : il sert l'application en HTTPS depuis une machine du
+réseau, et il sert aussi le service de mise en relation, **sur une seule adresse**. Rien
+ne sort du Wi‑Fi : ni les fichiers, ni même cette mise en relation.
+
+Le certificat est fabriqué localement (`scripts/lib/self-signed.mjs`), gardé dans
+`.lan-tls/` sur cette machine (jamais versionné, clé en lecture seule pour son
+propriétaire), et refait seulement s'il ne couvre plus les adresses de la machine ou
+s'il approche de son expiration. Il **chiffre** la connexion ; il ne **prouve aucune
+identité**, et ne le prétend pas : ce qui prouve l'identité, ici, c'est le « Code à
+comparer » affiché sur les deux écrans, et le contenu est scellé de bout en bout par les
+deux appareils. Si vous ne voulez pas de cet avertissement, la solution propre est un nom
+de domaine qui pointe vers l'adresse locale et un vrai certificat — hors de portée d'un
+script, et décrit dans `TECHNIQUE.md` § 11.
 
 **Et l'application Windows ?** Elle affiche la même interface, et se connecte au même
 service : lancez `npm run lan` sur une machine du réseau, puis indiquez son adresse dans
-Réglages → Avancé → Adresse du relais (`ws://192.168.1.24:4173/ws`).
+Réglages → Avancé → Adresse du relais (`wss://192.168.1.24:4173/ws`).
+
+**Et pour travailler sur le code ?** `npm run dev` sert en clair sur
+`http://localhost:5173` (un contexte sécurisé, donc tout fonctionne) ; `npm run dev
+-- --https` sert sur le réseau avec le même certificat local, si vous voulez essayer
+depuis un téléphone sans passer par le mode ci-dessus.
 
 ## 5. S'en servir
 

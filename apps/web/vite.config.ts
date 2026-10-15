@@ -7,6 +7,11 @@
  *    instead of being pre-built (the same aliases as the root tsconfig);
  *  - the dev server listens on 0.0.0.0 so it can be reached from another device on
  *    the local network — that is how a phone is used to test a transfer;
+ *  - TLS is switched on when the local-network mode asks for it (`DROPFORGE_TLS_KEY`
+ *    and `DROPFORGE_TLS_CERT`, written by `scripts/serve-lan.mjs`). Not a preference:
+ *    on a plain `http://192.168.x.x` address the browser strips `crypto.subtle`, which
+ *    is the encryption this product is made of. A secure context is `https://`,
+ *    `http://localhost` or `http://127.0.0.1` — nothing else;
  *  - the signaling service is proxied on the same origin (`/ws`), so the browser
  *    never needs a second origin and no CORS rule has to be relaxed.
  */
@@ -61,6 +66,21 @@ const SIGNALING_ORIGIN = process.env['DROPFORGE_SIGNALING_ORIGIN'] ?? 'http://12
  * installed application keeps working whatever the path.
  */
 const BASE = process.env['DROPFORGE_BASE'] ?? '/';
+
+/**
+ * The local certificate, when the local-network mode provided one.
+ *
+ * Read from files rather than pasted into the environment: a PEM does not survive a
+ * command line on Windows, and the private key has no business being in `ps` output.
+ */
+function tlsOptions(): { key: Buffer; cert: Buffer } | undefined {
+  const key = process.env['DROPFORGE_TLS_KEY'];
+  const cert = process.env['DROPFORGE_TLS_CERT'];
+  if (!key || !cert) return undefined;
+  return { key: readFileSync(key), cert: readFileSync(cert) };
+}
+
+const TLS = tlsOptions();
 
 export default defineConfig({
   root: fromHere('.'),
@@ -132,6 +152,7 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     strictPort: true,
+    ...(TLS ? { https: TLS } : {}),
     // The preview host is served through a reverse proxy: the dev server must not
     // reject the forwarded Host header, and WebSocket upgrades must work.
     allowedHosts: true,
@@ -144,6 +165,7 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 4173,
     strictPort: true,
+    ...(TLS ? { https: TLS } : {}),
     allowedHosts: true,
     proxy: {
       '/ws': { target: SIGNALING_ORIGIN, ws: true, changeOrigin: true },

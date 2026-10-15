@@ -14,18 +14,29 @@
  * entre deux appareils du même Wi‑Fi est donc celui-ci : les deux appareils ouvrent
  * l'application depuis la machine qui les met en relation.
  *
+ * Pourquoi HTTPS et pas une simple page en clair : parce qu'en clair, **le navigateur
+ * refuse le chiffrement**. `crypto.subtle` n'existe que dans un contexte sécurisé —
+ * `https://`, `http://localhost`, `http://127.0.0.1` — et une adresse privée comme
+ * `http://192.168.1.24:4173` n'en est pas un, ni dans Chrome, ni dans Safari, ni dans
+ * Firefox. Les deux appareils se trouvaient, puis la remise échouait, sans que rien
+ * n'explique pourquoi. Le certificat local (voir `scripts/lib/self-signed.mjs`) lève
+ * exactement ce blocage. `--http` reste possible pour qui sait ce qu'il fait.
+ *
  * Ce que ce fichier fait, et rien de plus :
  *   1. vérifie que l'application est compilée (sinon la compile) ;
- *   2. démarre le service de signalisation (`/health` répond, salles et relais) ;
- *   3. démarre l'application compilée, en proxifiant `/ws` vers ce service ;
- *   4. affiche l'adresse à ouvrir sur chaque appareil, et ce qu'on y fait.
+ *   2. prépare le certificat du réseau local (ou réutilise le précédent) ;
+ *   3. démarre le service de signalisation (`/health` répond, salles et relais) ;
+ *   4. démarre l'application compilée en HTTPS, `/ws` dirigé vers ce service ;
+ *   5. affiche l'adresse à ouvrir sur chaque appareil, et ce qu'on y fait.
  *
- * Options : `--port`, `--signaling-port`, `--no-build`.
+ * Options : `--port`, `--signaling-port`, `--no-build`, `--http`.
  */
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { networkInterfaces } from 'node:os';
+import { hostname, networkInterfaces } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ensureLocalCertificate } from './lib/self-signed.mjs';
 
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const root = fileURLToPath(new URL('..', import.meta.url));
@@ -43,6 +54,9 @@ function options(argv) {
     port: Number.parseInt(read('--port', '4173'), 10),
     signalingPort: Number.parseInt(read('--signaling-port', '8787'), 10),
     build: !argv.includes('--no-build'),
+    // HTTPS par défaut, et pas par goût : sans lui le navigateur refuse le chiffrement
+    // sur une adresse privée, donc la remise n'a pas lieu.
+    tls: !argv.includes('--http'),
   };
 }
 
@@ -98,7 +112,7 @@ function stop(children, code = 0) {
 }
 
 async function main() {
-  const { port, signalingPort, build } = options(process.argv.slice(2));
+  const { port, signalingPort, build, tls } = options(process.argv.slice(2));
 
   if (build && !existsSync(new URL('../apps/web/dist/index.html', import.meta.url))) {
     process.stdout.write('\nApplication non compilée : compilation en cours…\n');
@@ -111,6 +125,24 @@ async function main() {
     const exitCode = await new Promise((resolve) => compile.on('exit', resolve));
     if (exitCode !== 0) {
       process.stderr.write('\nLa compilation a échoué : rien n’a été démarré.\n');
+      process.exit(1);
+    }
+  }
+
+  // Le certificat : fabriqué une fois, puis réutilisé tant qu'il couvre les adresses
+  // de la machine. Un certificat neuf à chaque lancement redemanderait l'avertissement
+  // du navigateur à chaque lancement.
+  const addresses = lanAddresses();
+  let certificate;
+  if (tls) {
+    try {
+      certificate = ensureLocalCertificate(join(root, '.lan-tls'), {
+        hostnames: ['localhost', hostname(), `${hostname()}.local`],
+        addresses,
+      });
+    } catch (error) {
+      process.stderr.write(`\nLe certificat local n’a pas pu être préparé : ${String(error)}\n`);
+      process.stderr.write('Relancez avec --http pour continuer en clair (le navigateur refusera alors le chiffrement).\n');
       process.exit(1);
     }
   }
@@ -129,10 +161,13 @@ async function main() {
   // configuration à faire.
   const web = run(['run', 'preview', '-w', '@dropforge/web', '--', '--port', String(port)], {
     DROPFORGE_SIGNALING_ORIGIN: `http://127.0.0.1:${signalingPort}`,
+    ...(certificate
+      ? { DROPFORGE_TLS_KEY: join(root, '.lan-tls', 'key.pem'), DROPFORGE_TLS_CERT: join(root, '.lan-tls', 'cert.pem') }
+      : {}),
   });
   children.push(web);
 
-  const addresses = lanAddresses();
+  const scheme = certificate ? 'https' : 'http';
   const pad = (line) => process.stdout.write(`${line}\n`);
   setTimeout(() => {
     pad('');
@@ -142,8 +177,20 @@ async function main() {
     if (addresses.length === 0) {
       pad('    (aucune adresse réseau trouvée : cette machine n’est pas sur un Wi‑Fi ?)');
     }
-    for (const address of addresses) pad(`    http://${address}:${port}`);
+    for (const address of addresses) pad(`    ${scheme}://${address}:${port}`);
     pad('');
+    if (certificate) {
+      pad('  La première fois, le navigateur avertit « connexion non privée » :');
+      pad('  c’est normal, le certificat est signé par cette machine, pas par une autorité.');
+      pad('  Choisissez « Avancé » puis « Continuer vers … ». Sans cela le navigateur');
+      pad('  refuse le chiffrement, et aucun transfert ne peut aboutir.');
+      pad(`  (si l’on vous demande une empreinte : ${certificate.fingerprint})`);
+      pad('');
+    } else {
+      pad('  ATTENTION — mode clair (--http) : le navigateur refusera le chiffrement sur');
+      pad('  une adresse privée, donc la remise échouera. À réserver à http://localhost.');
+      pad('');
+    }
     pad('  Puis, sur l’un : « Recevoir » → « Recevoir d’un appareil » → lisez le code.');
     pad('  Sur l’autre  : « Recevoir » → saisissez ce code → « Se connecter ».');
     pad('  Ce qui voyage : vos fichiers, directement entre les deux appareils.');

@@ -17,7 +17,7 @@ son déploiement suit la branche publiée du dépôt.
 ### Ajouté
 
 - **`npm run lan` : le mode « deux appareils sur le même Wi‑Fi »**, une commande et une
-  adresse. Le script compile si besoin, démarre le service de mise en relation et
+  adresse (servie en HTTPS). Le script compile si besoin, démarre le service de mise en relation et
   l'application compilée sur le réseau (avec `/ws` dirigé vers ce service), puis affiche
   les adresses à ouvrir sur chaque appareil. Rien ne sort du réseau : les fichiers
   passent en direct d'un appareil à l'autre. C'est le seul chemin qui marche vraiment en
@@ -25,6 +25,17 @@ son déploiement suit la branche publiée du dépôt.
   côté, et un hébergement statique ne garde pas une connexion WebSocket ouverte.
   Vérifié en démarrant les deux services et en faisant aboutir un rendez-vous à deux
   pairs **à travers l'application elle-même** (`/ws` de l'application → service).
+
+- **Le mode « même Wi‑Fi » est servi en HTTPS**, avec un certificat fabriqué pour cette
+  machine (`scripts/lib/self-signed.mjs`, sans dépendance : clé RSA, signature SHA-256 et
+  encodage DER écrits ici, éprouvés par une vraie poignée de main TLS dans les tests).
+  Ce n'était pas un confort : sur une adresse privée en clair, le navigateur **supprime
+  `crypto.subtle`** — sont « sécurisés » `https://`, `http://localhost` et
+  `http://127.0.0.1`, rien d'autre — donc les deux appareils se trouvaient puis la remise
+  échouait, sans que rien ne l'explique. Le certificat est réutilisé d'une fois sur
+  l'autre (un certificat neuf redemanderait l'avertissement du navigateur à chaque
+  lancement) et refait seulement s'il ne couvre plus les adresses de la machine. Le
+  message d'erreur du chiffrement manquant dit maintenant la cause et la sortie.
 
 ### Modifié
 
