@@ -261,4 +261,19 @@ describe('repli par relais aveugle', () => {
     controller.abort();
     await factory.close();
   });
+
+  // Sans adresse, il n'y a pas de relais — et il ne doit **rien** tenter. Avant, la
+  // fabrique construisait un `WebSocket` avec une adresse vide : le navigateur levait
+  // une erreur de syntaxe brute, illisible et impossible à traduire. La réponse est
+  // maintenant un refus explicite, avec le code que l'interface sait expliquer.
+  it('refuse une tentative sans adresse, au lieu de laisser le navigateur lever', async () => {
+    const factory = factoryFor('');
+    const attempt = factory.create(
+      'relay',
+      { deviceId: 'unknown', displayName: '', methods: ['relay'], route: 'SANSRELAIS' },
+      new AbortController().signal,
+    );
+    await expect(attempt).rejects.toMatchObject({ code: 'RELAY_UNAVAILABLE' });
+    await factory.close();
+  });
 });

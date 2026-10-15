@@ -9,10 +9,18 @@ import { createHash } from 'node:crypto';
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { expect, type BrowserContext, type Download, type Page } from '@playwright/test';
+import { expect, type BrowserContext, type Download, type Locator, type Page } from '@playwright/test';
 
 /** French labels of the shipped interface (the app starts in French). */
 export const L = {
+  /**
+   * The two entry choices. The transfer screen opens on them and nothing else: the
+   * file picker, the code input and the hosting button only exist once one of the two
+   * has been chosen. Every helper that needs one of those three goes through the
+   * choice first — by hand, exactly as a person would.
+   */
+  chooseSend: 'Envoyer',
+  chooseReceive: 'Recevoir',
   selectFiles: 'Choisir des fichiers',
   // Le libellé exact du dictionnaire (« Envoyer vers », `transfer.sendTo`) : le helper
   // cherchait « Envoyer à », qui n'existe nulle part dans l'interface — le clic
@@ -112,6 +120,35 @@ export async function attempt<T>(page: Page, what: string, action: () => Promise
 }
 
 /**
+ * Opens one of the two steps of the transfer screen.
+ *
+ * The application starts on the choice (« envoyer » or « recevoir »). The helpers below
+ * that need the send form or the receiving panel click the choice first — and do
+ * nothing when the step is already open, so a scenario that navigated there by itself
+ * keeps working.
+ *
+ * `exact: true` matters: « Recevoir » is also the beginning of « Recevoir d'un
+ * appareil », a different button on a different step.
+ */
+async function openStep(page: Page, label: string, marker: (page: Page) => Locator): Promise<void> {
+  if (await marker(page).count()) return;
+  const choice = page.getByRole('button', { name: label, exact: true });
+  await expect(choice).toBeVisible({ timeout: 20_000 });
+  await choice.click();
+  await expect(marker(page)).toBeVisible({ timeout: 20_000 });
+}
+
+/** Goes to the send step (the file form). */
+export async function openSendStep(page: Page): Promise<void> {
+  await openStep(page, L.chooseSend, (target) => target.locator('input[type="file"]').first());
+}
+
+/** Goes to the receiving step (the code panel and the code input). */
+export async function openReceiveStep(page: Page): Promise<void> {
+  await openStep(page, L.chooseReceive, (target) => target.locator('#df-code'));
+}
+
+/**
  * Opens a fresh device. Each context has its own IndexedDB, its own identity key pair
  * and its own service worker: two contexts really are two devices.
  */
@@ -155,6 +192,7 @@ export async function openDevice(context: BrowserContext): Promise<Device> {
 /** Starts showing a pairing code and returns it. */
 export async function hostRoom(page: Page): Promise<string> {
   return attempt(page, 'affichage du code d’appairage', async () => {
+    await openReceiveStep(page);
     await page.getByRole('button', { name: L.receiveDevice }).click();
 
     const codePanel = page.locator('.df-code');
@@ -168,6 +206,7 @@ export async function hostRoom(page: Page): Promise<string> {
 /** Types a pairing code and connects. */
 export async function joinRoom(page: Page, code: string): Promise<void> {
   return attempt(page, 'saisie du code et connexion', async () => {
+    await openReceiveStep(page);
     await page.locator('#df-code').fill(code);
     await page.getByRole('button', { name: L.connect }).click();
   });
@@ -193,6 +232,7 @@ export async function answerNewDevice(page: Page, accept: boolean): Promise<stri
 /** Attaches files to the send form (the input is hidden, as in the real interface). */
 export async function selectFiles(page: Page, paths: string[]): Promise<void> {
   return attempt(page, 'sélection de fichiers', async () => {
+    await openSendStep(page);
     await page.locator('input[type="file"]').setInputFiles(paths);
     await expect(page.getByText(/élément\(s\) sélectionné/)).toBeVisible();
   });
@@ -201,7 +241,10 @@ export async function selectFiles(page: Page, paths: string[]): Promise<void> {
 /** Sends the current selection to the connected device. */
 export async function sendSelection(page: Page): Promise<void> {
   return attempt(page, 'envoi', async () => {
-    await page.getByRole('button', { name: L.sendTo }).click();
+    // Connected, the screen shows the peer panel, whose « Envoyer vers » sends the
+    // current selection. Not connected, it is the device row of the send step.
+    await expect(page.getByRole('button', { name: L.sendTo }).first()).toBeEnabled({ timeout: 20_000 });
+    await page.getByRole('button', { name: L.sendTo }).first().click();
   });
 }
 

@@ -29,7 +29,10 @@
   # Pour pointer un service de signalisation hébergé ailleurs, ajoutez dans
   # Site settings → Environment variables :
   #   VITE_SIGNALING_URL = wss://votre-relais.example.org/ws
-  # Sans elle, l'application cherche `wss://<ce-site>/ws` — c'est-à-dire nulle part.
+  # Sans elle, cette adresse ne s'invente pas : l'application publiée n'a **aucun**
+  # relais, elle le dit dès l'écran d'accueil, et seuls les appareils du même réseau
+  # peuvent se joindre. Avant, elle devinait `wss://<ce-site>/ws` — une adresse que
+  # personne ne sert, donc une tentative de connexion et une erreur à chaque fois.
 
 # ---------------------------------------------------------------------------- #
 # En-têtes

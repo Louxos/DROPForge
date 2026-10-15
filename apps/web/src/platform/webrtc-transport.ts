@@ -194,6 +194,18 @@ export class SignalingClient {
   }
 
   connect(): Promise<void> {
+    // No address means there *is* no relay here (see `platform/signaling.ts`). Rejecting
+    // with DropForge's own code keeps the reason stable and translatable; letting
+    // `new WebSocket('')` throw would produce a bare syntax error from the browser.
+    if (this.options.url.trim().length === 0) {
+      return Promise.reject(
+        new DropForgeError(
+          ERROR_CODES.RELAY_UNAVAILABLE,
+          'No relay is configured: only devices on the same local network can be reached',
+          { retryable: false },
+        ),
+      );
+    }
     const factory = this.options.socketFactory ?? ((url: string) => new WebSocket(url));
     const socket = factory(this.options.url);
     this.socket = socket;

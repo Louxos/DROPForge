@@ -1,23 +1,50 @@
 /**
- * Transfer screen: pick files, pick a path, watch the queue, and answer the two
- * questions DropForge always asks (a new device, an incoming transfer).
+ * Transfer screen.
+ *
+ * The first thing it shows is a **choice of two**: send, or receive. Everything else —
+ * picking files, choosing a destination, showing a pairing code, the queue — comes
+ * after that choice, one step at a time. The previous version put all of it on one
+ * page at once: a drop zone, a quick-send bar, a hosting code, a code input, the method
+ * explanations and the queue. Nothing was hidden, and nothing was clear.
+ *
+ * What has not changed, and must not: every fact on screen comes from the controller.
+ * An unreachable device is not offered, a code is only shown once the room really
+ * exists, and a missing relay is stated plainly instead of turning into a red banner
+ * that says nothing about what to do.
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SPACE } from '@dropforge/design-system';
 import { formatBytes } from '@dropforge/design-system';
+import { SIGNALING_OFF } from '@dropforge/settings';
 import { pickFolder, sourcesFromDataTransfer, sourcesFromFileList } from '../platform/browser-fs.js';
+import { signalingUrlFor } from '../platform/signaling.js';
 import type { AppController, AppState } from '../app/controller.js';
 import { EmptyState, PageHeader, ProgressView, StateBadge } from '../components/atoms.js';
 import { QrCode } from '../components/qr.js';
 import type { SourceFile } from '@dropforge/app-core';
 
+/** The three faces of this screen. The first render is always the choice. */
+type Step = 'choose' | 'send' | 'receive';
+
 export function TransferScreen({ controller, state }: { controller: AppController; state: AppState }): React.ReactElement {
   const { t, i18n } = useTranslation();
   const locale = i18n.resolvedLanguage === 'en' ? 'en' : 'fr';
+  const [step, setStep] = useState<Step>('choose');
   const [pending, setPending] = useState<SourceFile[]>([]);
   const [code, setCode] = useState('');
   const [dragging, setDragging] = useState(false);
+  const [busy, setBusy] = useState<'files' | 'folder' | 'connect' | undefined>();
+  /**
+   * Whether a relay exists at all. The receiving step is where this decides something:
+   * with no relay, two devices that are not on the same network cannot be introduced to
+   * each other — so the screen says so *before* anyone waits for a code that will never
+   * be answered.
+   */
+  const relay = signalingUrlFor(state.settings.signalingUrl);
+  // The native picker lives in a hidden input; the visible control is a real button,
+  // so it has a button's role, its keyboard behaviour and its press feedback.
+  const fileInput = useRef<HTMLInputElement>(null);
 
   const adopt = (files: SourceFile[]): void => {
     setPending(files);
@@ -26,7 +53,24 @@ export function TransferScreen({ controller, state }: { controller: AppControlle
 
   const onFiles = async (list: FileList | null): Promise<void> => {
     if (!list || list.length === 0) return;
-    adopt(await sourcesFromFileList(list));
+    setBusy('files');
+    try {
+      adopt(await sourcesFromFileList(list));
+    } finally {
+      setBusy(undefined);
+    }
+  };
+
+  const onFolder = async (): Promise<void> => {
+    setBusy('folder');
+    try {
+      const picked = await pickFolder();
+      if (picked) adopt(picked);
+    } catch {
+      /* the picker was dismissed or refused: nothing to say, nothing broken */
+    } finally {
+      setBusy(undefined);
+    }
   };
 
   /**
@@ -47,189 +91,326 @@ export function TransferScreen({ controller, state }: { controller: AppControlle
   };
 
   const connect = async (): Promise<void> => {
-    await controller.connectWithCode(code);
+    setBusy('connect');
+    try {
+      await controller.connectWithCode(code);
+    } finally {
+      setBusy(undefined);
+    }
   };
+
+  const clearSelection = (): void => {
+    setPending([]);
+    controller.clearSelection();
+  };
+
+  const sendToDevice = async (deviceId: string): Promise<void> => {
+    setBusy('connect');
+    try {
+      const transferId = await controller.quickSend(deviceId, pending);
+      if (transferId) {
+        clearSelection();
+        setStep('choose');
+      }
+    } finally {
+      setBusy(undefined);
+    }
+  };
+
+  // A live connection leaves nothing to choose: what remains to be done is to send,
+  // so the screen is the send step with the peer panel above it — stated once, at the
+  // top, instead of asking a question whose answer is already known.
+  const connected = state.connection !== undefined;
+  const activeStep: Step = connected ? 'send' : step;
 
   return (
     <section>
-      <PageHeader titleKey="transfer.title" subtitleKey="transfer.subtitle" />
+      <PageHeader titleKey="transfer.title" subtitleKey="transfer.chooseSubtitle" />
 
-      <div
-        className={`df-card df-dropzone${dragging ? ' df-dropzone--active' : ''}`}
-        style={{ marginBottom: SPACE.xl }}
-        onDragEnter={(event) => {
-          event.preventDefault();
-          setDragging(true);
-        }}
-        onDragOver={(event) => {
-          event.preventDefault();
-          setDragging(true);
-        }}
-        onDragLeave={(event) => {
-          // Leaving for a child element is not leaving the zone.
-          if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
-          setDragging(false);
-        }}
-        onDrop={(event) => {
-          event.preventDefault();
-          void onDrop(event.dataTransfer);
-        }}
-      >
-        <div className="df-row" style={{ flexWrap: 'wrap' }}>
-          <label className="df-button df-button--primary">
-            {t('transfer.selectFiles')}
-            <input
-              type="file"
-              multiple
-              hidden
-              onChange={(event) => void onFiles(event.target.files)}
-            />
-          </label>
-          {state.capabilities.directoryRead ? (
-            <button
-              type="button"
-              className="df-button"
-              onClick={() => void pickFolder().then(adopt).catch(() => undefined)}
-            >
-              {t('transfer.selectFolder')}
-            </button>
-          ) : null}
-          {pending.length > 0 ? (
-            <button type="button" className="df-button df-button--ghost" onClick={() => { setPending([]); controller.clearSelection(); }}>
-              {t('transfer.clear')}
-            </button>
-          ) : null}
-        </div>
+      {connected ? (
+        <ConnectedPanel
+          state={state}
+          pending={pending}
+          onSend={() => {
+            void controller.sendSelection(pending).then(() => clearSelection());
+          }}
+          onDisconnect={() => controller.disconnect()}
+        />
+      ) : null}
 
-        <p className="df-faint" style={{ marginTop: SPACE.md }}>
-          {t('transfer.dropHint')}
-        </p>
-        {pending.length > 0 ? (
-          <p style={{ marginTop: SPACE.sm }}>
-            {t('transfer.selected', {
-              count: pending.length,
-              size: formatBytes(pending.reduce((sum, file) => sum + file.size, 0), locale),
-            })}
-          </p>
-        ) : null}
+      {!connected && step !== 'choose' ? (
+        <button type="button" className="df-back" onClick={() => setStep('choose')}>
+          <span aria-hidden="true">←</span> {t('transfer.back')}
+        </button>
+      ) : null}
 
-        {state.devices.some((device) => device.favorite) ? (
-          <div style={{ marginTop: SPACE.lg }}>
-            <div className="df-label">{t('transfer.quickSend')}</div>
-            <div className="df-row" style={{ flexWrap: 'wrap', marginTop: SPACE.sm }}>
-              {state.devices
-                .filter((device) => device.favorite)
-                .map((device) => (
-                  <button
-                    key={device.id}
-                    type="button"
-                    className="df-button df-button--small"
-                    disabled={pending.length === 0 || state.connecting}
-                    title={device.displayName}
-                    onClick={() =>
-                      void controller
-                        .quickSend(device.id, pending)
-                        .then((transferId) => {
-                          if (!transferId) return;
-                          setPending([]);
-                          controller.clearSelection();
-                        })
-                        .catch(() => undefined)
-                    }
-                  >
-                    {device.displayName}
-                  </button>
-                ))}
+      {!connected ? (
+        <>
+          {activeStep === 'choose' ? (
+            <div className="df-choices">
+              <button type="button" className="df-choice" onClick={() => setStep('send')}>
+                <span className="df-choice__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
+                    <path d="M12 17V5m0 0-4.5 4.5M12 5l4.5 4.5M5 20h14" />
+                  </svg>
+                </span>
+                <span className="df-choice__text">
+                  <strong>{t('transfer.sendTitle')}</strong>
+                  <span className="df-faint">{t('transfer.sendSubtitle')}</span>
+                </span>
+              </button>
+              <button type="button" className="df-choice" onClick={() => setStep('receive')}>
+                <span className="df-choice__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
+                    <path d="M12 4v12m0 0-4.5-4.5M12 16l4.5-4.5M5 20h14" />
+                  </svg>
+                </span>
+                <span className="df-choice__text">
+                  <strong>{t('transfer.receiveTitle')}</strong>
+                  <span className="df-faint">{t('transfer.receiveSubtitle')}</span>
+                </span>
+              </button>
             </div>
-            <p className="df-faint" style={{ marginTop: SPACE.sm }}>
-              {t('transfer.quickSendHint')}
+          ) : null}
+
+          {/* The entry screen also states the facts that decide which of the two is
+              possible: with no device known, sending needs a code first — and with no
+              relay configured, only devices on the same network can be reached. Said
+              once, quietly: not as an error, and never as an invented destination. */}
+          {activeStep === 'choose' && state.devices.length === 0 ? (
+            <p className="df-faint">{t('transfer.noDevices')}</p>
+          ) : null}
+          {activeStep === 'choose' && relay.length === 0 ? (
+            <p className="df-faint">
+              {state.settings.signalingUrl === SIGNALING_OFF ? t('relay.disabled') : t('relay.none')}{' '}
+              {t('relay.note')}
             </p>
-          </div>
-        ) : null}
+          ) : null}
 
-        <div style={{ marginTop: SPACE.lg }}>
-          {state.connection ? (
-            <div className="df-row df-row--between">
-              <div>
-                <div style={{ fontWeight: 600 }}>{state.connection.peerName}</div>
-                <div className="df-faint">
-                  {t('transfer.method')} :{' '}
-                  {state.connection.method === 'lan'
-                    ? t('transfer.methodLan')
-                    : state.connection.method === 'webrtc'
-                      ? t('transfer.methodWebrtc')
-                      : t('transfer.methodRelay')}{' '}
-                  · {t('transfer.compareCode')} <span className="df-mono">{state.connection.sas}</span>
-                </div>
-              </div>
-              <div className="df-row">
-                <button
-                  type="button"
-                  className="df-button df-button--primary"
-                  disabled={pending.length === 0}
-                  onClick={() => void controller.sendSelection(pending).then(() => controller.clearSelection()).then(() => setPending([]))}
-                >
-                  {t('transfer.sendTo')}
-                </button>
-                <button type="button" className="df-button df-button--ghost" onClick={() => controller.disconnect()}>
-                  {t('common.close')}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div>
-              {state.pairingRoom ? (
-                <div>
-                  <div className="df-label">{t('transfer.hosting')}</div>
-              <p className="df-faint" style={{ marginTop: SPACE.xs }}>
-                {t('transfer.hostingHint')}
-              </p>
-              <div className="df-row df-row--between" style={{ marginTop: SPACE.md, flexWrap: 'wrap', gap: SPACE.lg }}>
-                <div style={{ flex: 1, minWidth: 240 }}>
-                  <div className="df-label">{t('transfer.pairingCode')}</div>
-                  <div className="df-mono df-code" style={{ fontSize: 28, letterSpacing: 4 }}>
-                    {state.pairingRoom.code}
-                  </div>
-                  <div className="df-row" style={{ marginTop: SPACE.md, flexWrap: 'wrap' }}>
-                    <input className="df-input" readOnly value={state.pairingRoom.link} style={{ flex: 1, minWidth: 180 }} />
+          {activeStep === 'send' ? (
+            <section className="df-step" aria-label={t('transfer.sendTitle')}>
+              <div
+                className={`df-card df-dropzone${dragging ? ' df-dropzone--active' : ''}`}
+                onDragEnter={(event) => {
+                  event.preventDefault();
+                  setDragging(true);
+                }}
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  setDragging(true);
+                }}
+                onDragLeave={(event) => {
+                  // Leaving for a child element is not leaving the zone.
+                  if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+                  setDragging(false);
+                }}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  void onDrop(event.dataTransfer);
+                }}
+              >
+                <div className="df-row" style={{ flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className={`df-button df-button--primary${busy === 'files' ? ' df-button--busy' : ''}`}
+                    onClick={() => fileInput.current?.click()}
+                  >
+                    {t('transfer.selectFiles')}
+                  </button>
+                  <input
+                    ref={fileInput}
+                    type="file"
+                    multiple
+                    hidden
+                    onChange={(event) => void onFiles(event.target.files)}
+                  />
+                  {state.capabilities.directoryRead ? (
                     <button
                       type="button"
-                      className="df-button df-button--small"
-                      onClick={() => {
-                        // The clipboard is a permission the browser can refuse: a refusal
-                        // is reported, never hidden behind a "copied" message.
-                        void navigator.clipboard
-                          ?.writeText(state.pairingRoom?.link ?? '')
-                          .then(() => controller.reportNotice('success', 'transfer.linkCopied'))
-                          .catch(() => controller.reportNotice('warning', 'transfer.copyLink'));
-                      }}
+                      className={`df-button${busy === 'folder' ? ' df-button--busy' : ''}`}
+                      disabled={busy === 'folder'}
+                      onClick={() => void onFolder()}
                     >
-                      {t('transfer.copyLink')}
+                      {t('transfer.selectFolder')}
                     </button>
-                  </div>
-                  <button
-                    type="button"
-                    className="df-button df-button--ghost df-button--small"
-                    style={{ marginTop: SPACE.md }}
-                    onClick={() => void controller.closeHostedRoom()}
-                  >
-                    {t('transfer.closeRoom')}
-                  </button>
+                  ) : null}
+                  {pending.length > 0 ? (
+                    <button type="button" className="df-button df-button--ghost" onClick={clearSelection}>
+                      {t('transfer.clear')}
+                    </button>
+                  ) : null}
                 </div>
-                  <QrCode value={state.pairingRoom.link} label={t('transfer.qrAlt')} />
-                </div>
+
+                <p className="df-faint" style={{ marginTop: SPACE.md }}>
+                  {t('transfer.dropHint')}
+                </p>
+                {pending.length > 0 ? (
+                  <p style={{ marginTop: SPACE.sm }}>
+                    {t('transfer.selected', {
+                      count: pending.length,
+                      size: formatBytes(pending.reduce((sum, file) => sum + file.size, 0), locale),
+                    })}
+                  </p>
+                ) : null}
               </div>
+
+              {/* Nothing to choose while connected: the panel above carries the peer,
+                  the method and the send button. */}
+              {connected ? null : (
+                <>
+                  <h2 className="df-section-title" style={{ marginTop: SPACE.xl }}>
+                    {t('transfer.toWhichDevice')}
+                  </h2>
+
+                  {/* An honest empty state: with nothing paired and nothing discovered,
+                      the screen says so — it does not offer a destination that does not
+                      exist. */}
+                  {state.devices.length === 0 ? <p className="df-faint">{t('transfer.noDevices')}</p> : null}
+
+                  {pending.length === 0 && state.devices.length > 0 ? (
+                    <p className="df-faint">{t('transfer.pickFirst')}</p>
+                  ) : null}
+
+                  {state.devices.length > 0 ? (
+                    <ul className="df-list">
+                      {state.devices.map((device) => (
+                        <li
+                          key={device.id}
+                          className="df-card df-card--tight df-row df-row--between"
+                          style={{ alignItems: 'center' }}
+                        >
+                          <span>
+                            <strong>{device.displayName}</strong>
+                            {device.favorite ? (
+                              <span className="df-badge" style={{ marginLeft: SPACE.sm }}>
+                                {t('devices.favorite')}
+                              </span>
+                            ) : null}
+                          </span>
+                          <button
+                            type="button"
+                            className="df-button df-button--small df-button--primary"
+                            disabled={pending.length === 0 || busy === 'connect' || state.connecting}
+                            onClick={() => void sendToDevice(device.id)}
+                          >
+                            {t('transfer.sendTo')}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+
+                  {/* A code also works from this side: the connection is symmetric, and
+                      someone who was handed a code should not have to guess that it only
+                      works from the « Recevoir » screen. */}
+                  {pending.length > 0 ? (
+                    <div className="df-field" style={{ marginTop: SPACE.lg }}>
+                      <label className="df-label" htmlFor="df-send-code">
+                        {t('transfer.orCode')}
+                      </label>
+                      <div className="df-row">
+                        <input
+                          id="df-send-code"
+                          className="df-input"
+                          value={code}
+                          onChange={(event) => setCode(event.target.value)}
+                          autoComplete="off"
+                          spellCheck={false}
+                          style={{ flex: 1 }}
+                          placeholder={t('transfer.codePlaceholder')}
+                        />
+                        <button
+                          type="button"
+                          className={`df-button${busy === 'connect' ? ' df-button--busy' : ''}`}
+                          disabled={state.connecting || code.trim().length === 0}
+                          onClick={() => void connect()}
+                        >
+                          {t('transfer.connect')}
+                        </button>
+                      </div>
+                      <p className="df-faint" style={{ marginTop: SPACE.sm }}>
+                        {t('transfer.orCodeHint')}
+                      </p>
+                    </div>
+                  ) : null}
+                </>
+              )}
+
+            </section>
+          ) : null}
+
+          {activeStep === 'receive' ? (
+            <section className="df-step" aria-label={t('transfer.receiveTitle')}>
+              {state.pairingRoom ? (
+                <div className="df-card df-pairing">
+                  <div className="df-pairing__head">
+                    <h2 className="df-section-title" style={{ margin: 0 }}>
+                      {t('transfer.pairingCode')}
+                    </h2>
+                    <span className="df-faint">{t('transfer.hostingHint')}</span>
+                  </div>
+                  <div className="df-mono df-code">{state.pairingRoom.code}</div>
+                  <div className="df-pairing__body">
+                    <div style={{ flex: 1, minWidth: 240 }}>
+                      <div className="df-row">
+                        <input className="df-input" readOnly value={state.pairingRoom.link} style={{ flex: 1 }} />
+                        <button
+                          type="button"
+                          className="df-button df-button--small"
+                          onClick={() => {
+                            // The clipboard is a permission the browser can refuse: a refusal
+                            // is reported, never hidden behind a "copied" message.
+                            void navigator.clipboard
+                              ?.writeText(state.pairingRoom?.link ?? '')
+                              .then(() => controller.reportNotice('success', 'transfer.linkCopied'))
+                              .catch(() => controller.reportNotice('warning', 'transfer.copyLink'));
+                          }}
+                        >
+                          {t('transfer.copyLink')}
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        className="df-button df-button--ghost df-button--small"
+                        style={{ marginTop: SPACE.md }}
+                        onClick={() => void controller.closeHostedRoom()}
+                      >
+                        {t('transfer.closeRoom')}
+                      </button>
+                      <p className="df-faint" style={{ marginTop: SPACE.md }}>
+                        {t('transfer.waitingPeer')}
+                      </p>
+                    </div>
+                    <QrCode value={state.pairingRoom.link} label={t('transfer.qrAlt')} />
+                  </div>
+                </div>
               ) : (
-                <div>
-                  <button type="button" className="df-button" onClick={() => void controller.hostRoom()}>
-                    {t('transfer.receiveDevice')}
-                  </button>
-                  <p className="df-faint" style={{ marginTop: SPACE.sm }}>
+                <div className="df-card">
+                  <h2 className="df-section-title" style={{ marginTop: 0 }}>
+                    {t('transfer.receiveTitle')}
+                  </h2>
+                  <p className="df-faint" style={{ marginTop: 0 }}>
                     {t('transfer.receiveDeviceHint')}
                   </p>
+                  <button
+                    type="button"
+                    className="df-button df-button--primary"
+                    onClick={() => void controller.hostRoom()}
+                  >
+                    {t('transfer.receiveDevice')}
+                  </button>
                 </div>
               )}
-              <div className="df-field" style={{ marginTop: SPACE.lg }}>
+
+              {relay.length === 0 ? (
+                <p className="df-badge df-badge--warn" style={{ marginTop: SPACE.lg }}>
+                  {state.settings.signalingUrl === SIGNALING_OFF ? t('relay.disabled') : t('relay.none')}
+                  {' '}
+                  {t('relay.note')}
+                </p>
+              ) : null}
+
+              <div className="df-field" style={{ marginTop: SPACE.xl }}>
                 <label className="df-label" htmlFor="df-code">
                   {t('transfer.pasteCode')}
                 </label>
@@ -242,27 +423,34 @@ export function TransferScreen({ controller, state }: { controller: AppControlle
                     autoComplete="off"
                     spellCheck={false}
                     style={{ flex: 1 }}
+                    placeholder={t('transfer.codePlaceholder')}
                   />
-                  <button type="button" className="df-button" disabled={state.connecting || code.trim().length === 0} onClick={() => void connect()}>
+                  <button
+                    type="button"
+                    className={`df-button${busy === 'connect' ? ' df-button--busy' : ''}`}
+                    disabled={state.connecting || code.trim().length === 0}
+                    onClick={() => void connect()}
+                  >
                     {t('transfer.connect')}
                   </button>
                 </div>
+                <p className="df-faint" style={{ marginTop: SPACE.sm }}>
+                  {t('transfer.pasteCodeHint')}
+                </p>
               </div>
+
               {state.methodExplanation.length > 0 ? (
-                <p className="df-faint">{state.methodExplanation.map((key) => t(key as never)).join(' · ')}</p>
+                <p className="df-faint" style={{ marginTop: SPACE.md }}>
+                  {state.methodExplanation.map((key) => t(key as never)).join(' · ')}
+                </p>
               ) : null}
-              {state.devices.length === 0 && state.discovered.length === 0 ? (
-                // An honest empty state: nothing is reachable, so nothing is offered.
-                // The moment a device is paired or discovered, this disappears.
-                <p className="df-faint">{t('transfer.noDevices')}</p>
-              ) : null}
-            </div>
-          )}
-        </div>
-      </div>
+            </section>
+          ) : null}
+        </>
+      ) : null}
 
       {state.newDevice ? (
-        <div className="df-card" role="dialog" aria-modal="true">
+        <div className="df-card df-dialog" role="dialog" aria-modal="true" style={{ marginTop: SPACE.xl }}>
           <h2 className="df-section-title">{t('transfer.confirmDevice')}</h2>
           <p>{t('transfer.confirmDeviceHint')}</p>
           <div className="df-sas" aria-label={t('transfer.compareCode')}>
@@ -281,7 +469,7 @@ export function TransferScreen({ controller, state }: { controller: AppControlle
       ) : null}
 
       {state.incoming ? (
-        <div className="df-card" role="dialog" aria-modal="true" style={{ marginBottom: SPACE.xl }}>
+        <div className="df-card df-dialog" role="dialog" aria-modal="true" style={{ marginTop: SPACE.xl }}>
           <h2 className="df-section-title">{t('transfer.incomingRequest')}</h2>
           <p>
             {state.incoming.peerName} ·{' '}
@@ -298,42 +486,25 @@ export function TransferScreen({ controller, state }: { controller: AppControlle
                   <li key={conflict.index} className="df-row df-row--between">
                     <span className="df-mono">{conflict.path}</span>
                     <span className="df-row">
-                      <button
-                        type="button"
-                        className="df-button df-button--small"
-                        onClick={() =>
-                          controller.answerIncoming({
-                            accepted: true,
-                            decisions: decisionsFor(state, 'skip'),
-                          })
-                        }
-                      >
-                        {t('transfer.conflictAskSkip')}
-                      </button>
-                      <button
-                        type="button"
-                        className="df-button df-button--small"
-                        onClick={() =>
-                          controller.answerIncoming({
-                            accepted: true,
-                            decisions: decisionsFor(state, 'rename'),
-                          })
-                        }
-                      >
-                        {t('transfer.conflictAskRename')}
-                      </button>
-                      <button
-                        type="button"
-                        className="df-button df-button--small"
-                        onClick={() =>
-                          controller.answerIncoming({
-                            accepted: true,
-                            decisions: decisionsFor(state, 'overwrite'),
-                          })
-                        }
-                      >
-                        {t('transfer.conflictAskReplace')}
-                      </button>
+                      {(['skip', 'rename', 'overwrite'] as const).map((action) => (
+                        <button
+                          key={action}
+                          type="button"
+                          className="df-button df-button--small"
+                          onClick={() =>
+                            controller.answerIncoming({
+                              accepted: true,
+                              decisions: decisionsFor(state, action),
+                            })
+                          }
+                        >
+                          {action === 'skip'
+                            ? t('transfer.conflictAskSkip')
+                            : action === 'rename'
+                              ? t('transfer.conflictAskRename')
+                              : t('transfer.conflictAskReplace')}
+                        </button>
+                      ))}
                     </span>
                   </li>
                 ))}
@@ -361,7 +532,9 @@ export function TransferScreen({ controller, state }: { controller: AppControlle
         </div>
       ) : null}
 
-      <h2 className="df-section-title">{t('transfer.queue')}</h2>
+      <h2 className="df-section-title" style={{ marginTop: SPACE.xxl }}>
+        {t('transfer.queue')}
+      </h2>
       {state.queue.length === 0 ? (
         <EmptyState messageKey="transfer.emptyQueue" />
       ) : (
@@ -435,6 +608,61 @@ export function TransferScreen({ controller, state }: { controller: AppControlle
           ))}
         </ul>
       )}
+    </section>
+  );
+}
+
+/**
+ * The connected panel: a device is on the line, so the only question left is whether
+ * to send what is selected. It keeps the same facts as before — the peer, the method
+ * actually chosen, and the code to compare — in one row.
+ */
+function ConnectedPanel({
+  state,
+  pending,
+  onSend,
+  onDisconnect,
+}: {
+  state: AppState;
+  pending: SourceFile[];
+  onSend: () => void;
+  onDisconnect: () => void;
+}): React.ReactElement {
+  const { t } = useTranslation();
+  const connection = state.connection;
+  const method =
+    connection?.method === 'lan'
+      ? t('transfer.methodLan')
+      : connection?.method === 'webrtc'
+        ? t('transfer.methodWebrtc')
+        : t('transfer.methodRelay');
+  return (
+    <section className="df-card df-connected" aria-label={t('transfer.connected')}>
+      <div className="df-connected__head">
+        <div>
+          <div className="df-connected__peer">{connection?.peerName}</div>
+          <div className="df-faint">
+            {t('transfer.method')} : {method} · {t('transfer.compareCode')}{' '}
+            <span className="df-mono">{connection?.sas}</span>
+          </div>
+        </div>
+        <button type="button" className="df-button df-button--ghost df-button--small" onClick={onDisconnect}>
+          {t('common.close')}
+        </button>
+      </div>
+      <div className="df-row" style={{ marginTop: SPACE.lg, flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          className="df-button df-button--primary"
+          disabled={pending.length === 0}
+          onClick={onSend}
+        >
+          {t('transfer.sendTo')}
+        </button>
+        <span className="df-faint">
+          {pending.length === 0 ? t('transfer.pickFirst') : t('transfer.selected', { count: pending.length, size: '' })}
+        </span>
+      </div>
     </section>
   );
 }

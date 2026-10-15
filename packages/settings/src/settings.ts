@@ -14,7 +14,25 @@ import { DropForgeError, ERROR_CODES, type MetaStore } from '@dropforge/app-core
 
 export const SETTINGS_COLLECTION = 'settings';
 export const SETTINGS_KEY = 'preferences';
-export const SETTINGS_VERSION = 2;
+export const SETTINGS_VERSION = 3;
+
+/**
+ * Where the relay (the signaling service) is.
+ *
+ *  - `auto` — the deployment's own address when the build carries one, the page's own
+ *    origin when the page is served locally (development and the test bench, where the
+ *    dev server proxies `/ws`), and **nothing** anywhere else;
+ *  - `none` — never contact one: only devices on the same local network can then reach
+ *    each other, and the interface says so;
+ *  - a `ws://` or `wss://` address — used as it is, for someone who hosts their own.
+ *
+ * « Nothing » is the case that matters: a published build used to assume the relay was
+ * served from its own host. Nothing answered there, so every attempt to receive or to
+ * join by code produced connection failures — an address that is invented rather than
+ * configured turns into a screen full of errors for a user who did nothing wrong.
+ */
+export const SIGNALING_AUTO = 'auto';
+export const SIGNALING_OFF = 'none';
 
 export type Language = 'fr' | 'en';
 export type Theme = 'dark' | 'light' | 'system';
@@ -44,6 +62,8 @@ export interface Preferences {
   diagnostics: boolean;
   /** Refuse hosted (server-stored) sharing links: the local-only guarantee. */
   allowHostedSharing: boolean;
+  /** Where the relay is: `auto`, `none`, or a `ws://` / `wss://` address. */
+  signalingUrl: string;
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {
@@ -61,6 +81,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   trustedDevicesOnly: false,
   diagnostics: false,
   allowHostedSharing: true,
+  signalingUrl: SIGNALING_AUTO,
 };
 
 export interface SettingsChange {
@@ -193,6 +214,21 @@ export function readSettings(stored: unknown): {
     ignored.push(key);
     return '';
   };
+  /**
+   * The relay address is either one of the two keywords or a WebSocket address.
+   * « A WebSocket address » is checked here rather than at connection time: a typo must
+   * be refused when it is written, not silently turned into a failed transfer later.
+   */
+  const pickSignaling = (): string => {
+    const value = migrated.signalingUrl;
+    if (value === undefined) return SIGNALING_AUTO;
+    if (value === SIGNALING_AUTO || value === SIGNALING_OFF) return value;
+    if (typeof value === 'string' && value.length <= 2048 && /^wss?:\/\/[^\s]+$/i.test(value.trim())) {
+      return value.trim();
+    }
+    ignored.push('signalingUrl');
+    return SIGNALING_AUTO;
+  };
 
   const value: Preferences = {
     v: SETTINGS_VERSION,
@@ -209,6 +245,7 @@ export function readSettings(stored: unknown): {
     trustedDevicesOnly: pickBoolean('trustedDevicesOnly'),
     diagnostics: pickBoolean('diagnostics'),
     allowHostedSharing: pickBoolean('allowHostedSharing'),
+    signalingUrl: pickSignaling(),
   };
   return { value, ignored, clamped, fromVersion };
 }
@@ -216,7 +253,8 @@ export function readSettings(stored: unknown): {
 /**
  * Schema migrations. Version 0 is a file written before the schema was versioned;
  * version 1 stored `conflictPolicy: 'ask' | 'overwrite'` with a separate
- * `renameOnConflict` flag, which version 2 folded into the single policy enum.
+ * `renameOnConflict` flag, which version 2 folded into the single policy enum;
+ * version 3 added the relay address (`signalingUrl`).
  */
 export function migrateSettings(stored: unknown): { value: Record<string, unknown>; changed: boolean } {
   if (typeof stored !== 'object' || stored === null) return { value: {}, changed: false };
@@ -235,6 +273,13 @@ export function migrateSettings(stored: unknown): { value: Record<string, unknow
     }
     // Hosted sharing was implicit before it became an explicit switch.
     if (input.allowHostedSharing === undefined) input.allowHostedSharing = true;
+  }
+  if (version <= 2) {
+    // Before version 3 the relay address was not a preference at all: the build
+    // guessed it (`VITE_SIGNALING_URL`, otherwise the page's own host). An existing
+    // installation keeps working without a new question: « auto » is exactly that old
+    // behaviour, minus the guess that failed on a published site.
+    if (input.signalingUrl === undefined) input.signalingUrl = SIGNALING_AUTO;
   }
   input.v = SETTINGS_VERSION;
   return { value: input, changed: true };

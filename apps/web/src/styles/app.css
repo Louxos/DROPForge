@@ -438,33 +438,174 @@ select.df-input {
 
 /* La zone de dépôt ne change jamais de taille : seule la bordure répond. */
 .df-dropzone {
-  border: 1px dashed transparent;
-  transition: border-color 160ms ease, background-color 160ms ease;
+  display: block;
+  padding: var(--df-space-xl);
+  border: 1px dashed var(--df-border-strong);
+  transition: border-color var(--df-motion-fast) var(--df-motion-easing),
+    background-color var(--df-motion-fast) var(--df-motion-easing),
+    transform var(--df-motion-fast) var(--df-motion-easing);
 }
 
 .df-dropzone--active {
   border-color: var(--df-accent);
   background-color: color-mix(in srgb, var(--df-accent) 8%, transparent);
+  transform: scale(1.004);
+}
+
+/* Le champ de fichiers est caché, mais son étiquette est le bouton : elle doit se
+   comporter comme un bouton (curseur, centrage, press). */
+.df-dropzone label.df-button {
+  cursor: pointer;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .df-dropzone {
+  .df-dropzone,
+  .df-dropzone--active {
     transition: none;
+    transform: none;
   }
 }
 
-/* Le code d'appairage se lit de loin : c'est ce qu'on recopie sur l'autre appareil. */
+/* Le code d'appairage se lit de loin : c'est ce qu'on recopie sur l'autre appareil.
+   La classe `.df-code` est aussi ce que le banc observe pour lire le code : elle ne
+   doit pas changer de nom. */
 .df-code {
-  margin-top: 4px;
-  padding: 8px 12px;
+  margin: var(--df-space-lg) 0;
+  padding: var(--df-space-md) var(--df-space-lg);
   border: 1px solid var(--df-border);
-  border-radius: 8px;
+  border-radius: var(--df-radius-md);
   background: var(--df-surface);
   text-align: center;
+  font-size: clamp(28px, 7vw, 44px);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--df-accent);
+  user-select: all;
 }
 
 .df-qr {
   flex: 0 0 auto;
   border: 1px solid var(--df-border);
   border-radius: 8px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Boot screen
+ *
+ * Shown before `state.ready`: only local preparation happens here (identity,
+ * storage, settings), so there is no progress to report and none is invented.
+ * The mark stays put and the ring says « something is running ».
+ * ------------------------------------------------------------------ */
+.df-app--loading {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: var(--df-space-xxl);
+  background:
+    radial-gradient(60% 50% at 50% 0%, color-mix(in srgb, var(--df-accent) 12%, transparent), transparent 70%),
+    var(--df-background);
+}
+
+.df-boot {
+  display: grid;
+  justify-items: center;
+  gap: var(--df-space-lg);
+  text-align: center;
+  animation: df-rise var(--df-motion-slow) var(--df-motion-easing) both;
+}
+
+.df-boot__ring {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--df-accent) 25%, transparent);
+  border-top-color: var(--df-accent);
+  animation: df-spin 900ms linear infinite;
+}
+
+.df-boot__text {
+  margin: 0;
+  font-size: var(--df-text-lg);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.df-boot__hint {
+  margin: 0;
+  max-width: 34ch;
+  color: var(--df-text-faint);
+  font-size: var(--df-text-md);
+}
+
+/* ------------------------------------------------------------------ *
+ * Steps inside the transfer screen
+ * ------------------------------------------------------------------ */
+.df-step {
+  animation: df-rise var(--df-motion-base) var(--df-motion-easing) both;
+}
+/* ------------------------------------------------------------------ *
+ * Pairing card: the code, the link, the QR
+ * ------------------------------------------------------------------ */
+.df-pairing__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--df-space-md);
+  flex-wrap: wrap;
+}
+
+.df-pairing__body {
+  display: flex;
+  gap: var(--df-space-xl);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ------------------------------------------------------------------ *
+ * Connected panel
+ * ------------------------------------------------------------------ */
+.df-connected {
+  border-color: color-mix(in srgb, var(--df-accent) 45%, var(--df-border));
+  background: linear-gradient(150deg, color-mix(in srgb, var(--df-accent) 10%, var(--df-surface-elevated)), var(--df-surface));
+  animation: df-rise var(--df-motion-base) var(--df-motion-easing) both;
+}
+
+.df-connected__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--df-space-md);
+  flex-wrap: wrap;
+}
+
+.df-connected__peer {
+  font-size: var(--df-text-xl);
+  font-weight: 600;
+}
+
+/* The dialogs (new device, incoming request) come to the top: they are waiting for an
+   answer, and the page underneath must not look like it is the thing to read. */
+.df-dialog {
+  border-color: color-mix(in srgb, var(--df-accent) 40%, var(--df-border));
+  box-shadow: 0 30px 60px -40px var(--df-accent);
+  animation: df-rise var(--df-motion-base) var(--df-motion-easing) both;
+}
+
+/* Animations used above. `df-rise` is the house entrance (the design system defines
+   it, but this sheet must also work when it is loaded on its own). */
+@keyframes df-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes df-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }

@@ -6,8 +6,11 @@
  * where the answer is "the browser cannot do this", which is stated instead of
  * being hidden behind a switch that would do nothing.
  */
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SPACE, formatBytes } from '@dropforge/design-system';
+import { SIGNALING_AUTO, SIGNALING_OFF } from '@dropforge/settings';
+import { signalingUrlFor } from '../platform/signaling.js';
 import type { AppController, AppState } from '../app/controller.js';
 import { PageHeader } from '../components/atoms.js';
 
@@ -210,6 +213,11 @@ export function SettingsScreen({ controller, state }: { controller: AppControlle
           <p className="df-faint">{t('settings.hostedSharingUnavailable')}</p>
         ) : null}
 
+        {/* The relay address. It is a preference because the published web application
+            has none of its own: guessing its host turned every « Recevoir » into a
+            connection to an address that answered nothing. */}
+        <RelayField controller={controller} configured={settings.signalingUrl} />
+
         <Field labelKey="settings.historyRetention">
           <select
             className="df-input"
@@ -310,6 +318,73 @@ export function SettingsScreen({ controller, state }: { controller: AppControlle
         <p className="df-faint">{t('settings.resetIdentityNote')}</p>
       </Card>
     </section>
+  );
+}
+
+/**
+ * Where the relay is: this deployment's own, a self-hosted one, or none at all.
+ *
+ * The three cases are stated as they are, including the one with no relay — in which
+ * case the screen says what still works (the local network) instead of leaving a
+ * person to discover it from a failed transfer.
+ */
+function RelayField({ controller, configured }: { controller: AppController; configured: string }): React.ReactElement {
+  const { t } = useTranslation();
+  const custom = configured !== SIGNALING_AUTO && configured !== SIGNALING_OFF ? configured : '';
+  const [draft, setDraft] = useState(custom);
+  const resolved = signalingUrlFor(configured);
+  const mode = custom.length > 0 ? 'custom' : configured === SIGNALING_OFF ? SIGNALING_OFF : SIGNALING_AUTO;
+
+  const apply = (value: string): void => {
+    // A refused address is reported by the controller with its own stable code; the
+    // field keeps what was typed so it can be corrected.
+    void controller.updateSettings({ signalingUrl: value }).catch(() => undefined);
+  };
+
+  return (
+    <div className="df-field">
+      <span className="df-label">{t('settings.relay')}</span>
+      <select className="df-input" value={mode} onChange={(event) => {
+        const next = event.target.value;
+        if (next === SIGNALING_AUTO || next === SIGNALING_OFF) {
+          setDraft('');
+          apply(next);
+          return;
+        }
+        apply(custom.length > 0 ? custom : 'wss://relais.example.org/ws');
+      }}>
+        <option value={SIGNALING_AUTO}>{t('settings.relayAuto')}</option>
+        <option value={SIGNALING_OFF}>{t('settings.relayNone')}</option>
+        <option value="custom">{t('settings.relayCustom')}</option>
+      </select>
+      {mode === 'custom' ? (
+        <div className="df-row" style={{ marginTop: SPACE.sm }}>
+          <input
+            className="df-input"
+            value={draft}
+            spellCheck={false}
+            autoComplete="off"
+            placeholder="wss://relais.example.org/ws"
+            onChange={(event) => setDraft(event.target.value)}
+            style={{ flex: 1 }}
+          />
+          <button
+            type="button"
+            className="df-button df-button--small"
+            disabled={draft.trim().length === 0}
+            onClick={() => apply(draft.trim())}
+          >
+            {t('settings.relayApply')}
+          </button>
+        </div>
+      ) : null}
+      <p className="df-faint" style={{ marginTop: SPACE.sm }}>
+        {resolved.length > 0
+          ? t('settings.relayResolved', { url: resolved })
+          : t('settings.relayAbsent')}
+      </p>
+      <p className="df-faint">{t('settings.relayNote')}</p>
+    </div>
   );
 }
 

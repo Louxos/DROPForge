@@ -12,6 +12,7 @@ export interface Dictionary {
     name: string;
     tagline: string;
     loading: string;
+    loadingHint: string;
     offline: string;
     installPrompt: string;
     installAction: string;
@@ -88,6 +89,20 @@ export interface Dictionary {
     methodWebrtc: string;
     methodRelay: string;
     sasWarning: string;
+    /** Le choix d'entrée : envoyer ou recevoir, rien d'autre. */
+    chooseSubtitle: string;
+    sendTitle: string;
+    sendSubtitle: string;
+    receiveTitle: string;
+    receiveSubtitle: string;
+    toWhichDevice: string;
+    pickFirst: string;
+    orCode: string;
+    orCodeHint: string;
+    codePlaceholder: string;
+    pasteCodeHint: string;
+    back: string;
+    connected: string;
   };
   devices: {
     title: string;
@@ -162,6 +177,14 @@ export interface Dictionary {
     diagnostics: string;
     hostedSharing: string;
     hostedSharingUnavailable: string;
+    relay: string;
+    relayAuto: string;
+    relayNone: string;
+    relayCustom: string;
+    relayApply: string;
+    relayResolved: string;
+    relayAbsent: string;
+    relayNote: string;
     historyRetention: string;
     keepForever: string;
     days: string;
@@ -243,6 +266,12 @@ export interface Dictionary {
     details: string;
     hide: string;
   };
+  relay: {
+    none: string;
+    disabled: string;
+    note: string;
+    settings: string;
+  };
   errors: Record<string, string>;
 }
 
@@ -251,6 +280,7 @@ export const FR: Dictionary = {
     name: 'DropForge',
     tagline: 'Transférer des fichiers entre vos appareils, sans compte.',
     loading: 'Chargement…',
+    loadingHint: 'Préparation de cet appareil : identité, stockage local, réglages.',
     offline: 'Le relais est injoignable : seuls les transferts sur le réseau local fonctionneront.',
     installPrompt: 'Installer DropForge sur cet appareil',
     installAction: 'Installer',
@@ -328,6 +358,19 @@ export const FR: Dictionary = {
     methodWebrtc: 'Connexion directe (WebRTC)',
     methodRelay: 'Relais aveugle',
     sasWarning: 'Les codes ne correspondent pas : refusez la connexion.',
+    chooseSubtitle: 'Deux gestes possibles, un seul à la fois.',
+    sendTitle: 'Envoyer',
+    sendSubtitle: 'Choisir des fichiers, puis un appareil.',
+    receiveTitle: 'Recevoir',
+    receiveSubtitle: 'Donner un code à l’autre appareil, ou coller le sien.',
+    toWhichDevice: 'Vers quel appareil ?',
+    pickFirst: 'Choisissez d’abord ce que vous voulez envoyer.',
+    orCode: 'Ou bien un code reçu de l’autre appareil',
+    orCodeHint: 'Si l’autre personne vous a donné un code, collez-le ici : la connexion se fera directement.',
+    codePlaceholder: 'ABC-234 ou https://…',
+    pasteCodeHint: 'Le code relie les deux appareils sans qu’aucun serveur ne voie vos fichiers.',
+    back: 'Retour',
+    connected: 'Appareil connecté',
   },
   devices: {
     title: 'Appareils',
@@ -403,6 +446,16 @@ export const FR: Dictionary = {
     hostedSharing: 'Autoriser les liens hébergés (temporaires)',
     hostedSharingUnavailable:
       'Aucun service d’hébergement n’est configuré : cette option n’est donc proposée qu’en lecture. Le transfert direct et les codes d’appairage restent disponibles et ne dépendent d’aucun serveur payant.',
+    relay: 'Adresse du relais',
+    relayAuto: 'Automatique (celui de cette page, s’il existe)',
+    relayNone: 'Aucun relais (réseau local uniquement)',
+    relayCustom: 'Adresse personnalisée (mon propre relais)',
+    relayApply: 'Utiliser cette adresse',
+    relayResolved: 'Adresse utilisée : {{url}}',
+    relayAbsent:
+      'Aucun relais : les appareils du même réseau Wi‑Fi se trouvent seuls, les autres non. Rien ne sera contacté à l’extérieur.',
+    relayNote:
+      'Le relais ne voit que les messages de mise en relation, jamais le contenu : les fichiers sont chiffrés de bout en bout, avant de quitter cet appareil.',
     historyRetention: 'Conserver l’historique',
     keepForever: 'Toujours',
     days: '{{count}} jours',
@@ -488,6 +541,12 @@ export const FR: Dictionary = {
     details: 'Détails',
     hide: 'Masquer',
   },
+  relay: {
+    none: 'Aucun relais n’est configuré : les appareils du même réseau Wi‑Fi peuvent encore se joindre, les autres non.',
+    disabled: 'Le relais est désactivé dans les réglages : rien ne sera contacté à l’extérieur.',
+    note: 'Pour joindre un appareil à distance, indiquez une adresse de relais dans les réglages.',
+    settings: 'Ouvrir les réglages',
+  },
   errors: {
     NO_COMMON_TRANSPORT: 'Aucun chemin disponible entre les deux appareils pour le moment.',
     RELAY_UNAVAILABLE: 'Le relais est injoignable. Sur le même réseau Wi‑Fi, le transfert direct fonctionne sans lui.',
@@ -540,6 +599,7 @@ export const EN: Dictionary = {
     name: 'DropForge',
     tagline: 'Move files between your devices, with no account.',
     loading: 'Loading…',
+    loadingHint: 'Preparing this device: identity, local storage, settings.',
     offline: 'The relay is unreachable: only local network transfers will work.',
     installPrompt: 'Install DropForge on this device',
     installAction: 'Install',
@@ -617,6 +677,19 @@ export const EN: Dictionary = {
     methodWebrtc: 'Direct connection (WebRTC)',
     methodRelay: 'Blind relay',
     sasWarning: 'The codes do not match: refuse the connection.',
+    chooseSubtitle: 'Two possible moves, one at a time.',
+    sendTitle: 'Send',
+    sendSubtitle: 'Pick files, then a device.',
+    receiveTitle: 'Receive',
+    receiveSubtitle: 'Hand a code to the other device, or paste theirs.',
+    toWhichDevice: 'To which device?',
+    pickFirst: 'Choose what you want to send first.',
+    orCode: 'Or a code given to you by the other device',
+    orCodeHint: 'If the other person gave you a code, paste it here: the connection goes straight through.',
+    codePlaceholder: 'ABC-234 or https://…',
+    pasteCodeHint: 'The code links the two devices without any server seeing your files.',
+    back: 'Back',
+    connected: 'Device connected',
   },
   devices: {
     title: 'Devices',
@@ -692,6 +765,16 @@ export const EN: Dictionary = {
     hostedSharing: 'Allow hosted (temporary) links',
     hostedSharingUnavailable:
       'No hosting service is configured, so this option is shown read-only. Direct transfers and pairing codes remain available and need no paid server.',
+    relay: 'Relay address',
+    relayAuto: 'Automatic (this page’s own, when it has one)',
+    relayNone: 'No relay (local network only)',
+    relayCustom: 'Custom address (my own relay)',
+    relayApply: 'Use this address',
+    relayResolved: 'Address in use: {{url}}',
+    relayAbsent:
+      'No relay: devices on the same Wi-Fi find each other, the others do not. Nothing will be contacted outside.',
+    relayNote:
+      'The relay only sees the introduction messages, never the content: files are end-to-end encrypted before they leave this device.',
     historyRetention: 'Keep history for',
     keepForever: 'Forever',
     days: '{{count}} days',
@@ -775,6 +858,12 @@ export const EN: Dictionary = {
     copied: 'Copied',
     details: 'Details',
     hide: 'Hide',
+  },
+  relay: {
+    none: 'No relay is configured: devices on the same Wi-Fi can still reach each other, the others cannot.',
+    disabled: 'The relay is turned off in the settings: nothing will be contacted outside.',
+    note: 'To reach a device from elsewhere, set a relay address in the settings.',
+    settings: 'Open settings',
   },
   errors: {
     NO_COMMON_TRANSPORT: 'No path is available between the two devices right now.',

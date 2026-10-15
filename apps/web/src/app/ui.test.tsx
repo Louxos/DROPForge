@@ -91,6 +91,19 @@ async function click(container: HTMLElement, label: string): Promise<void> {
 
 const text = (container: HTMLElement): string => container.textContent ?? '';
 
+/**
+ * The labels of the real buttons on screen.
+ *
+ * Asserting on the whole page text cannot tell « the screen does not offer the file
+ * picker » from « the screen explains the file picker in a sentence » — the entry
+ * screen says « Choisir des fichiers, puis un appareil » without offering anything.
+ * Only the buttons can answer that question.
+ */
+const buttonLabels = (container: HTMLElement): string[] =>
+  [...container.querySelectorAll('button, label.df-button')].map((element) =>
+    (element.textContent ?? '').trim(),
+  );
+
 /** Re-renders after the controller changed state behind React's back. */
 async function flush(): Promise<void> {
   await act(async () => {
@@ -102,8 +115,11 @@ describe('interface montée de bout en bout', () => {
   it('affiche l’attente, puis les quatre sections une fois prête', async () => {
     const rig = await makeRig();
     const container = await mount(rig.host);
-    // Nothing is invented while the controller has not reported readiness.
+    // Nothing is invented while the controller has not reported readiness: the boot
+    // screen says what is being prepared, and no progress figure is shown because
+    // there is none to show.
     expect(text(container)).toContain(i18n.t('app.loading'));
+    expect(text(container)).toContain(i18n.t('app.loadingHint'));
 
     await rig.host.start();
     await flush();
@@ -114,6 +130,38 @@ describe('interface montée de bout en bout', () => {
     expect(text(container)).not.toContain(i18n.t('app.loading'));
   });
 
+  it('ouvre sur le choix « envoyer ou recevoir », et rien d’autre', async () => {
+    const rig = await makeRig();
+    await rig.host.start();
+    const container = await mount(rig.host);
+    await flush();
+
+    // The entry screen offers exactly two gestures. Everything that used to sit on
+    // the first page at once — the drop zone, the code input, the hosting button —
+    // waits behind one of them: an interface that shows everything first explains
+    // nothing.
+    expect(text(container)).toContain(i18n.t('transfer.sendTitle'));
+    expect(text(container)).toContain(i18n.t('transfer.receiveTitle'));
+    expect(buttonLabels(container)).not.toContain(i18n.t('transfer.selectFiles'));
+    expect(buttonLabels(container)).not.toContain(i18n.t('transfer.connect'));
+    expect(buttonLabels(container)).not.toContain(i18n.t('transfer.receiveDevice'));
+
+    // « Envoyer » opens the send step, where the files are chosen — and the way back
+    // is a real button, not a browser back gesture.
+    await click(container, i18n.t('transfer.sendTitle'));
+    expect(buttonLabels(container)).toContain(i18n.t('transfer.selectFiles'));
+    expect(text(container)).toContain(i18n.t('transfer.dropHint'));
+    expect(buttonLabels(container)).not.toContain(i18n.t('transfer.receiveDevice'));
+    await click(container, i18n.t('transfer.back'));
+    expect(buttonLabels(container)).not.toContain(i18n.t('transfer.selectFiles'));
+
+    // « Recevoir » opens the receiving step: the code to give, and the code to paste.
+    await click(container, i18n.t('transfer.receiveTitle'));
+    expect(text(container)).toContain(i18n.t('transfer.pasteCode'));
+    expect(buttonLabels(container)).toContain(i18n.t('transfer.receiveDevice'));
+    expect(buttonLabels(container)).not.toContain(i18n.t('transfer.selectFiles'));
+  });
+
   it('annonce l’absence d’appareil au lieu de montrer une liste inventée', async () => {
     const rig = await makeRig();
     await rig.host.start();
@@ -121,10 +169,14 @@ describe('interface montée de bout en bout', () => {
     const container = await mount(rig.host);
     await flush();
     // With nothing paired and nothing discovered, the screen says so instead of
-    // offering a destination that does not exist.
+    // offering a destination that does not exist — on the entry screen, and again in
+    // the send step, where the destination would be chosen.
+    expect(text(container)).toContain(i18n.t('transfer.noDevices'));
+    await click(container, i18n.t('transfer.sendTitle'));
     expect(text(container)).toContain(i18n.t('transfer.noDevices'));
 
-    // It disappears the moment a device is really there.
+    // It disappears the moment a device is really there, and the send step then shows
+    // the real device — under the real name it announced.
     await connectPair(rig);
     await flush();
     expect(text(container)).toContain('Téléphone');

@@ -5,6 +5,8 @@ import {
   SETTINGS_COLLECTION,
   SETTINGS_KEY,
   SETTINGS_VERSION,
+  SIGNALING_AUTO,
+  SIGNALING_OFF,
   SettingsService,
   migrateSettings,
   readSettings,
@@ -169,5 +171,52 @@ describe('migrations', () => {
     expect(() => readSettings('not an object')).not.toThrow();
     expect(readSettings('not an object').value).toEqual(DEFAULT_PREFERENCES);
     expect(readSettings(null).value).toEqual(DEFAULT_PREFERENCES);
+  });
+});
+
+describe('adresse du relais', () => {
+  // Le défaut est « auto », et « auto » ne devine rien : c'est la règle qui a changé
+  // ce que fait une application publiée (elle tentait `wss://<son propre hôte>/ws`).
+  it('vaut « auto » par défaut, et survit à un aller-retour de stockage', async () => {
+    const store = new MemoryStore();
+    const service = new SettingsService(store);
+    await service.load();
+    expect(service.get().signalingUrl).toBe(SIGNALING_AUTO);
+
+    await service.update({ signalingUrl: 'wss://relais.exemple.org/ws' });
+    const reloaded = new SettingsService(store);
+    await reloaded.load();
+    expect(reloaded.get().signalingUrl).toBe('wss://relais.exemple.org/ws');
+  });
+
+  it('accepte « none » et une adresse WebSocket, refuse le reste', async () => {
+    const service = new SettingsService(new MemoryStore());
+    await service.load();
+    await service.update({ signalingUrl: SIGNALING_OFF });
+    expect(service.get().signalingUrl).toBe(SIGNALING_OFF);
+
+    await service.update({ signalingUrl: '  ws://192.168.1.10:8080/ws  ' });
+    expect(service.get().signalingUrl).toBe('ws://192.168.1.10:8080/ws');
+
+    // Deux refus qui comptent : une adresse sans schéma (une faute de frappe) et une
+    // valeur qui n'est pas du tout une adresse.
+    await expect(service.update({ signalingUrl: 'relais.exemple.org' })).rejects.toThrow();
+    await expect(service.update({ signalingUrl: 'https://relais.exemple.org' })).rejects.toThrow();
+  });
+
+  it('migre une version 2 sans perdre les préférences', () => {
+    const migrated = migrateSettings({ v: 2, language: 'en', theme: 'light', conflictPolicy: 'rename' });
+    expect(migrated.changed).toBe(true);
+    expect(migrated.value['signalingUrl']).toBe(SIGNALING_AUTO);
+    expect(migrated.value['language']).toBe('en');
+    expect(migrated.value['theme']).toBe('light');
+    expect(migrated.value['conflictPolicy']).toBe('rename');
+    expect(migrated.value['v']).toBe(SETTINGS_VERSION);
+  });
+
+  it('remplace une adresse stockée invalide au lieu de la garder', () => {
+    const read = readSettings({ v: 3, signalingUrl: 'pas-une-adresse' });
+    expect(read.value.signalingUrl).toBe(SIGNALING_AUTO);
+    expect(read.ignored).toContain('signalingUrl');
   });
 });

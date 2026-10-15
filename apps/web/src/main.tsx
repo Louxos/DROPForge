@@ -21,6 +21,7 @@ import { WebRtcLinkFactory } from './platform/webrtc-link.js';
 import { ServiceWorkerUpdateSource, noUpdateSource, type UpdateSource } from './platform/updater.js';
 import { createInstallWatch } from './platform/install.js';
 import { describeError, fromPlatformError } from '@dropforge/app-core';
+import { signalingUrlFor } from './platform/signaling.js';
 import { AppController } from './app/controller.js';
 import { FatalScreen, Shell } from './app/shell.js';
 import { useAppState } from './app/use-app-state.js';
@@ -48,7 +49,13 @@ async function boot(): Promise<void> {
   // failed write in the middle of a transfer.
   await receiveFolders.load();
 
-  const controller = new AppController({
+  // Declared before the controller because the transport factory needs to read the
+  // *current* settings: the relay address is a preference, and changing it must apply
+  // to the next connection without a reload. The factory only runs after `start()`,
+  // so the reference is always assigned by then.
+  let controller: AppController;
+
+  controller = new AppController({
     store,
     identities: new IndexedDbIdentityStore(store),
     capabilities,
@@ -56,7 +63,7 @@ async function boot(): Promise<void> {
     // not prove this device's identity to the other side.
     links: (info) =>
       new WebRtcLinkFactory({
-        signalingUrl: signalingUrlFor(),
+        signalingUrl: signalingUrlFor(controller.state.settings.signalingUrl),
         ...(iceServers().length > 0 ? { iceServers: iceServers() } : {}),
         deviceId: info.deviceId,
         displayName: info.displayName,
@@ -124,20 +131,6 @@ function App({ controller, install }: { controller: AppController; install: Inst
     );
   }
   return <Shell controller={controller} state={state} install={install} />;
-}
-
-/**
- * The signaling endpoint. On the web app the relay is expected on the same origin
- * (``/ws``), which works behind a reverse proxy and in the dev server; a deployment
- * can point elsewhere with `VITE_SIGNALING_URL`.
- */
-function signalingUrlFor(): string {
-  const configured = import.meta.env['VITE_SIGNALING_URL'];
-  if (configured) return configured;
-  const location = globalThis.location;
-  const secure = location?.protocol === 'https:';
-  const host = location?.host ?? 'localhost:5173';
-  return `${secure ? 'wss' : 'ws'}://${host}/ws`;
 }
 
 /**

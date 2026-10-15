@@ -99,11 +99,34 @@ sha256sum -c SHA256SUMS
    qu'après vérification. Un échec partiel est un échec, jamais un succès partiel.
 5. **Historique** — cherchable, filtrable, supprimable, exportable en JSON.
 
+**L'écran de transfert commence par une question** : **Envoyer** ou **Recevoir**.
+Deux grands boutons, et rien d'autre. Choisir « Envoyer » ouvre le choix des fichiers,
+puis la destination ; choisir « Recevoir » ouvre l'affichage du code d'appairage et la
+saisie du code reçu. La file d'attente et les fenêtres de décision (nouvel appareil,
+demande de réception) restent visibles quel que soit l'état. Dès qu'une connexion est
+établie, l'écran va directement à l'envoi et rappelle en haut le nom du pair, le chemin
+réellement utilisé et le code à comparer — le même code des deux côtés.
+
 **Réglages qui comptent** : dossier de réception, politique de conflit (`demander`,
 `renommer`, `ignorer`, `remplacer`), concurrence, taille maximale, appareils de
 confiance uniquement, langue (français/anglais), thème (système/sombre/clair),
-démarrage automatique (Windows), comportement à la fermeture, conservation de
-l'historique, journaux de diagnostic (désactivés par défaut).
+**adresse du relais** (voir « Le relais », ci-dessous), démarrage automatique (Windows),
+comportement à la fermeture, conservation de l'historique, journaux de diagnostic
+(désactivés par défaut).
+
+**Le relais** (Réglages → Adresse du relais) — trois possibilités, et l'écran dit
+toujours laquelle est utilisée :
+
+| Réglage | Ce qui est contacté | Quand le choisir |
+| --- | --- | --- |
+| **Automatique** (défaut) | Le relais déclaré par le déploiement, s'il y en a un ; sinon rien du tout hors développement local | Cas normal |
+| **Aucun relais** | Rien, jamais — même si un relais était déclaré | Vous ne voulez aucun appel sortant : seuls les appareils du même réseau se joignent |
+| **Adresse personnalisée** | Votre `ws://` ou `wss://` (par exemple `wss://relais.exemple.org/ws`) | Vous hébergez votre propre relais |
+
+Quand il n'y a pas de relais, l'écran d'accueil et l'étape « Recevoir » le disent
+franchement : deux appareils du **même réseau** peuvent encore se joindre, les autres
+non. Le relais ne voit que les messages de mise en relation, jamais le contenu — les
+fichiers sont chiffrés de bout en bout avant de quitter l'appareil.
 
 **Reprise après coupure.** Une reprise n'est adoptée que si le manifeste est identique,
 et les plages déjà écrites sont re-hachées avant d'être conservées. Dans un navigateur,
@@ -143,7 +166,8 @@ peut pas tenir.
 | **« L'application est en cours d'exécution » à l'installation ou à la désinstallation** | le contrôle de Windows (Restart Manager) voit un fichier `.exe` utilisé — souvent par autre chose que l'application | § 7 |
 | Plus rien de DropForge dans « Applications installées » mais l'installation refuse quand même | entrée de registre orpheline | § 7 |
 | « Aucun chemin commun disponible » | aucune méthode ne passe | vérifiez que les deux appareils sont sur le même réseau, ou utilisez le relais (le message dit lequel) |
-| « Le relais est injoignable » | le service de signalisation n'est pas configuré ou est éteint | Réglages → serveur de signalisation ; sans relais, seuls les transferts sur le réseau local fonctionnent |
+| « Le relais est injoignable » | le service de signalisation est éteint, ou son adresse n'est plus bonne | Réglages → **Adresse du relais** : vérifiez l'adresse utilisée (elle est affichée), ou passez à « Aucun relais » et travaillez sur le même réseau. Rien n'est contacté en dehors de ce réglage |
+| « Aucun relais n'est configuré » | le déploiement n'en déclare aucun, et l'adresse est en « Automatique » | normal sur l'application web publiée sans relais : les appareils du même réseau fonctionnent ; sinon indiquez votre adresse de relais dans les réglages, ou déclarez `VITE_SIGNALING_URL` à la compilation (§ 8) |
 | « L'appareil est injoignable » | chemin bloqué (pare-feu, NAT) | relancez depuis le même réseau, ou passez par le relais |
 | « Les codes ne correspondent pas » | le code de comparaison diffère → signal d'attaque, pas incident réseau | **refusez** et recommencez l'appairage sur un réseau de confiance |
 | « Cet appareil a changé » | identifiant connu, empreinte de clé différente | refusez et supprimez l'appareil ; s'il est légitime, réappairez-le |
@@ -273,7 +297,9 @@ GitHub → `DROPForge` (branche `main`) ; réglages appliqués automatiquement
   ailleurs (`deploy/`, Cloudflare, une machine à vous) et s'annonce à la compilation :
   `VITE_SIGNALING_URL=wss://votre-relais.example/ws` dans les variables d'environnement
   du site, puis « Clear cache and deploy ». Sans relais : transferts sur le réseau local
-  seulement, et l'interface le dit.
+  seulement, et l'interface le dit. L'adresse ne s'invente pas — une version publiée sans
+  `VITE_SIGNALING_URL` n'a **aucun** relais, et l'annonce à l'écran plutôt que de tenter
+  une connexion vers un hôte qui n'écoute pas.
 - **En-têtes et cache** (déjà posés par `netlify.toml`) : `nosniff`, `no-referrer`,
   `SAMEORIGIN` sur tout le site ; `must-revalidate` sur `/sw.js`, `/registerSW.js`,
   `/index.html` et le manifeste — sans quoi une nouvelle version n'arriverait jamais ;

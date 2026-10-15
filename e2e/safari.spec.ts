@@ -18,7 +18,7 @@
  * procedure, and `docs/TECHNIQUE.md` says so plainly.
  */
 import { expect, test } from '@playwright/test';
-import { L, openDevice } from './helpers/app.js';
+import { L, openDevice, openReceiveStep, openSendStep } from './helpers/app.js';
 
 test.describe('iOS (WebKit) : ce qui est promis, ce qui ne l’est pas', () => {
   test('la mise en page mobile est utilisée', async ({ browser }) => {
@@ -33,6 +33,15 @@ test.describe('iOS (WebKit) : ce qui est promis, ce qui ne l’est pas', () => {
   test('le sélecteur de dossier n’est pas proposé, et l’installation explique le geste réel', async ({ browser }) => {
     const device = await openDevice(await browser.newContext());
 
+    // The transfer screen opens on the two possible gestures, and nothing else: the
+    // file form and the pairing panel only exist once one of them has been chosen.
+    await expect(device.page.getByRole('button', { name: L.chooseSend, exact: true })).toBeVisible();
+    await expect(device.page.getByRole('button', { name: L.chooseReceive, exact: true })).toBeVisible();
+    await expect(device.page.getByRole('button', { name: L.selectFiles })).toHaveCount(0);
+
+    await openSendStep(device.page);
+    await expect(device.page.getByRole('button', { name: L.selectFiles })).toBeVisible();
+
     // iOS cannot pick a folder: the button must not exist, rather than fail on click.
     await expect(device.page.getByRole('button', { name: 'Choisir un dossier' })).toHaveCount(0);
 
@@ -42,6 +51,7 @@ test.describe('iOS (WebKit) : ce qui est promis, ce qui ne l’est pas', () => {
     if ((await installHint.count()) > 0) {
       await expect(installHint.first()).toBeVisible();
     }
+    await openReceiveStep(device.page);
     await expect(device.page.getByRole('button', { name: L.receiveDevice })).toBeVisible();
     await expect(device.page.getByRole('button', { name: 'Installer' })).toHaveCount(0);
 
@@ -51,6 +61,7 @@ test.describe('iOS (WebKit) : ce qui est promis, ce qui ne l’est pas', () => {
   test('un iPhone peut afficher un code d’appairage (côté réception)', async ({ browser }) => {
     const device = await openDevice(await browser.newContext());
 
+    await openReceiveStep(device.page);
     await device.page.getByRole('button', { name: L.receiveDevice }).click();
     const code = device.page.locator('.df-code');
     await expect(code).toBeVisible({ timeout: 20_000 });

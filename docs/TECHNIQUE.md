@@ -81,6 +81,7 @@ Deux règles structurent tout le reste :
 | `apps/web/src/platform/capabilities.ts` | Ce que le navigateur sait *réellement* faire, mesuré une fois |
 | `apps/web/src/platform/browser-fs.ts` | Écriture dans un dossier choisi, ou téléchargement en repli |
 | `apps/web/src/platform/webrtc-*.ts` | Transport WebRTC, client de signalisation, fabrique de liens (direct ou relais) |
+| `apps/web/src/platform/signaling.ts` | Où vit le relais : réglage, adresse du déploiement, ou **rien** — décidé en un seul endroit |
 | `apps/web/src/platform/indexed-db-store.ts` | `MetaStore` sur IndexedDB (schéma versionné, migration) |
 | `apps/desktop/src-tauri/src/lib.rs` | Fenêtre, zone de notification, dossier de réception, espace libre, journal de diagnostic |
 | `apps/desktop/index.html` | Écran de démarrage + contrôle de secours qui affiche la cause réelle d'un échec |
@@ -406,8 +407,10 @@ sans lui.
 
 | Domaine | État | Précision |
 | --- | --- | --- |
-| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** | 480 tests automatisés, 45 fichiers (§ 9) |
+| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** | 492 tests automatisés, 46 fichiers (§ 9) |
 | Interface React/TypeScript partagée (FR/EN, thèmes) | ✅ Implémentée et **testée** au niveau du contrôleur et du rendu | `apps/web/src/entry.test.tsx`, `ui.test.tsx` |
+| Écran d'entrée « Envoyer / Recevoir », moins d'options visibles | ✅ Implémenté et **testé** | `apps/web/src/screens/transfer.tsx`, cas « ouvre sur le choix » dans `ui.test.tsx` |
+| Adresse du relais : un seul endroit décide, un réglage la change | ✅ Implémenté et **testé** | `apps/web/src/platform/signaling.ts` + `signaling.test.ts`, `packages/settings` (schéma 3) |
 | Application web progressive installable | ✅ Implémentée et **testée** | installation, hors ligne, refus ; **pas encore essayée sur un téléphone réel** |
 | Serveur de signalisation / relais aveugle | ✅ Implémenté et **testé** (Node) | salles, quotas, relais après accord des deux pairs |
 | Application Windows (Tauri + Rust) | ⚠️ **Compilée et empaquetée** à chaque envoi, recompilée par la tâche `windows` de l'intégration continue | **jamais ouverte sur un vrai Windows** : c'est la seule chose que la chaîne ne peut pas faire |
@@ -433,7 +436,7 @@ réparation d'une installation Windows.
 
 ```bash
 npm run verify           # tout ce que la chaîne exécute : types, contrôles, tests
-npm test                 # 45 fichiers, 480 tests
+npm test                 # 46 fichiers, 492 tests
 npm run test:unit        # paquets métier, sans DOM
 npm run test:integration # transferts réels en mémoire, sécurité, reprise
 npm run check:desktop    # configuration Windows, icônes, hooks NSIS
@@ -442,7 +445,7 @@ npm run test:e2e         # navigateurs réels (jamais lancé par verify)
 npm run test:e2e:install # installe Chromium, Firefox, WebKit
 ```
 
-Total vérifié le 14 octobre 2026 : **480 tests, 45 fichiers**, tous au vert sur Linux ; la
+Total vérifié le 15 octobre 2026 : **492 tests, 46 fichiers**, tous au vert sur Linux ; la
 même suite tourne sur **Windows** à chaque envoi (tâche `windows` de `ci.yml`), ce qui a
 déjà fait apparaître deux défauts propres à Windows (scripts `.cmd` lancés sans shell,
 chemins de test non portables).
@@ -456,6 +459,8 @@ chemins de test non portables).
 | Reprise | `tests/resume.test.ts` | Reprise adoptée seulement si le manifeste correspond ; plages re-hachées |
 | File d'attente | `packages/transfer-engine/src/*.test.ts` | Pause, reprise, annulation, réessai (jamais un refus), réordonnancement |
 | Relais | `apps/signaling/src/server.test.ts` | Salles, quotas, relais aveugle, expiration, accord à deux |
+| Adresse du relais | `apps/web/src/platform/signaling.test.ts` | Rien n'est inventé sur un site publié ; `Aucun relais` ne contacte rien ; une adresse écrite est respectée |
+| Réglages | `packages/settings/src/settings.test.ts` | Défauts privés, bornes, **migration 2 → 3** (l'adresse du relais arrive avec `Automatique`), adresse invalide refusée à l'écriture |
 | Repli par relais, bout en bout | `tests/relay-fallback.test.ts` | Une tentative en mode relais **aboutit**, dans les deux sens |
 | Modèle de données | `packages/*/src/*.test.ts` | Migrations, invariants (`completed` sans `completedAt` = refus), révocation |
 | Contrôleur d'application | `apps/web/src/app/controller.test.ts` | Chaque commande, chaque état publié, sans React |
@@ -492,7 +497,7 @@ l'écran.
 
 **DropForge n'est pas encore une 1.0, et ce document ne prétend pas le contraire.**
 Version actuelle : **0.1.2** — application web, installateur Windows corrigé, serveur de
-signalisation optionnel, 480 tests automatiques et une suite navigateur réelle.
+signalisation optionnel, 492 tests automatiques et une suite navigateur réelle.
 
 | Exigence du cahier des charges | État | Où le vérifier |
 | --- | --- | --- |
@@ -513,12 +518,15 @@ signalisation optionnel, 480 tests automatiques et une suite navigateur réelle.
 | **Certificat d'éditeur (SmartScreen)** | 💰 | facultatif et payant |
 | **Licence du projet** | 🔒 | décision du propriétaire ; sans fichier `LICENSE`, le code n'est pas réutilisable |
 | **Hébergement des liens de partage** | ⚠️ | aucun service retenu : le mode hébergé est indisponible, le reste fonctionne |
+| **Relais joignable en ligne** | ⚠️ | l'application publiée n'invente plus d'adresse (corrigé) ; **aucune adresse publique n'est encore retenue**, donc hors réseau local il faut indiquer la sienne dans les réglages |
 | **Essais sur appareils mobiles réels** | ❌ | émulation couverte, appareil physique non |
 
 Ce qui manque pour une 1.0 honnête : **un essai humain sur un vrai Windows** (installation,
 lancement, transfert local, désinstallation), **les mises à jour signées** (deux secrets),
 **la licence**, **un service d'hébergement** si le partage par lien doit exister (ou
-l'acceptation explicite de son absence), et **des essais sur appareils mobiles réels**.
+l'acceptation explicite de son absence), **une adresse de relais joignable** pour que deux
+appareils de réseaux différents se trouvent sans réglage, et **des essais sur appareils
+mobiles réels**.
 
 ## 11. Infrastructure 100 % gratuite
 

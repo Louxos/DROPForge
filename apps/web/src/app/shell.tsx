@@ -142,12 +142,17 @@ export function Shell({ controller, state, install }: ShellProps): React.ReactEl
   }
 
   if (!state.ready) {
+    // The first thing anyone sees. It carries the mark, a ring that moves while the
+    // real work happens (identity, storage, settings — all of it local), and the
+    // sentence that says what is being waited for. It invents no percentage: there is
+    // no progress to report, so none is shown.
     return (
-      <div className="df-app df-app--loading" data-dropforge-shell="" style={{ padding: SPACE.xxl }}>
-        <BrandMark />
-        <div className="df-loading" style={{ marginTop: SPACE.xl }} aria-live="polite">
-          <div className="df-skeleton" style={{ width: 220 }} />
-          <span>{t('app.loading')}</span>
+      <div className="df-app df-app--loading" data-dropforge-shell="">
+        <div className="df-boot" role="status" aria-live="polite">
+          <BrandMark />
+          <div className="df-boot__ring" aria-hidden="true" />
+          <p className="df-boot__text">{t('app.loading')}</p>
+          <p className="df-boot__hint">{t('app.loadingHint')}</p>
         </div>
       </div>
     );

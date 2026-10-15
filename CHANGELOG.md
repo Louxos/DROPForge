@@ -7,6 +7,59 @@ Release. Une seule source, jamais deux textes à garder cohérents.
 Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions
 suivent le [versionnage sémantique](https://semver.org/lang/fr/) une fois la 1.0 atteinte.
 
+## [Non publiée]
+
+**Refonte de l'interface de transfert et correction de l'adresse du relais.** Ces
+changements sont dans le dépôt ; ils ne sont pas encore publiés sous forme de version.
+L'application web, elle, est servie en continu : son déploiement suit la branche publiée
+du dépôt.
+
+### Modifié
+
+- **L'écran de transfert ouvre sur un choix, pas sur un formulaire.** « Envoyer » ou
+  « Recevoir » : deux grands boutons, et rien d'autre. Le sélecteur de fichiers, la
+  saisie de code, l'affichage du code d'appairage et la liste des appareils n'apparaissent
+  qu'après le choix — chacun n'existe que dans l'étape où il sert. Une fois une connexion
+  ouverte, l'écran va directement à l'envoi, avec le pair, la méthode réellement utilisée
+  et le code à comparer affichés une seule fois, en haut.
+- **Écran de chargement.** La marque, un anneau qui tourne et la phrase qui dit ce qui est
+  préparé (identité, stockage local, réglages). Aucun pourcentage : il n'y a pas de
+  progression à mesurer, donc aucune n'est inventée.
+- **Boutons plus francs à l'usage.** `touch-action: manipulation` et la suppression du
+  halo tactile du navigateur (c'est eux qui font « traîner » un appui), un vrai
+  `scale(0.97)` à l'appui — sans transition sur la descente, donc dans la même image —,
+  et un anneau de focus visible au clavier. Les zones de dépôt, cartes de choix et
+  fenêtres de décision ont leur propre retour visuel ; `prefers-reduced-motion` reste
+  respecté, y compris pour les nouvelles animations.
+- **Le sélecteur de fichiers est un vrai bouton** (le champ reste caché) : il a le rôle
+  d'un bouton, se pilote au clavier, et le banc de tests peut l'appeler par son nom.
+
+### Corrigé
+
+- **L'application web n'invente plus l'adresse de son relais.** Elle construisait
+  `wss://<son propre hôte>/ws`, que rien ne sert sur un hébergement statique : « Recevoir »
+  et « joindre par code » échouaient donc systématiquement en production, avec une erreur
+  de connexion à chaque tentative. La décision vit maintenant dans un seul fichier
+  (`apps/web/src/platform/signaling.ts`, testé) avec trois cas : l'adresse des réglages,
+  `Aucun relais` (rien n'est contacté, jamais), ou `Automatique` — le relais du
+  déploiement s'il est déclaré (`VITE_SIGNALING_URL`), l'origine locale en développement
+  et dans le banc (le serveur de développement y proxifie `/ws`), et **rien** partout
+  ailleurs.
+- **Réglage « Adresse du relais »** (Réglages) : automatique, aucun, ou votre propre
+  adresse `ws://`/`wss://`. Le schéma des réglages passe en **version 3** avec sa
+  migration : une installation existante garde ses préférences et reçoit `Automatique`.
+  Une adresse mal écrite est refusée au moment où elle est saisie, avec le code d'erreur
+  traduit, au lieu de produire un transfert qui échoue plus tard.
+- **Un relais absent est dit avant, pas après.** L'écran d'accueil et l'étape
+  « Recevoir » annoncent qu'aucun relais n'est configuré (ou qu'il est désactivé) et que
+  seuls les appareils du même réseau peuvent se joindre. Une tentative sans adresse est
+  refusée avec le code `RELAY_UNAVAILABLE` au lieu de laisser le navigateur lever une
+  erreur de syntaxe brute.
+- **Le banc de navigateur suit le nouvel écran** : les helpers passent par le choix
+  d'entrée (idempotents, ils ne cliquent que si l'étape n'est pas déjà ouverte), et les
+  scénarios iOS et téléphone ont été adaptés. Le tableau de bord des tests annonce 492
+  tests sur 46 fichiers.
+
 ## [0.1.2] — 15 octobre 2026
 
 **Version de correction : les deux défauts signalés sur l'application Windows sont
