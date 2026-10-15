@@ -14,8 +14,8 @@
  *   - the install path explains the real iOS gesture instead of showing a dead button;
  *   - the pairing code can be produced (that is how an iPhone *receives*).
  *
- * The real transfer protocol on a real iPhone is in `docs/TESTING.md`, as a manual
- * procedure, and `docs/PLATFORM-MATRIX.md` says so plainly.
+ * The real transfer protocol on a real iPhone is in `docs/TECHNIQUE.md`, as a manual
+ * procedure, and `docs/TECHNIQUE.md` says so plainly.
  */
 import { expect, test } from '@playwright/test';
 import { L, openDevice } from './helpers/app.js';

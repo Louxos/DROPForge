@@ -164,7 +164,7 @@ export interface ReceiveTransferOptions {
   /**
    * Asks the user. Called *after* the receiving side has computed the real
    * conflicts and the free space it has, never before: the question must always
-   * describe the actual situation (see docs/SPEC.md).
+   * describe the actual situation (see docs/TECHNIQUE.md).
    */
   requestDecision: (request: DecisionRequest, offer: TransferOffer) => Promise<{
     accepted: boolean;

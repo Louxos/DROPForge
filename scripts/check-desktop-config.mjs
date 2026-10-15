@@ -19,7 +19,7 @@
  *
  * Ce qui n'est **pas** vérifié ici : la compilation Rust elle-même. Elle est faite par
  * `.github/workflows/ci.yml` (tâche `windows`) à chaque envoi — voir
- * `docs/PLATFORM-MATRIX.md`.
+ * `docs/TECHNIQUE.md`.
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';

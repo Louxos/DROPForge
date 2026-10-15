@@ -37,7 +37,7 @@
           <a href="#transfers">Transferts</a>
           <a href="#security">Sécurité</a>
           <a class="hide-sm" href="#etat">État réel</a>
-          <a class="hide-sm" href="{{REPO_URL}}/tree/main/docs">Documentation</a>
+          <a class="hide-sm" href="{{REPO_URL}}/blob/main/docs/GUIDE.md">Guide</a>
           <a class="stars" href="{{REPO_URL}}">
             <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
               <path
@@ -254,9 +254,8 @@
             </div>
           </div>
           <ul class="links">
-            <li><a href="{{REPO_URL}}/blob/main/docs/THREAT-MODEL.md">Modèle de menace complet</a></li>
-            <li><a href="{{REPO_URL}}/blob/main/docs/PRIVACY.md">Vie privée : ce qui ne quitte jamais l'appareil</a></li>
-            <li><a href="{{REPO_URL}}/blob/main/docs/SPEC-AUDIT.md">Audit du cahier des charges</a></li>
+            <li><a href="{{REPO_URL}}/blob/main/docs/TECHNIQUE.md">Sécurité, vie privée et limites (documentation technique, § 5 et 6)</a></li>
+            <li><a href="{{REPO_URL}}/blob/main/docs/GUIDE.md">Guide : installer, utiliser, dépanner</a></li>
           </ul>
         </div>
       </section>
@@ -290,7 +289,8 @@
                 <td><span class="badge warn">Application Windows</span></td>
                 <td>
                   <a href="{{REPO_URL}}/releases/latest"><code>DropForge_{{VERSION}}_x64-setup.exe</code></a>
-                  (par utilisateur, sans droits administrateur) ou le <code>.msi</code>.
+                  (par utilisateur, sans droits administrateur) ou le <code>.msi</code> — les deux défauts de la
+                  0.1.1 sont corrigés depuis la 0.1.2.
                 </td>
               </tr>
               <tr>
@@ -306,21 +306,22 @@
             </tbody>
           </table>
 
-          <!-- DROPFORGE-AVERTISSEMENT-WINDOWS : à retirer quand les deux défauts
-               signalés sur l'application Windows (écran de démarrage bloqué,
-               désinstallation refusée) sont corrigés et publiés. -->
+          <!-- DROPFORGE-AVERTISSEMENT-WINDOWS : les deux défauts de l'installateur sont
+               corrigés depuis la 0.1.2 ; cet encadré reste tant qu'aucun essai sur un poste
+               réel n'a eu lieu. Voir CHANGELOG.md. -->
           <p class="callout">
-            <strong>Application Windows : correction en cours.</strong> Les deux défauts signalés — un écran de
-            démarrage qui peut rester affiché, et une désinstallation qui refuse de se lancer — sont reproduits
-            et décrits, et la version publiée ne les corrige pas encore. En attendant, <strong>utilisez
-            l'application web</strong> : elle fait les mêmes transferts et ne s'installe pas. La cause, la
-            correction en préparation et les étapes pour débloquer une installation coincée sont dans
-            <a href="{{REPO_URL}}/blob/main/docs/TROUBLESHOOTING.md">le guide de dépannage</a>.
+            <strong>Application Windows : 0.1.2 corrige les deux défauts signalés.</strong> L'écran de démarrage
+            ne reste plus muet — il affiche la cause réelle au bout de 15 secondes et l'écrit dans le journal —
+            et l'installation comme la désinstallation ne s'arrêtent plus sur un faux « l'application est en
+            cours d'exécution ». Ces correctifs <strong>n'ont pas encore été essayés sur un poste réel</strong> :
+            c'est le premier essai qui compte. Si une installation reste coincée, le
+            <a href="{{REPO_URL}}/blob/main/docs/GUIDE.md#7-réparer-une-installation-windows-coincée">guide</a>
+            donne le script de déblocage et les commandes équivalentes.
           </p>
 
           <ul class="links">
             <li><a href="{{REPO_URL}}/releases/latest">Toutes les versions et leurs sommes de contrôle</a></li>
-            <li><a href="{{REPO_URL}}/blob/main/docs/DOWNLOAD.md">Télécharger, vérifier, installer</a></li>
+            <li><a href="{{REPO_URL}}/blob/main/docs/GUIDE.md">Télécharger, vérifier, installer, dépanner</a></li>
           </ul>
         </div>
       </section>
@@ -366,9 +367,8 @@
             </tbody>
           </table>
           <ul class="links">
-            <li><a href="{{REPO_URL}}/blob/main/docs/PLATFORM-MATRIX.md">Matrice complète par plateforme</a></li>
-            <li><a href="{{REPO_URL}}/blob/main/docs/TESTING.md">Tests automatiques et protocoles manuels</a></li>
-            <li><a href="{{REPO_URL}}/blob/main/docs/FREE-DEPLOYMENT.md">Infrastructure 100 % gratuite</a></li>
+            <li><a href="{{REPO_URL}}/blob/main/docs/TECHNIQUE.md">Documentation technique : architecture, sécurité, plateformes, tests, état réel</a></li>
+            <li><a href="{{REPO_URL}}/blob/main/CHANGELOG.md">Historique des versions</a></li>
           </ul>
         </div>
       </section>
@@ -399,8 +399,8 @@
           </div>
           <ul class="links">
             <li><a href="{{REPO_URL}}">Code source et tickets</a></li>
-            <li><a href="{{REPO_URL}}/blob/main/docs/ARCHITECTURE.md">Architecture</a></li>
-            <li><a href="{{REPO_URL}}/blob/main/docs/TROUBLESHOOTING.md">Dépannage</a></li>
+            <li><a href="{{REPO_URL}}/blob/main/docs/TECHNIQUE.md">Architecture</a></li>
+            <li><a href="{{REPO_URL}}/blob/main/docs/GUIDE.md">Dépannage</a></li>
           </ul>
         </div>
       </section>
@@ -412,7 +412,7 @@
         <span>Version {{VERSION}}</span>
         <span class="spacer"></span>
         <span>Aucun compte obligatoire · Aucune télémétrie par défaut</span>
-        <a href="{{REPO_URL}}/blob/main/docs/LICENCES.md">Licences</a>
+        <a href="{{REPO_URL}}/blob/main/docs/TECHNIQUE.md">Licences</a>
       </div>
     </footer>
 

@@ -195,12 +195,20 @@ describe('page publiée : garde de dérive', () => {
 
   it('rappelle les limites réelles du projet, sans les embellir', async () => {
     const page = await read(OUTPUTS.page);
-    // L'avertissement Windows est présent tant que les deux défauts signalés ne
-    // sont pas corrigés, et la page dit ce qui n'est pas encore testé.
-    expect(page).toContain('Application Windows : correction en cours');
+    // L'avertissement Windows : les deux défauts sont corrigés, et la page dit aussi ce
+    // qui n'est *pas* prouvé pour autant — aucun essai sur un poste réel.
+    expect(page).toContain('Application Windows');
+    expect(page).toMatch(/0\.1\.2/);
+    expect(page).toMatch(/pas encore été essayé/i);
     expect(page).toMatch(/pas encore ouverte sur un vrai Windows/);
     expect(page).toMatch(/pas encore sur un téléphone réel/);
     expect(page).toMatch(/nécessite un hébergement/);
-    expect(page).toContain(`${REPO_URL}/blob/main/docs/SPEC-AUDIT.md`);
+    // La documentation tient en quatre fichiers : la page ne renvoie qu'à ceux-là.
+    expect(page).toContain(`${REPO_URL}/blob/main/docs/TECHNIQUE.md`);
+    expect(page).toContain(`${REPO_URL}/blob/main/docs/GUIDE.md`);
+    expect(page).toContain(`${REPO_URL}/blob/main/CHANGELOG.md`);
+    for (const disparu of ['SPEC-AUDIT', 'PLATFORM-MATRIX', 'TROUBLESHOOTING', 'THREAT-MODEL', 'ARCHITECTURE.md']) {
+      expect(page, `${disparu} ne doit plus être référencé`).not.toContain(disparu);
+    }
   });
 });

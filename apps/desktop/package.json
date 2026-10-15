@@ -1,6 +1,6 @@
 {
   "name": "@dropforge/desktop",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "type": "module",
   "description": "Application Windows de DropForge (Tauri 2 + Rust + la même interface que la PWA).",

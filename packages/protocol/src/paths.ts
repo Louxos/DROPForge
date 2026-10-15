@@ -2,7 +2,7 @@
  * Path handling shared by every platform. A peer is untrusted input: received
  * paths are sanitised before they ever reach a filesystem or a download.
  *
- * Threat model (docs/THREAT-MODEL.md, T-PATH-*):
+ * Threat model (docs/TECHNIQUE.md, T-PATH-*):
  *  - ".." traversal, absolute paths, Windows drive letters, UNC paths
  *  - leading/trailing separators, NUL bytes and other control characters
  *  - reserved Windows device names (CON, PRN, AUX, NUL, COM1.., LPT1..)

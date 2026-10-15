@@ -107,9 +107,9 @@ describe('netlify.toml', () => {
     expect(root['x-frame-options']).toBeDefined();
     // Une CSP écrite ici casserait l'application en silence (service worker, WebSocket,
     // téléchargements `blob:`) : elle dépend de l'adresse du relais, choisie après coup.
-    // `docs/NETLIFY.md` § 7 donne celle à utiliser, à vérifier sur un aperçu.
+    // `docs/GUIDE.md` (§ 9) donne celle à utiliser, à vérifier sur un aperçu.
     expect(netlify).not.toContain('Content-Security-Policy');
-    expect(netlify).toContain('docs/NETLIFY.md');
+    expect(netlify).toContain('docs/GUIDE.md');
   });
 
   it('renvoie toute adresse vers l’application, sans écraser les vrais fichiers', () => {

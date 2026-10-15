@@ -3,7 +3,7 @@
  *
  * Same contract as the browser implementation, same schema versions, same
  * crash-safety rule: one transaction per write, additive migrations only (see
- * docs/DATA-MODEL.md). Nothing here stores file content.
+ * docs/TECHNIQUE.md). Nothing here stores file content.
  */
 import Database from '@tauri-apps/plugin-sql';
 import { DropForgeError, ERROR_CODES, type MetaStore, type StoredRecord } from '@dropforge/app-core';

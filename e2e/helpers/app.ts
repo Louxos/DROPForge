@@ -234,12 +234,12 @@ export async function allowMultipleDownloads(page: Page): Promise<void> {
       origin: new URL(page.url()).origin,
       // Not every Chromium build exposes this permission type. When it does not, the
       // call fails and is ignored: the browser then behaves exactly as it would for a
-      // person who ignored the prompt, which is what `docs/PLATFORM-MATRIX.md`
+      // person who ignored the prompt, which is what `docs/TECHNIQUE.md`
       // documents. A test must never be made to pass by an API the runtime rejects.
       permissions: ['multipleAutomaticDownloads'] as unknown as never[],
     });
   } catch {
-    // Documented, not hidden: see `docs/PLATFORM-MATRIX.md`, « téléchargements
+    // Documented, not hidden: see `docs/TECHNIQUE.md`, « téléchargements
     // multiples ». The suite continues without it.
   } finally {
     await session.detach();

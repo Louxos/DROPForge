@@ -12,7 +12,7 @@
  *
  * What it therefore does **not** prove: rendering in Chromium/Safari/Firefox, CSS
  * layout, touch interactions, or the browser file pickers. Those remain listed as
- * untested in `docs/PLATFORM-MATRIX.md`.
+ * untested in `docs/TECHNIQUE.md`.
  */
 import { act, StrictMode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';

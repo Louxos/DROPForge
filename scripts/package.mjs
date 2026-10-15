@@ -12,7 +12,7 @@
  *
  * The Windows installer is deliberately **not** produced here: it needs a Windows
  * machine with the Rust toolchain. `.github/workflows/release.yml` builds it, signed,
- * from a tag — see `docs/DOWNLOAD.md`.
+ * from a tag — see `docs/GUIDE.md`.
  */
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
@@ -135,5 +135,5 @@ writeFileSync(join(releaseDir, 'SHA256SUMS'), `${sums.join('\n')}\n`);
 say('SHA256SUMS');
 for (const line of sums) console.log(`         ${line}`);
 
-say(`prêt : ${relative(root, releaseDir)}/ — l’installateur Windows est produit par GitHub Actions sur un tag (docs/DOWNLOAD.md)`);
+say(`prêt : ${relative(root, releaseDir)}/ — l’installateur Windows est produit par GitHub Actions sur un tag (docs/GUIDE.md)`);
 void dirname;

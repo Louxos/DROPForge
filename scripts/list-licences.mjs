@@ -1,15 +1,18 @@
 /**
- * Builds docs/LICENCES.md from the dependencies really installed.
+ * Écrit l'annexe « licences » de `docs/TECHNIQUE.md` à partir des dépendances
+ * réellement installées.
  *
- *   node scripts/list-licences.mjs
+ *   npm run licences
  *
- * Reading the licence field of every installed package is the only way to keep the
- * document true: a hand-written list goes stale the first time a dependency changes.
- * A package with no licence field is reported as such, not assumed to be free.
+ * Lire le champ de licence de chaque paquet installé est la seule façon de garder ce
+ * document vrai : une liste écrite à la main devient fausse au premier changement de
+ * dépendance. Un paquet sans champ de licence est signalé comme tel, jamais supposé
+ * libre.
  */
-import { readdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { demoteHeadings, writeSection } from './lib/generated-section.mjs';
 
 const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..');
 const NODE_MODULES = join(ROOT, 'node_modules');
@@ -77,8 +80,9 @@ const lines = [
   '> Document **généré** : `node scripts/list-licences.mjs`. Ne pas modifier à la main.',
   '',
   'La licence de DropForge lui-même **n’est pas encore choisie** : c’est une décision',
-  'du propriétaire du projet, et `package.json` renvoie ici en attendant. Ce document',
-  'liste les licences des **dépendances directes réellement installées**, pour qu’une',
+  'du propriétaire du projet, et `package.json` renvoie à `docs/GUIDE.md` en attendant.',
+  'Cette annexe liste les licences des **dépendances directes réellement installées**,',
+  'pour qu’une',
   'future décision soit prise en connaissance de cause : toutes sont compatibles avec',
   'une redistribution, y compris commerciale.',
   '',
@@ -95,8 +99,8 @@ const lines = [
   '## Remarques',
   '',
   '- Les dépendances **transitives** ne sont pas listées ici : l’inventaire complet, avec',
-  '  leurs versions et leurs licences, est dans [`DEPENDENCIES.md`](DEPENDENCIES.md)',
-  '  (généré par `node scripts/list-dependencies.mjs`).',
+  '  leurs versions et leurs licences, est l’annexe A de ce même document',
+  '  (`node scripts/list-dependencies.mjs`).',
   '  Elles sont toutes sous MIT, ISC, BSD, Apache-2.0, 0BSD ou MPL-2.0 : aucune copyleft forte.',
   '- `@tauri-apps/*` est distribué sous Apache-2.0 OR MIT ; Tauri lui-même est sous',
   '  Apache-2.0 OR MIT. Aucun composant n’impose de redevance ni de compte payant.',
@@ -113,5 +117,14 @@ if (unknown) {
   );
 }
 
-writeFileSync(join(ROOT, 'docs', 'LICENCES.md'), `${lines.join('\n')}\n`);
-console.log(`docs/LICENCES.md written (${sorted.reduce((sum, [, list]) => sum + list.length, 0)} direct dependencies).`);
+// Le contenu vit dans `docs/TECHNIQUE.md` (§ 12, annexe B) : les titres descendent de
+// deux niveaux pour se placer sous le titre de l'annexe.
+const { bytes } = writeSection(
+  join(ROOT, 'docs', 'TECHNIQUE.md'),
+  'LICENCES',
+  demoteHeadings(lines.join('\n'), 2),
+);
+console.log(
+  `docs/TECHNIQUE.md — annexe « licences » écrite (${bytes} octets, ` +
+    `${sorted.reduce((sum, [, list]) => sum + list.length, 0)} dépendances directes).`,
+);

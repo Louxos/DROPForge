@@ -700,7 +700,7 @@ footer a:hover {
           <a href="#transfers">Transferts</a>
           <a href="#security">Sécurité</a>
           <a class="hide-sm" href="#etat">État réel</a>
-          <a class="hide-sm" href="https://github.com/Louxos/DROPForge/tree/main/docs">Documentation</a>
+          <a class="hide-sm" href="https://github.com/Louxos/DROPForge/blob/main/docs/GUIDE.md">Guide</a>
           <a class="stars" href="https://github.com/Louxos/DROPForge">
             <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
               <path
@@ -720,7 +720,7 @@ footer a:hover {
            chemins possibles : l'application web, ou le logiciel Windows.
            ------------------------------------------------------------------ -->
       <div class="wrap hero">
-        <p class="pill"><span class="dot" aria-hidden="true"></span> Version 0.1.1 · aperçu public</p>
+        <p class="pill"><span class="dot" aria-hidden="true"></span> Version 0.1.2 · aperçu public</p>
         <h1>Vos fichiers, d'un appareil à l'autre. <span class="grad">Sans détour.</span></h1>
         <p class="lede">
           DropForge envoie vos fichiers entre Windows, Android, iOS et n'importe quel navigateur. Sans compte
@@ -903,9 +903,8 @@ footer a:hover {
             </div>
           </div>
           <ul class="links">
-            <li><a href="https://github.com/Louxos/DROPForge/blob/main/docs/THREAT-MODEL.md">Modèle de menace complet</a></li>
-            <li><a href="https://github.com/Louxos/DROPForge/blob/main/docs/PRIVACY.md">Vie privée : ce qui ne quitte jamais l'appareil</a></li>
-            <li><a href="https://github.com/Louxos/DROPForge/blob/main/docs/SPEC-AUDIT.md">Audit du cahier des charges</a></li>
+            <li><a href="https://github.com/Louxos/DROPForge/blob/main/docs/TECHNIQUE.md">Sécurité, vie privée et limites (documentation technique, § 5 et 6)</a></li>
+            <li><a href="https://github.com/Louxos/DROPForge/blob/main/docs/GUIDE.md">Guide : installer, utiliser, dépanner</a></li>
           </ul>
         </div>
       </section>
@@ -938,38 +937,40 @@ footer a:hover {
                 <td>Windows</td>
                 <td><span class="badge warn">Application Windows</span></td>
                 <td>
-                  <a href="https://github.com/Louxos/DROPForge/releases/latest"><code>DropForge_0.1.1_x64-setup.exe</code></a>
-                  (par utilisateur, sans droits administrateur) ou le <code>.msi</code>.
+                  <a href="https://github.com/Louxos/DROPForge/releases/latest"><code>DropForge_0.1.2_x64-setup.exe</code></a>
+                  (par utilisateur, sans droits administrateur) ou le <code>.msi</code> — les deux défauts de la
+                  0.1.1 sont corrigés depuis la 0.1.2.
                 </td>
               </tr>
               <tr>
                 <td>Un réseau isolé</td>
                 <td><span class="badge">Archive hors ligne</span></td>
-                <td><code>dropforge-pwa-0.1.1.zip</code> de la dernière version, servi en HTTPS depuis n'importe quel dossier.</td>
+                <td><code>dropforge-pwa-0.1.2.zip</code> de la dernière version, servi en HTTPS depuis n'importe quel dossier.</td>
               </tr>
               <tr>
                 <td>Deux réseaux différents</td>
                 <td><span class="badge">Serveur de relais</span></td>
-                <td><code>dropforge-signaling-0.1.1.zip</code>, puis <code>npm install --omit=dev &amp;&amp; npm start</code>.</td>
+                <td><code>dropforge-signaling-0.1.2.zip</code>, puis <code>npm install --omit=dev &amp;&amp; npm start</code>.</td>
               </tr>
             </tbody>
           </table>
 
-          <!-- DROPFORGE-AVERTISSEMENT-WINDOWS : à retirer quand les deux défauts
-               signalés sur l'application Windows (écran de démarrage bloqué,
-               désinstallation refusée) sont corrigés et publiés. -->
+          <!-- DROPFORGE-AVERTISSEMENT-WINDOWS : les deux défauts de l'installateur sont
+               corrigés depuis la 0.1.2 ; cet encadré reste tant qu'aucun essai sur un poste
+               réel n'a eu lieu. Voir CHANGELOG.md. -->
           <p class="callout">
-            <strong>Application Windows : correction en cours.</strong> Les deux défauts signalés — un écran de
-            démarrage qui peut rester affiché, et une désinstallation qui refuse de se lancer — sont reproduits
-            et décrits, et la version publiée ne les corrige pas encore. En attendant, <strong>utilisez
-            l'application web</strong> : elle fait les mêmes transferts et ne s'installe pas. La cause, la
-            correction en préparation et les étapes pour débloquer une installation coincée sont dans
-            <a href="https://github.com/Louxos/DROPForge/blob/main/docs/TROUBLESHOOTING.md">le guide de dépannage</a>.
+            <strong>Application Windows : 0.1.2 corrige les deux défauts signalés.</strong> L'écran de démarrage
+            ne reste plus muet — il affiche la cause réelle au bout de 15 secondes et l'écrit dans le journal —
+            et l'installation comme la désinstallation ne s'arrêtent plus sur un faux « l'application est en
+            cours d'exécution ». Ces correctifs <strong>n'ont pas encore été essayés sur un poste réel</strong> :
+            c'est le premier essai qui compte. Si une installation reste coincée, le
+            <a href="https://github.com/Louxos/DROPForge/blob/main/docs/GUIDE.md#7-réparer-une-installation-windows-coincée">guide</a>
+            donne le script de déblocage et les commandes équivalentes.
           </p>
 
           <ul class="links">
             <li><a href="https://github.com/Louxos/DROPForge/releases/latest">Toutes les versions et leurs sommes de contrôle</a></li>
-            <li><a href="https://github.com/Louxos/DROPForge/blob/main/docs/DOWNLOAD.md">Télécharger, vérifier, installer</a></li>
+            <li><a href="https://github.com/Louxos/DROPForge/blob/main/docs/GUIDE.md">Télécharger, vérifier, installer, dépanner</a></li>
           </ul>
         </div>
       </section>
@@ -1015,9 +1016,8 @@ footer a:hover {
             </tbody>
           </table>
           <ul class="links">
-            <li><a href="https://github.com/Louxos/DROPForge/blob/main/docs/PLATFORM-MATRIX.md">Matrice complète par plateforme</a></li>
-            <li><a href="https://github.com/Louxos/DROPForge/blob/main/docs/TESTING.md">Tests automatiques et protocoles manuels</a></li>
-            <li><a href="https://github.com/Louxos/DROPForge/blob/main/docs/FREE-DEPLOYMENT.md">Infrastructure 100 % gratuite</a></li>
+            <li><a href="https://github.com/Louxos/DROPForge/blob/main/docs/TECHNIQUE.md">Documentation technique : architecture, sécurité, plateformes, tests, état réel</a></li>
+            <li><a href="https://github.com/Louxos/DROPForge/blob/main/CHANGELOG.md">Historique des versions</a></li>
           </ul>
         </div>
       </section>
@@ -1048,8 +1048,8 @@ footer a:hover {
           </div>
           <ul class="links">
             <li><a href="https://github.com/Louxos/DROPForge">Code source et tickets</a></li>
-            <li><a href="https://github.com/Louxos/DROPForge/blob/main/docs/ARCHITECTURE.md">Architecture</a></li>
-            <li><a href="https://github.com/Louxos/DROPForge/blob/main/docs/TROUBLESHOOTING.md">Dépannage</a></li>
+            <li><a href="https://github.com/Louxos/DROPForge/blob/main/docs/TECHNIQUE.md">Architecture</a></li>
+            <li><a href="https://github.com/Louxos/DROPForge/blob/main/docs/GUIDE.md">Dépannage</a></li>
           </ul>
         </div>
       </section>
@@ -1069,10 +1069,10 @@ footer a:hover {
   <rect x="238" y="312" width="36" height="88" rx="10" fill="url(#df-footer)" />
 </svg>
 <span>DropForge</span></span>
-        <span>Version 0.1.1</span>
+        <span>Version 0.1.2</span>
         <span class="spacer"></span>
         <span>Aucun compte obligatoire · Aucune télémétrie par défaut</span>
-        <a href="https://github.com/Louxos/DROPForge/blob/main/docs/LICENCES.md">Licences</a>
+        <a href="https://github.com/Louxos/DROPForge/blob/main/docs/TECHNIQUE.md">Licences</a>
       </div>
     </footer>
 

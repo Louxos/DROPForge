@@ -321,7 +321,7 @@ export class TransferReceiver {
     // A verified, chunk-aligned prefix of a file that belongs to this exact
     // manifest is adopted *before* conflicts are computed: continuing a partial
     // download is the whole point of resume, and it is not a name conflict (the
-    // file on disk is the receiving side's own half-written file, see docs/SPEC.md).
+    // file on disk is the receiving side's own half-written file, see docs/TECHNIQUE.md).
     await this.adoptResumeState(store);
     const resumedPaths = new Set([...this.files.values()].filter((f) => f.resumePrefix).map((f) => f.path));
     const conflicts = await TransferReceiver.detectConflicts(store, offer, resumedPaths);

@@ -12,7 +12,7 @@
  *    donc inséré dans le fichier, le logo est un SVG dans le document, et il
  *    n'existe aucune ressource distante ;
  *  - l'adresse de l'application web est un **unique** point d'entrée,
- *    `docs/site/app-url.txt` : la page affiche soit le bouton « Ouvrir
+ *    `site/app-url.txt` : la page affiche soit le bouton « Ouvrir
  *    l'application web », soit l'état « bientôt », jamais un lien mort.
  *
  * Usage :
@@ -32,9 +32,9 @@ export const REPO_URL = 'https://github.com/Louxos/DROPForge';
 export const SITE_URL = 'https://louxos.github.io/DROPForge/';
 
 export const SOURCES = {
-  template: 'docs/site/index.html',
-  styles: 'docs/site/site.css',
-  appUrl: 'docs/site/app-url.txt',
+  template: 'site/index.html',
+  styles: 'site/site.css',
+  appUrl: 'site/app-url.txt',
   mark: 'apps/web/public/icons/icon.svg',
 };
 
@@ -50,7 +50,7 @@ const MARKERS = {
 };
 
 /**
- * Lit le contenu de `docs/site/app-url.txt` : les lignes vides et les
+ * Lit le contenu de `site/app-url.txt` : les lignes vides et les
  * commentaires commençant par `#` sont ignorés, le reste doit être une adresse
  * absolue en http(s). Une adresse absente est un état normal (« bientôt »).
  */
@@ -194,7 +194,7 @@ export async function main(argv = process.argv.slice(2), root = process.cwd()) {
     const appUrl = parseAppUrl((await readIfPresent(root, SOURCES.appUrl)) ?? '');
     console.log(
       appUrl === ''
-        ? 'adresse de l’application web : absente — la page affiche « bientôt » (docs/site/app-url.txt).'
+        ? 'adresse de l’application web : absente — la page affiche « bientôt » (site/app-url.txt).'
         : `adresse de l’application web : ${appUrl}`,
     );
   }

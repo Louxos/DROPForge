@@ -12,7 +12,7 @@
  *    only ever holds ciphertext (`encryptForShare` / `decryptShareFile`);
  *  - the key never reaches the server: the whole share payload, key included,
  *    travels in the URL fragment, which browsers never send in an HTTP request
- *    (`buildShareUrl` / `readShareUrl` — and docs/SHARING.md explains it);
+ *    (`buildShareUrl` / `readShareUrl` — and docs/TECHNIQUE.md explains it);
  *  - every limit (size, file count, lifetime, downloads) is checked locally before
  *    anything is uploaded, and checked again on download, so a free tier can never
  *    be overshot by this app. The server enforces the same numbers as the authority.

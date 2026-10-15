@@ -4,7 +4,7 @@
  * Two families of data, two different stores, on every platform:
  *  - structured metadata (devices, transfers, files, resume tasks, history,
  *    settings) → SQLite on Windows, IndexedDB on the PWA. Schema is versioned
- *    and migrated (see docs/DATA-MODEL.md).
+ *    and migrated (see docs/TECHNIQUE.md).
  *  - file bytes → a real filesystem on Windows, the File System Access API or
  *    a Blob download in the browser. Never kept in the metadata store.
  *
@@ -128,7 +128,7 @@ export interface SourceProvider {
 }
 
 /* ------------------------------------------------------------------ *
- * Persisted models (docs/DATA-MODEL.md, version 1)
+ * Persisted models (docs/TECHNIQUE.md, version 1)
  * ------------------------------------------------------------------ */
 
 export interface DeviceRecord {

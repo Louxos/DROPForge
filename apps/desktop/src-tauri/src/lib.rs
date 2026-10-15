@@ -401,7 +401,7 @@ fn install_tray(app: &AppHandle) -> bool {
     // Le dépôt de fichiers *sur l'icône* n'est pas proposé : l'énumération
     // d'événements de Tauri 2.12 (Click, DoubleClick, Enter, Move, Leave) n'expose
     // aucun événement de dépôt. Glisser-déposer dans la **fenêtre** fonctionne et
-    // reste le moyen prévu (voir `docs/PLATFORM-MATRIX.md`).
+    // reste le moyen prévu (voir `docs/TECHNIQUE.md`).
     tray.on_tray_icon_event(|tray, event| {
         if let TrayIconEvent::Click {
             button: MouseButton::Left,

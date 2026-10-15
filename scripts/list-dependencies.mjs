@@ -1,5 +1,5 @@
 /**
- * Génère docs/DEPENDENCIES.md : l'inventaire complet des dépendances.
+ * Écrit l'annexe « dépendances » de docs/TECHNIQUE.md : l'inventaire complet.
  *
  *   node scripts/list-dependencies.mjs
  *
@@ -15,7 +15,8 @@
  * Aucun accès réseau, aucune supposition : les champs absents sont écrits « non
  * renseignée » au lieu d'être devinés.
  */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
+import { demoteHeadings, writeSection } from './lib/generated-section.mjs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -142,9 +143,9 @@ const document = `# Inventaire des dépendances
 
 Ce document décrit **ce qui sera réellement installé** par \`npm ci\`, lu depuis
 \`package-lock.json\` : dépendances directes, dépendances transitives, versions et
-licences. Les licences des dépendances directes sont détaillées séparément dans
-[\`LICENCES.md\`](LICENCES.md) ; ici, la question posée est différente : que contient
-l'installation, et y a-t-il quelque chose de problématique dedans ?
+licences. Les licences des dépendances directes sont détaillées dans l'annexe B de ce
+même document ; ici, la question posée est différente : que contient l'installation, et
+y a-t-il quelque chose de problématique dedans ?
 
 ## Résumé
 
@@ -196,15 +197,22 @@ ${rows(transitive)}
 
 \`\`\`bash
 npm ci                     # installe exactement ces versions
-npm run licences           # régénère docs/LICENCES.md (licences directes, avec leur rôle)
-node scripts/list-dependencies.mjs   # régénère ce document
+npm run licences                     # régénère l'annexe B (licences directes)
+node scripts/list-dependencies.mjs   # régénère l'annexe A (ce document)
 npm ls --all               # l'arbre complet, tel que npm le voit
 \`\`\`
 `;
 
-writeFileSync(join(root, 'docs', 'DEPENDENCIES.md'), document);
+// Le contenu vit dans `docs/TECHNIQUE.md` (§ 12, annexe A) : les titres descendent de
+// deux niveaux pour se placer sous le titre de l'annexe.
+const { bytes } = writeSection(
+  join(root, 'docs', 'TECHNIQUE.md'),
+  'DEPENDANCES',
+  demoteHeadings(document, 2),
+);
 const strongCopyleft = attention.find((rule) => rule.what === 'copyleft fort');
 console.log(
-  `docs/DEPENDENCIES.md — ${direct.length} directes, ${transitive.length} transitives, ${licences.length} licences` +
+  `docs/TECHNIQUE.md — annexe « dépendances » écrite (${bytes} octets) : ` +
+    `${direct.length} directes, ${transitive.length} transitives, ${licences.length} licences` +
     (strongCopyleft ? `, copyleft forte : ${strongCopyleft.packages.join(', ')}` : ', aucune copyleft forte'),
 );

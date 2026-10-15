@@ -2,7 +2,7 @@
  * Resume: a transfer that was interrupted continues where it stopped, and never
  * pretends to have bytes it does not have.
  *
- * The receiving side re-hashes what it already holds (see docs/SPEC.md), so the
+ * The receiving side re-hashes what it already holds (see docs/TECHNIQUE.md), so the
  * final digest still covers every byte of the file.
  */
 import { describe, expect, it } from 'vitest';

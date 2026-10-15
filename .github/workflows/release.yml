@@ -241,14 +241,22 @@ jobs:
           # Une version dont le tag contient un tiret (v0.1.0-preview) est publiée
           # comme pré-version : elle ne sera pas proposée comme « dernière version ».
           case "$TAG" in *-*) FLAGS="--prerelease" ;; *) FLAGS="" ;; esac
-          # Les notes de version vivent dans le dépôt (`docs/releases/v0.1.1.md`) : la page
-          # de téléchargement dit alors ce qui a changé et ce qui n'est pas encore prouvé,
-          # au lieu d'une phrase générique. À défaut, une note minimale est utilisée.
-          NOTES_FILE="docs/releases/${TAG}.md"
-          if [ -f "$NOTES_FILE" ]; then
+          # Les notes vivent dans le dépôt (`CHANGELOG.md`) : la page de téléchargement dit
+          # alors ce qui a changé et ce qui n'est pas encore prouvé, au lieu d'une phrase
+          # générique. La section du tag (« ## [0.1.2] … ») est extraite telle quelle,
+          # jusqu'à la section suivante ; à défaut, une note minimale est utilisée.
+          VERSION="${TAG#v}"
+          NOTES_FILE="release-notes.md"
+          awk -v v="$VERSION" '
+            $0 ~ "^## \\[" v "\\]" { found = 1; next }
+            found && /^## \\[/ { exit }
+            found { print }
+          ' CHANGELOG.md > "$NOTES_FILE"
+          if [ -s "$NOTES_FILE" ]; then
             NOTES=(--notes-file "$NOTES_FILE")
-            echo "Notes de version : $NOTES_FILE"
+            echo "Notes de version : section [$VERSION] de CHANGELOG.md"
           else
+            rm -f "$NOTES_FILE"
             NOTES=(--notes "Installateurs Windows, application web et serveur optionnel. Vérifiez les sommes de contrôle avec \`sha256sum -c SHA256SUMS\`.")
           fi
           if gh release view "$TAG" >/dev/null 2>&1; then

@@ -4,10 +4,10 @@
 # héberger le reste de DropForge, et c'est une limite de la plateforme, pas un choix :
 #
 #   • l'installateur Windows est produit par la tâche « Application Windows » et publié
-#     sur la page des versions GitHub (`v0.1.1`), pas ici ;
+#     sur la page des versions GitHub (`v0.1.2`), pas ici ;
 #   • le service de signalisation est un serveur WebSocket permanent. Les fonctions
 #     Netlify sont des requêtes HTTP courtes : elles ne peuvent pas garder une
-#     connexion ouverte. Le relais doit donc vivre ailleurs (voir `docs/NETLIFY.md`).
+#     connexion ouverte. Le relais doit donc vivre ailleurs (voir `docs/GUIDE.md`).
 #
 # Sans service de signalisation joignable, l'application publiée ici s'installe, se
 # charge et fonctionne hors ligne, mais ne trouve aucun appareil : elle l'affiche
@@ -37,7 +37,7 @@
 # Les en-têtes de sécurité d'abord, pour tout le site. Volontairement **pas** de CSP :
 # une politique mal écrite casserait l'application en silence (le service worker, les
 # WebSocket, les téléchargements par `blob:`), et elle dépendrait de l'adresse du
-# relais, choisie après coup. `docs/NETLIFY.md` dit ce qu'une CSP devrait contenir
+# relais, choisie après coup. `docs/GUIDE.md` dit ce qu'une CSP devrait contenir
 # pour qui veut la durcir.
 [[headers]]
   for = "/*"

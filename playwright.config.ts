@@ -12,7 +12,7 @@
  * — the closest thing to two devices that a CI machine can offer.
  *
  * Browsers are downloadable in CI only: locally, `npx playwright install` works if the
- * machine can reach the Playwright CDN. See `docs/TESTING.md`.
+ * machine can reach the Playwright CDN. See `docs/TECHNIQUE.md`.
  */
 import { defineConfig, devices } from '@playwright/test';
 

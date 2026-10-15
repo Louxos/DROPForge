@@ -2,11 +2,11 @@
 #
 # Ce fichier a été compilé pour la première fois par la chaîne d'intégration, sur une
 # machine Windows (`.github/workflows/release.yml`), faute de chaîne d'outils Rust dans
-# l'environnement de développement utilisé : voir docs/PLATFORM-MATRIX.md. Localement,
+# l'environnement de développement utilisé : voir docs/TECHNIQUE.md. Localement,
 # `npm run build:windows` (à la racine du dépôt) fait la même chose.
 [package]
 name = "dropforge"
-version = "0.1.1"
+version = "0.1.2"
 description = "Transfert de fichiers entre appareils, sans compte, chiffré de bout en bout."
 authors = ["DropForge"]
 edition = "2021"
@@ -14,7 +14,7 @@ edition = "2021"
 # Rust 1.90 ou plus récent : la version minimale déclarée le dit, au lieu de laisser
 # croire à une compatibilité plus large qui n'existe pas.
 rust-version = "1.90"
-# Licence du projet : pas encore choisie (voir docs/LICENCES.md pour les licences des
+# Licence du projet : pas encore choisie (voir docs/TECHNIQUE.md pour les licences des
 # dépendances). Aucun champ `license` ni `license-file` n'est renseigné : Cargo n'a
 # donc rien à valider, et rien ne pointe vers un fichier inexistant.
 
