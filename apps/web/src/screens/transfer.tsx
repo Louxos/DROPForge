@@ -12,7 +12,10 @@
  *      main action when no device is connected yet;
  *   3. « Recevoir » opens one panel whose main action is « Afficher mon code » — the
  *      field to paste a code someone else gave you is a separate, quieter card;
- *   4. everything rare (pause, retry, reorder, remove) waits inside an « Options »
+ *   4. once a device is connected, the choice of files stays on screen — connecting
+ *      first must never leave someone with no way to say what to send — and the lead
+ *      becomes « Envoyer vers », the picker stepping back to a quiet button;
+ *   5. everything rare (pause, retry, reorder, remove) waits inside an « Options »
  *      disclosure, and the queue itself is only shown when a transfer exists.
  *
  * What has not changed, and must not: every fact on screen comes from the controller.
@@ -131,6 +134,10 @@ export function TransferScreen({ controller, state }: { controller: AppControlle
   // the screen is the send step with the peer panel above it.
   const connected = state.connection !== undefined;
   const activeStep: Step = connected ? 'send' : step;
+  // Deux boutons ne doivent jamais avoir l'air aussi importants l'un que l'autre : avec un
+  // appareil connecté et des fichiers choisis, le chef de file est « Envoyer vers », dans
+  // le panneau au-dessus ; le sélecteur redevient alors un bouton discret.
+  const pickerLeads = !(connected && pending.length > 0);
 
   return (
     <section>
@@ -186,138 +193,144 @@ export function TransferScreen({ controller, state }: { controller: AppControlle
               <p className="df-faint">{t('transfer.sameNetwork')}</p>
             </>
           ) : null}
+        </>
+      ) : null}
 
-          {/* Send: one main action. Files first, then the destination. */}
-          {activeStep === 'send' ? (
-            <section className="df-step" aria-label={t('transfer.sendTitle')}>
-              <div
-                className={`df-card df-dropzone${dragging ? ' df-dropzone--active' : ''}`}
-                onDragEnter={(event) => {
-                  event.preventDefault();
-                  setDragging(true);
-                }}
-                onDragOver={(event) => {
-                  event.preventDefault();
-                  setDragging(true);
-                }}
-                onDragLeave={(event) => {
-                  // Leaving for a child element is not leaving the zone.
-                  if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
-                  setDragging(false);
-                }}
-                onDrop={(event) => {
-                  event.preventDefault();
-                  void onDrop(event.dataTransfer);
-                }}
+      {/* Send: one main action. Files first, then the destination. */}
+      {activeStep === 'send' ? (
+        <section className="df-step" aria-label={t('transfer.sendTitle')}>
+          <div
+            className={`df-card df-dropzone${dragging ? ' df-dropzone--active' : ''}`}
+            onDragEnter={(event) => {
+              event.preventDefault();
+              setDragging(true);
+            }}
+            onDragOver={(event) => {
+              event.preventDefault();
+              setDragging(true);
+            }}
+            onDragLeave={(event) => {
+              // Leaving for a child element is not leaving the zone.
+              if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+              setDragging(false);
+            }}
+            onDrop={(event) => {
+              event.preventDefault();
+              void onDrop(event.dataTransfer);
+            }}
+          >
+            <div className="df-row" style={{ flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className={`df-button ${pickerLeads ? 'df-button--primary df-button--lead' : 'df-button--ghost'}${busy === 'files' ? ' df-button--busy' : ''}`}
+                onClick={() => fileInput.current?.click()}
               >
-                <div className="df-row" style={{ flexWrap: 'wrap' }}>
-                  <button
-                    type="button"
-                    className={`df-button df-button--primary df-button--lead${busy === 'files' ? ' df-button--busy' : ''}`}
-                    onClick={() => fileInput.current?.click()}
+                {t('transfer.selectFiles')}
+              </button>
+              <input
+                ref={fileInput}
+                type="file"
+                multiple
+                hidden
+                onChange={(event) => void onFiles(event.target.files)}
+              />
+              {/* A second control only once there is something to act on: « Vider »
+                  appears with a selection, never before it. */}
+              {pending.length > 0 ? (
+                <button type="button" className="df-button df-button--ghost df-button--small" onClick={clearSelection}>
+                  {t('transfer.clear')}
+                </button>
+              ) : null}
+            </div>
+
+            <p className="df-faint" style={{ marginTop: SPACE.md }}>
+              {t('transfer.dropHint')}
+            </p>
+
+            {/* Folders are the rare case: the button waits behind the disclosure. */}
+            {state.capabilities.directoryRead && pending.length === 0 ? (
+              <details className="df-details" style={{ marginTop: SPACE.md }}>
+                <summary>{t('transfer.moreOptions')}</summary>
+                <button
+                  type="button"
+                  className={`df-button df-button--small${busy === 'folder' ? ' df-button--busy' : ''}`}
+                  style={{ marginTop: SPACE.md }}
+                  disabled={busy === 'folder'}
+                  onClick={() => void onFolder()}
+                >
+                  {t('transfer.selectFolder')}
+                </button>
+              </details>
+            ) : null}
+
+            {pending.length > 0 ? (
+              <p style={{ marginTop: SPACE.md }}>
+                {t('transfer.selected', {
+                  count: pending.length,
+                  size: formatBytes(pending.reduce((sum, file) => sum + file.size, 0), locale),
+                })}
+              </p>
+            ) : null}
+          </div>
+
+          {/* The destination, and it is the main action of this step: the row's
+              « Envoyer vers » is the primary button of the screen. */}
+          {!connected && pending.length > 0 && state.devices.length > 0 ? (
+            <>
+              <h2 className="df-section-title" style={{ marginTop: SPACE.xl }}>
+                {t('transfer.toWhichDevice')}
+              </h2>
+              <ul className="df-list">
+                {state.devices.map((device) => (
+                  <li
+                    key={device.id}
+                    className="df-card df-card--tight df-row df-row--between"
+                    style={{ alignItems: 'center' }}
                   >
-                    {t('transfer.selectFiles')}
-                  </button>
-                  <input
-                    ref={fileInput}
-                    type="file"
-                    multiple
-                    hidden
-                    onChange={(event) => void onFiles(event.target.files)}
-                  />
-                  {/* A second control only once there is something to act on: « Vider »
-                      appears with a selection, never before it. */}
-                  {pending.length > 0 ? (
-                    <button type="button" className="df-button df-button--ghost df-button--small" onClick={clearSelection}>
-                      {t('transfer.clear')}
-                    </button>
-                  ) : null}
-                </div>
-
-                <p className="df-faint" style={{ marginTop: SPACE.md }}>
-                  {t('transfer.dropHint')}
-                </p>
-
-                {/* Folders are the rare case: the button waits behind the disclosure. */}
-                {state.capabilities.directoryRead && pending.length === 0 ? (
-                  <details className="df-details" style={{ marginTop: SPACE.md }}>
-                    <summary>{t('transfer.moreOptions')}</summary>
+                    <span>
+                      <strong>{device.displayName}</strong>
+                      {device.favorite ? (
+                        <span className="df-badge" style={{ marginLeft: SPACE.sm }}>{t('devices.favorite')}</span>
+                      ) : null}
+                    </span>
                     <button
                       type="button"
-                      className={`df-button df-button--small${busy === 'folder' ? ' df-button--busy' : ''}`}
-                      style={{ marginTop: SPACE.md }}
-                      disabled={busy === 'folder'}
-                      onClick={() => void onFolder()}
+                      className="df-button df-button--primary"
+                      disabled={busy === 'connect' || state.connecting}
+                      onClick={() => void sendToDevice(device.id)}
                     >
-                      {t('transfer.selectFolder')}
+                      {t('transfer.sendTo')}
                     </button>
-                  </details>
-                ) : null}
-
-                {pending.length > 0 ? (
-                  <p style={{ marginTop: SPACE.md }}>
-                    {t('transfer.selected', {
-                      count: pending.length,
-                      size: formatBytes(pending.reduce((sum, file) => sum + file.size, 0), locale),
-                    })}
-                  </p>
-                ) : null}
-              </div>
-
-              {/* The destination, and it is the main action of this step: the row's
-                  « Envoyer vers » is the primary button of the screen. */}
-              {pending.length > 0 && state.devices.length > 0 ? (
-                <>
-                  <h2 className="df-section-title" style={{ marginTop: SPACE.xl }}>
-                    {t('transfer.toWhichDevice')}
-                  </h2>
-                  <ul className="df-list">
-                    {state.devices.map((device) => (
-                      <li
-                        key={device.id}
-                        className="df-card df-card--tight df-row df-row--between"
-                        style={{ alignItems: 'center' }}
-                      >
-                        <span>
-                          <strong>{device.displayName}</strong>
-                          {device.favorite ? (
-                            <span className="df-badge" style={{ marginLeft: SPACE.sm }}>{t('devices.favorite')}</span>
-                          ) : null}
-                        </span>
-                        <button
-                          type="button"
-                          className="df-button df-button--primary"
-                          disabled={busy === 'connect' || state.connecting}
-                          onClick={() => void sendToDevice(device.id)}
-                        >
-                          {t('transfer.sendTo')}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              ) : null}
-
-              {/* Nothing is reachable: the one action that matters is to connect a
-                  device. No empty list, no invented destination, no warning. */}
-              {pending.length > 0 && state.devices.length === 0 ? (
-                <div className="df-card" style={{ marginTop: SPACE.xl }}>
-                  <p style={{ marginTop: 0 }}>{t('transfer.connectFirst')}</p>
-                  <button type="button" className="df-button df-button--primary" onClick={() => setStep('receive')}>
-                    {t('transfer.connectDevice')}
-                  </button>
-                </div>
-              ) : null}
-
-              {pending.length === 0 ? (
-                <p className="df-faint" style={{ marginTop: SPACE.xl }}>
-                  {t('transfer.pickFirst')}
-                </p>
-              ) : null}
-            </section>
+                  </li>
+                ))}
+              </ul>
+            </>
           ) : null}
 
-          {/* Receive: one main action — show the code. */}
+          {/* Nothing is reachable: the one action that matters is to connect a
+              device. No empty list, no invented destination, no warning. */}
+          {!connected && pending.length > 0 && state.devices.length === 0 ? (
+            <div className="df-card" style={{ marginTop: SPACE.xl }}>
+              <p style={{ marginTop: 0 }}>{t('transfer.connectFirst')}</p>
+              <button type="button" className="df-button df-button--primary" onClick={() => setStep('receive')}>
+                {t('transfer.connectDevice')}
+              </button>
+            </div>
+          ) : null}
+
+          {!connected && pending.length === 0 ? (
+            <p className="df-faint" style={{ marginTop: SPACE.xl }}>
+              {t('transfer.pickFirst')}
+            </p>
+          ) : null}
+        </section>
+      ) : null}
+
+      {/* Recevoir : héberger un salon ou saisir un code ne s'adresse qu'à un appareil
+          qui n'est pas encore connecté. */}
+      {!connected ? (
+        <>
+                    {/* Receive: one main action — show the code. */}
           {activeStep === 'receive' ? (
             <section className="df-step" aria-label={t('transfer.receiveTitle')}>
               {state.pairingRoom ? (
@@ -627,7 +640,9 @@ function ConnectedPanel({
   onSend: () => void;
   onDisconnect: () => void;
 }): React.ReactElement {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage === 'en' ? 'en' : 'fr';
+  const totalBytes = pending.reduce((sum, file) => sum + file.size, 0);
   const connection = state.connection;
   const method =
     connection?.method === 'lan'
@@ -651,6 +666,9 @@ function ConnectedPanel({
         </button>
       </div>
       <div className="df-row" style={{ marginTop: SPACE.lg, flexWrap: 'wrap' }}>
+        {/* Le geste est nommé tout de suite, mais il reste éteint tant qu'il n'y a rien à
+            envoyer : c'est le seul bouton qui dit ce qui va suivre, et le geste possible
+            maintenant — choisir des fichiers — est juste en dessous, en clair. */}
         <button
           type="button"
           className="df-button df-button--primary df-button--lead"
@@ -660,7 +678,9 @@ function ConnectedPanel({
           {t('transfer.sendTo')}
         </button>
         <span className="df-faint">
-          {pending.length === 0 ? t('transfer.pickFirst') : t('transfer.selected', { count: pending.length, size: '' })}
+          {pending.length === 0
+            ? t('transfer.pickFirst')
+            : t('transfer.selected', { count: pending.length, size: formatBytes(totalBytes, locale) })}
         </span>
       </div>
     </section>

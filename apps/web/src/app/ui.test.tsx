@@ -183,6 +183,12 @@ describe('interface montée de bout en bout', () => {
     await flush();
     expect(text(container)).toContain('Téléphone');
     expect(buttonLabels(container)).toContain(i18n.t('transfer.sendTo'));
+
+    // Et se connecter **d'abord** ne laisse jamais sans moyen de dire quoi envoyer : le
+    // sélecteur de fichiers reste à l'écran une fois la connexion établie. Sans cette
+    // ligne, le défaut ne se voyait que sur un vrai navigateur : un bouton « Envoyer
+    // vers » éteint, aucun fichier sélectionnable, et rien à faire d'autre que fermer.
+    expect(buttonLabels(container)).toContain(i18n.t('transfer.selectFiles'));
   });
 
   it('suit un transfert réel jusqu’à « Terminé », avec sa vérification', async () => {

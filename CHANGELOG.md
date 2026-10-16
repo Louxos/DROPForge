@@ -106,6 +106,14 @@ versions, et ne sont plus maintenues.
 
 ### Corrigé
 
+- **Se connecter d'abord ne laisse plus sans moyen d'envoyer.** Une fois une connexion
+  ouverte, l'écran allait bien à l'envoi — mais le sélecteur de fichiers n'était plus
+  rendu du tout : il restait un bouton « Envoyer vers » éteint, aucun fichier
+  sélectionnable, et rien d'autre à faire que fermer la connexion. Le sélecteur reste
+  maintenant à l'écran pendant la connexion, et dès que des fichiers sont choisis, le
+  chef de file redevient « Envoyer vers » tandis que le sélecteur passe au second plan :
+  un seul geste important à la fois. Un test de l'interface refuse désormais le retour
+  de ce cul-de-sac.
 - **Les réglages ne proposent plus ce qui n'existe plus.** « Lancer au démarrage de
   Windows » et « À la fermeture de la fenêtre » n'avaient de sens que dans l'application
   Windows : ils disparaissent de l'écran **et** du schéma des préférences, qui passe en
