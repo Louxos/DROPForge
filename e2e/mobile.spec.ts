@@ -58,17 +58,15 @@ test.describe('PWA sur un écran de téléphone', () => {
         const box = await button.boundingBox();
         expect(box).not.toBeNull();
         expect(box!.height).toBeGreaterThan(0);
-        // Les coordonnées viennent de la **page elle-même**, pas de `boundingBox()` : sur
-        // un écran de téléphone émulé, Playwright raisonne dans la fenêtre visuelle tandis
-        // que `elementFromPoint` raisonne dans la fenêtre de mise en page, et l'écart entre
-        // les deux a déjà fait échouer ce test avec le seul mot « rien » — c'est-à-dire
-        // « aucun élément à ce point », sans un mot sur la géométrie. Une seule source pour
-        // les coordonnées supprime l'écart, et l'échec, s'il revient, dit maintenant où il
-        // regardait.
-        const point = await button.evaluate((el) => {
-          const rect = el.getBoundingClientRect();
-          return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-        });
+        // Les coordonnées viennent de Playwright (`boundingBox`), la même source que celle
+        // dans laquelle `mouse.click` clique vraiment — et non de
+        // `getBoundingClientRect()` lu dans la page : sur un téléphone émulé les deux
+        // repères divergent (fenêtre visuelle contre fenêtre de mise en page) et le point
+        // tombait **hors** de la fenêtre, ce qui donnait « rien sous le point » suivi de
+        // coordonnées à 1 650 px de haut dans une fenêtre de 839. Un seul repère supprime
+        // l'écart ; le contrôle, lui, reste : si quelque chose recouvrait la barre,
+        // `elementFromPoint` le nommerait toujours.
+        const point = { x: box!.x + box!.width / 2, y: box!.y + box!.height / 2 };
         const hits = await device.page.evaluate(
           ({ x, y }) => {
             const element = document.elementFromPoint(x, y);

@@ -161,7 +161,11 @@ async function openStep(page: Page, label: string, marker: (page: Page) => Locat
   // wait comes first: one of the three possible screens, then a decision, never a blind
   // click. A helper that could not be performed by hand would not prove anything; this
   // one only waits, exactly as a person would.
-  await expect(target.or(choice).or(back).first()).toBeVisible({ timeout: 20_000 });
+  //
+  // `toBeAttached`, jamais `toBeVisible` : le champ de sélection est **caché** (c'est la
+  // règle de l'interface, et `setInputFiles` n'a pas besoin de le voir). Attendre qu'il
+  // soit visible faisait échouer le helper sur un écran qui était déjà le bon.
+  await expect(target.or(choice).or(back).first()).toBeAttached({ timeout: 20_000 });
   if (await target.count()) return;
 
   if ((await choice.count()) > 0) {
@@ -171,7 +175,7 @@ async function openStep(page: Page, label: string, marker: (page: Page) => Locat
     await expectEntryScreen(page);
     await entryChoice(page, label).click();
   }
-  await expect(target).toBeVisible({ timeout: 20_000 });
+  await expect(target).toBeAttached({ timeout: 20_000 });
 }
 
 /** Goes to the send step (the file form). */
