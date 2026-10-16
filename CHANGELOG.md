@@ -60,7 +60,10 @@ corrigés, et la récupération d'une installation coincée est documentée et o
   compile, empaquette et vérifie la configuration, elle n'ouvre pas la fenêtre à votre
   place. C'est la première chose à confirmer (protocole : `docs/TECHNIQUE.md` § 8).
 - **Aucune mise à jour signée** : les secrets de signature ne sont pas configurés, donc
-  l'application ne proposera pas de mise à jour automatique (`docs/GUIDE.md` § 9).
+  l'application ne proposera pas de mise à jour automatique (`docs/GUIDE.md` § 9). Le
+  greffon de mise à jour est compilé sans sa fonction `zip`, parce que son auteur a retiré
+  du registre toutes les versions antérieures à 9.0 le 16 octobre 2026 : sans cela,
+  l'installateur Windows ne compilait plus du tout (`docs/TECHNIQUE.md`, « Mises à jour »).
 - **Aucun service d'hébergement** : les liens de partage hébergés restent indisponibles ;
   le transfert direct fonctionne sans eux.
 - **La licence du projet reste à définir** : le fichier `LICENSE` n'existe pas encore.
