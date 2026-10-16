@@ -233,6 +233,17 @@ bornées, et un réglage non applicable à la plateforme est désactivé avec so
   intégrée ; cette vérification ne peut pas être désactivée.
 - Navigateur : le service worker signale qu'une nouvelle version est prête et n'active
   qu'après accord.
+- **La compilation de l'installateur ne dépend plus de `zip`.** Le greffon officiel de
+  mise à jour demande `zip ^4` ; l'auteur de `zip` a retiré du registre toutes les versions
+  antérieures à 9.0 le **16 octobre 2026** (2.x à 8.x). La résolution s'arrêtait donc net
+  — `failed to select a version for the requirement zip = "^2"` — avant la moindre ligne
+  compilée, sur le dépôt comme dans la chaîne d'intégration, et **aucune version ne
+  pouvait plus être publiée**. `apps/desktop/src-tauri/Cargo.toml` désactive maintenant la
+  fonction optionnelle `zip` du greffon (le reste est inchangé : `rustls-tls`,
+  `system-proxy`). Conséquence à connaître : une mise à jour Windows publiée en `.nsis.zip`
+  ne pourrait pas être décompressée par l'application. Comme aucune clé de signature n'est
+  configurée, aucune mise à jour de ce genre n'existe aujourd'hui — **à rouvrir en même
+  temps que les clés**, quand le greffon acceptera `zip 9`.
 
 ## 4. Données locales
 

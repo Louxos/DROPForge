@@ -18,7 +18,7 @@
  * procedure, and `docs/TECHNIQUE.md` says so plainly.
  */
 import { expect, test } from '@playwright/test';
-import { L, openDevice, openReceiveStep, openSendStep } from './helpers/app.js';
+import { L, expectEntryScreen, openDevice, openReceiveStep, openSendStep } from './helpers/app.js';
 
 test.describe('iOS (WebKit) : ce qui est promis, ce qui ne l’est pas', () => {
   test('la mise en page mobile est utilisée', async ({ browser }) => {
@@ -35,8 +35,7 @@ test.describe('iOS (WebKit) : ce qui est promis, ce qui ne l’est pas', () => {
 
     // The transfer screen opens on the two possible gestures, and nothing else: the
     // file form and the pairing panel only exist once one of them has been chosen.
-    await expect(device.page.getByRole('button', { name: L.chooseSend, exact: true })).toBeVisible();
-    await expect(device.page.getByRole('button', { name: L.chooseReceive, exact: true })).toBeVisible();
+    await expectEntryScreen(device.page);
     await expect(device.page.getByRole('button', { name: L.selectFiles })).toHaveCount(0);
 
     await openSendStep(device.page);

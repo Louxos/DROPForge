@@ -297,6 +297,39 @@ describe('interface montée de bout en bout', () => {
     expect(text(container)).not.toContain(i18n.t('settings.title', { lng: 'fr' }));
   });
 
+  it('les deux gestes d’entrée portent un nom accessible utilisable par un banc', async () => {
+    // Ce test existe à cause d'un vrai échec des tests de navigateur : les boutons
+    // « Envoyer » et « Recevoir » portent leur titre **et** leur sous-titre, donc leur
+    // nom accessible n'est pas « Recevoir » mais « Recevoir Donner un code… ». Un banc
+    // qui les cherche par nom exact ne les trouve jamais, et le résultat ressemble à
+    // soudain « l'interface a changé » plutôt qu'à « le sélecteur est trop strict ».
+    //
+    // On lit donc ce que le navigateur lit : le titre est le début du nom accessible, et
+    // le sous-titre suit — les deux sont utiles, aucun ne doit disparaître.
+    const rig = await makeRig();
+    await rig.host.start();
+    const container = await mount(rig.host);
+    await flush();
+
+    const entries = [...container.querySelectorAll('button.df-choice')].map((button) => ({
+      accessibleName: (button.textContent ?? '').replace(/\s+/g, ' ').trim(),
+      leads: button.classList.contains('df-choice--primary'),
+    }));
+    expect(entries).toHaveLength(2);
+
+    const send = entries.find((entry) => entry.accessibleName.startsWith(i18n.t('transfer.sendTitle')));
+    const receive = entries.find((entry) => entry.accessibleName.startsWith(i18n.t('transfer.receiveTitle')));
+    expect(send).toBeDefined();
+    expect(receive).toBeDefined();
+    // Le sous-titre est bien là : c'est ce qui explique le geste, et le retirer pour
+    // faciliter un test serait prendre le problème à l'envers.
+    expect(send!.accessibleName.length).toBeGreaterThan(i18n.t('transfer.sendTitle').length);
+    expect(receive!.accessibleName.length).toBeGreaterThan(i18n.t('transfer.receiveTitle').length);
+    // Hick : un seul des deux porte le style principal.
+    expect(entries.filter((entry) => entry.leads)).toHaveLength(1);
+    expect(send!.leads).toBe(true);
+  });
+
   it('dit qu’une fonction n’est pas disponible au lieu de la proposer', async () => {
     const rig = await makeRig({ capabilities: { notifications: false } });
     await rig.host.start();

@@ -57,17 +57,45 @@ test.describe('PWA sur un écran de téléphone', () => {
         await expect(button).toBeVisible();
         const box = await button.boundingBox();
         expect(box).not.toBeNull();
-        const point = { x: box!.x + box!.width / 2, y: box!.y + box!.height / 2 };
+        expect(box!.height).toBeGreaterThan(0);
+        // Les coordonnées viennent de la **page elle-même**, pas de `boundingBox()` : sur
+        // un écran de téléphone émulé, Playwright raisonne dans la fenêtre visuelle tandis
+        // que `elementFromPoint` raisonne dans la fenêtre de mise en page, et l'écart entre
+        // les deux a déjà fait échouer ce test avec le seul mot « rien » — c'est-à-dire
+        // « aucun élément à ce point », sans un mot sur la géométrie. Une seule source pour
+        // les coordonnées supprime l'écart, et l'échec, s'il revient, dit maintenant où il
+        // regardait.
+        const point = await button.evaluate((el) => {
+          const rect = el.getBoundingClientRect();
+          return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+        });
         const hits = await device.page.evaluate(
           ({ x, y }) => {
             const element = document.elementFromPoint(x, y);
-            if (!element) return 'rien';
-            const item = element.closest('.df-bottom-nav__item');
-            return item ? `le bouton « ${item.textContent?.trim()} »` : `${element.tagName.toLowerCase()}.${element.className}`;
+            const geometry = {
+              point: { x: Math.round(x), y: Math.round(y) },
+              fenetre: { largeur: window.innerWidth, hauteur: window.innerHeight },
+              visuelle: window.visualViewport
+                ? {
+                    largeur: Math.round(window.visualViewport.width),
+                    hauteur: Math.round(window.visualViewport.height),
+                    decalage: Math.round(window.visualViewport.offsetTop),
+                  }
+                : null,
+            };
+            const item = element?.closest('.df-bottom-nav__item');
+            return {
+              vu: item
+                ? `le bouton « ${item.textContent?.trim()} »`
+                : element
+                  ? `${element.tagName.toLowerCase()}.${element.className}`
+                  : 'rien',
+              geometry: JSON.stringify(geometry),
+            };
           },
           point,
         );
-        expect(hits).toContain(label);
+        expect(hits.vu, `rien sous le point ${hits.geometry}`).toContain(label);
 
         // A thumb lands on a **point**, so that is what is clicked here, at the point
         // `elementFromPoint` just proved belongs to this tab. `locator.click()` is not

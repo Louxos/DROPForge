@@ -128,9 +128,24 @@ export async function attempt<T>(page: Page, what: string, action: () => Promise
  * nothing when the step is already open, so a scenario that navigated there by itself
  * keeps working.
  *
- * `exact: true` matters: « Recevoir » is also the beginning of « Recevoir d'un
- * appareil », a different button on a different step.
+ * Le titre d'abord, jamais par nom exact : sur l'écran d'entrée, chaque geste porte son
+ * titre **et** sa phrase d'explication, donc le nom accessible est « Recevoir Donner un
+ * code… » et non « Recevoir ». Chercher par nom exact ne trouvait rien — et l'échec
+ * ressemblait à « l'écran a changé » au lieu de « le sélecteur est trop strict ». La
+ * classe `.df-choice` est celle de ces deux cartes, et `^` garantit qu'on ne confond pas
+ * « Recevoir » avec « Recevoir d'un appareil », qui est un autre bouton, plus loin.
  */
+/** L'une des deux cartes d'entrée, visée par son titre (voir la note de `openStep`). */
+export function entryChoice(page: Page, label: string): Locator {
+  return page.locator('button.df-choice', { hasText: new RegExp(`^\\s*${label}`) }).first();
+}
+
+/** Vrai quand l'écran d'entrée est affiché : c'est lui qui porte les deux cartes. */
+export async function expectEntryScreen(page: Page): Promise<void> {
+  await expect(entryChoice(page, L.chooseSend)).toBeVisible({ timeout: 20_000 });
+  await expect(entryChoice(page, L.chooseReceive)).toBeVisible({ timeout: 20_000 });
+}
+
 async function openStep(page: Page, label: string, marker: (page: Page) => Locator): Promise<void> {
   if (await marker(page).count()) return;
   // The other step may be open: the two choices only exist on the entry screen, so the
@@ -139,9 +154,9 @@ async function openStep(page: Page, label: string, marker: (page: Page) => Locat
   const back = page.getByRole('button', { name: L.back, exact: true });
   if (await back.count()) {
     await back.first().click();
-    await expect(page.getByRole('button', { name: L.chooseSend, exact: true })).toBeVisible({ timeout: 20_000 });
+    await expectEntryScreen(page);
   }
-  const choice = page.getByRole('button', { name: label, exact: true });
+  const choice = entryChoice(page, label);
   await expect(choice).toBeVisible({ timeout: 20_000 });
   await choice.click();
   await expect(marker(page)).toBeVisible({ timeout: 20_000 });
