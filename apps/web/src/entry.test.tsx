@@ -7,7 +7,7 @@
  * platform with an in-memory port — which is why none of them could have caught the
  * defect this file was written for: **`void boot()` had no `catch`.** A single throw
  * while building the platform left the page blank, with nothing on screen and no
- * explanation, exactly the failure the Windows shell had.
+ * explanation, exactly the failure the removed shell had.
  *
  * So this test does the opposite of the others: it imports `main.tsx`, lets it start,
  * and asks the only question that matters to a person opening the application —

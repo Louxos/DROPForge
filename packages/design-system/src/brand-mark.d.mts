@@ -2,7 +2,7 @@
  * Types de la description du logo (`brand-mark.mjs`).
  *
  * Le module est en JavaScript pour être lu sans compilation par les scripts Node qui
- * dessinent les icônes et l'art de l'installateur ; ces types le rendent utilisable
+ * dessinent les icônes de l'application ; ces types le rendent utilisable
  * depuis le TypeScript de l'application, sans en dupliquer la moindre coordonnée.
  */
 

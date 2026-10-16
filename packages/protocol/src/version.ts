@@ -16,7 +16,7 @@ export const CAPABILITIES = [
   'webrtc.direct',
   /** Binary frames can be relayed (encrypted) by the signaling/relay service. */
   'relay.blind',
-  /** Receiver can write into a user-chosen directory handle (File System Access / Tauri). */
+  /** Receiver can write into a user-chosen directory handle (File System Access). */
   'fs.directory',
   /** Receiver can request a download per file (browser fallback). */
   'fs.download',

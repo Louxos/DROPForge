@@ -14,7 +14,7 @@ import { DropForgeError, ERROR_CODES, type MetaStore } from '@dropforge/app-core
 
 export const SETTINGS_COLLECTION = 'settings';
 export const SETTINGS_KEY = 'preferences';
-export const SETTINGS_VERSION = 3;
+export const SETTINGS_VERSION = 4;
 
 /**
  * Where the relay (the signaling service) is.
@@ -37,16 +37,12 @@ export const SIGNALING_OFF = 'none';
 export type Language = 'fr' | 'en';
 export type Theme = 'dark' | 'light' | 'system';
 export type ConflictPolicy = 'ask' | 'rename' | 'skip' | 'overwrite';
-export type CloseBehaviour = 'tray' | 'quit';
 
 export interface Preferences {
   v: typeof SETTINGS_VERSION;
   language: Language;
   theme: Theme;
   notifications: boolean;
-  /** Windows only; ignored elsewhere (and documented as such). */
-  autostart: boolean;
-  closeBehaviour: CloseBehaviour;
   /** Where received files go. Empty means "ask every time" in the browser. */
   receiveFolder: string;
   conflictPolicy: ConflictPolicy;
@@ -71,8 +67,6 @@ export const DEFAULT_PREFERENCES: Preferences = {
   language: 'fr',
   theme: 'dark',
   notifications: true,
-  autostart: false,
-  closeBehaviour: 'tray',
   receiveFolder: '',
   conflictPolicy: 'ask',
   maxConcurrentTransfers: 2,
@@ -103,7 +97,6 @@ export interface SettingsLoadResult {
 const LANGUAGES: readonly Language[] = ['fr', 'en'];
 const THEMES: readonly Theme[] = ['dark', 'light', 'system'];
 const POLICIES: readonly ConflictPolicy[] = ['ask', 'rename', 'skip', 'overwrite'];
-const CLOSE_BEHAVIOURS: readonly CloseBehaviour[] = ['tray', 'quit'];
 
 export const MIN_CONCURRENT_TRANSFERS = 1;
 export const MAX_CONCURRENT_TRANSFERS = 8;
@@ -235,8 +228,6 @@ export function readSettings(stored: unknown): {
     language: pickEnum('language', LANGUAGES),
     theme: pickEnum('theme', THEMES),
     notifications: pickBoolean('notifications'),
-    autostart: pickBoolean('autostart'),
-    closeBehaviour: pickEnum('closeBehaviour', CLOSE_BEHAVIOURS),
     receiveFolder: pickPath('receiveFolder'),
     conflictPolicy: pickEnum('conflictPolicy', POLICIES),
     maxConcurrentTransfers: pickNumber('maxConcurrentTransfers', MIN_CONCURRENT_TRANSFERS, MAX_CONCURRENT_TRANSFERS),
@@ -254,7 +245,9 @@ export function readSettings(stored: unknown): {
  * Schema migrations. Version 0 is a file written before the schema was versioned;
  * version 1 stored `conflictPolicy: 'ask' | 'overwrite'` with a separate
  * `renameOnConflict` flag, which version 2 folded into the single policy enum;
- * version 3 added the relay address (`signalingUrl`).
+ * version 3 added the relay address (`signalingUrl`) ; la version 4 retire les deux
+ * réglages qui n'avaient de sens que dans l'application Windows (`autostart`,
+ * `closeBehaviour`).
  */
 export function migrateSettings(stored: unknown): { value: Record<string, unknown>; changed: boolean } {
   if (typeof stored !== 'object' || stored === null) return { value: {}, changed: false };
@@ -273,6 +266,14 @@ export function migrateSettings(stored: unknown): { value: Record<string, unknow
     }
     // Hosted sharing was implicit before it became an explicit switch.
     if (input.allowHostedSharing === undefined) input.allowHostedSharing = true;
+  }
+  if (version <= 3) {
+    // Version 4: the Windows application is gone, and with it these two settings. They
+    // are dropped rather than ignored, so a stored file never carries a preference that
+    // nothing can apply — and nothing in the interface refers to a feature that does not
+    // exist any more.
+    delete input.autostart;
+    delete input.closeBehaviour;
   }
   if (version <= 2) {
     // Before version 3 the relay address was not a preference at all: the build

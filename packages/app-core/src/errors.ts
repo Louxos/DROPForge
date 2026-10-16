@@ -166,7 +166,7 @@ export function fromPlatformError(value: unknown): DropForgeError {
  * "Error:" — the name alone is not a diagnosis.
  *
  * It lives here, with `DropForgeError`, because both hosts need exactly this wording:
- * the Windows shell (which writes it to its diagnostics log) and the web application
+ * the removed shell (which wrote it to its diagnostics log) and the web application
  * (which shows it under an honest failure screen).
  */
 export function describeError(error: unknown): string {

@@ -1,7 +1,7 @@
 /**
  * Public surface of the shared interface package.
  *
- * The web application (PWA) and the Windows application render the *same* screens
+ * The application (installable PWA) renders these screens, and they are the only ones:
  * and the *same* application controller; only the platform adapters differ (storage,
  * filesystem, notifications, updates). That is why this module exists: the alternative
  * would be two copies of the interface, which is exactly what the project forbids.

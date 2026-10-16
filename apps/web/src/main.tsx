@@ -99,7 +99,7 @@ async function boot(): Promise<void> {
  * platform — local storage unavailable, no WebCrypto, a service worker that refuses to
  * register — rejected a promise nobody looked at and left the page **blank**. No
  * message, no way to tell "still loading" from "broken". That is the same failure the
- * Windows shell had, and it is the one thing an application should never do.
+ * removed shell had, and it is the one thing an application should never do.
  */
 function reportBootFailure(error: unknown): void {
   const dfError = fromPlatformError(error);

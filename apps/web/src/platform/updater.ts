@@ -1,9 +1,8 @@
 /**
  * Update checking, done honestly.
  *
- * The rule from the specification is: check for updates, *ask* before installing,
- * and never turn off signature verification. There are two real cases and this
- * module handles both without pretending:
+ * The rule from the specification is: check for updates and *ask* before installing.
+ * There are two real cases, and this module handles both without pretending:
  *
  *  - **Installed PWA / hosted web app**: updates are shipped by the service
  *    worker. The browser is in charge of *fetching* one; we can tell the user when
@@ -11,10 +10,8 @@
  *    it. We can *not* promise a version number: the platform does not give us one,
  *    so `version` stays undefined instead of being guessed from a manifest we
  *    would have to trust.
- *  - **Desktop build (Tauri)**: the Tauri updater only applies an update whose
- *    signature matches the public key compiled into the app, and this module
- *    exposes that path through the same port (`UpdateSource`), so the shell can
- *    never silently install something on its own.
+ *  - **A page that is not installed**: the browser gives nothing to update, and
+ *    this module says so (`PLATFORM_UNSUPPORTED`) instead of inventing a version.
  *
  * Nothing here ever installs without an explicit user action.
  */

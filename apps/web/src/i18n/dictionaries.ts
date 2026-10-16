@@ -160,11 +160,6 @@ export interface Dictionary {
     notifications: string;
     notificationsUnsupported: string;
     enableNotifications: string;
-    autostart: string;
-    autostartWindowsOnly: string;
-    closeBehaviour: string;
-    closeTray: string;
-    closeQuit: string;
     transfers: string;
     receiveFolder: string;
     receiveFolderChoose: string;
@@ -434,11 +429,6 @@ export const FR: Dictionary = {
     notifications: 'Notifications',
     notificationsUnsupported: 'Ce navigateur ne permet pas les notifications.',
     enableNotifications: 'Activer les notifications',
-    autostart: 'Lancer au démarrage de Windows',
-    autostartWindowsOnly: 'Disponible uniquement dans l’application Windows.',
-    closeBehaviour: 'À la fermeture de la fenêtre',
-    closeTray: 'Continuer en arrière-plan',
-    closeQuit: 'Quitter DropForge',
     transfers: 'Transferts',
     receiveFolder: 'Dossier de réception',
     receiveFolderChoose: 'Choisir un dossier',
@@ -491,7 +481,7 @@ export const FR: Dictionary = {
     updateUnregistered: 'Aucune version installée à mettre à jour : rechargez la page pour la dernière version.',
     updateCheckFailed: 'Recherche impossible : le réseau est injoignable.',
     updateNothingToInstall: 'Aucune mise à jour n’est en attente.',
-    updateWebNote: 'Dans le navigateur, la version installée est mise à jour automatiquement ; rechargez la page pour la dernière version. Les mises à jour signées concernent l’application Windows.',
+    updateWebNote: 'La nouvelle version est proposée par le navigateur, jamais imposée : elle ne s’applique que si vous l’acceptez.',
     storageEstimate: 'Données locales de l’application : {{usage}} utilisés sur {{quota}} autorisés par le navigateur.',
     installed: 'Application installée sur cet appareil.',
     notInstalled: 'Affiché dans un onglet : installez l’application pour un usage hors ligne.',
@@ -529,7 +519,7 @@ export const FR: Dictionary = {
     hasServiceWorker: 'Fonctionnement hors ligne de l’interface',
     hasBackgroundReceive: 'Recevoir en arrière-plan',
     backgroundReceiveNote:
-      'Sur le web, un transfert ne continue que si l’onglet reste ouvert. DropForge ne promet pas le contraire : l’application Windows, elle, continue en arrière-plan.',
+      'Un transfert ne continue que si l’onglet reste ouvert. DropForge ne promet pas le contraire : c’est la limite du navigateur.',
     hasDownloadStream: 'Téléchargement direct d’un gros fichier',
     downloadFallbackNote:
       'Sans accès direct au disque, les fichiers reçus sont proposés au téléchargement : le navigateur les écrit lui-même, et la vérification d’intégrité a lieu avant le téléchargement.',
@@ -760,11 +750,6 @@ export const EN: Dictionary = {
     notifications: 'Notifications',
     notificationsUnsupported: 'This browser does not allow notifications.',
     enableNotifications: 'Enable notifications',
-    autostart: 'Start with Windows',
-    autostartWindowsOnly: 'Only available in the Windows application.',
-    closeBehaviour: 'When closing the window',
-    closeTray: 'Keep running in the background',
-    closeQuit: 'Quit DropForge',
     transfers: 'Transfers',
     receiveFolder: 'Receiving folder',
     receiveFolderChoose: 'Choose a folder',
@@ -817,7 +802,7 @@ export const EN: Dictionary = {
     updateUnregistered: 'Nothing is installed to update: reload the page for the latest version.',
     updateCheckFailed: 'Check failed: the network is unreachable.',
     updateNothingToInstall: 'No update is waiting.',
-    updateWebNote: 'In a browser, the installed version updates itself; reload the page for the latest build. Signed updates concern the Windows application.',
+    updateWebNote: 'The browser proposes the new version, never imposes it: it is applied only if you accept it.',
     storageEstimate: 'Local application data: {{usage}} used of {{quota}} allowed by the browser.',
     installed: 'Application installed on this device.',
     notInstalled: 'Running in a tab: install the application for offline use.',
@@ -855,7 +840,7 @@ export const EN: Dictionary = {
     hasServiceWorker: 'Offline user interface',
     hasBackgroundReceive: 'Receive in the background',
     backgroundReceiveNote:
-      'On the web a transfer only continues while the tab stays open. DropForge does not claim otherwise: the Windows app does continue in the background.',
+      'A transfer only continues while the tab stays open. DropForge does not claim otherwise: that is a browser limit.',
     hasDownloadStream: 'Streaming download of a large file',
     downloadFallbackNote:
       'Without direct disk access, received files are offered as a download: the browser writes them itself, and the integrity check happens before the download.',

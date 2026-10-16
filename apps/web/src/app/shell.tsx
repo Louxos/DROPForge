@@ -65,7 +65,7 @@ export interface ShellProps {
   controller: AppController;
   state: AppState;
   /**
-   * Installation watch, when the host has one (the browser does, the Windows shell
+   * Installation watch, when the host has one (the browser does, the removed shell
    * does not). Absent means: no install banner, which is the truth there.
    */
   install?: InstallWatch;
@@ -170,7 +170,7 @@ export function Shell({ controller, state, install }: ShellProps): React.ReactEl
 
   return (
     // `data-dropforge-shell` is how a host that cannot see the screen checks that the
-    // interface really rendered — the Windows shell uses it to report a blank window
+    // interface really rendered — the removed shell used it to report a blank window
     // instead of leaving it unexplained.
     <div className="df-app df-app--ready" data-dropforge-shell="">
       <aside className="df-sidebar" aria-label={t('app.name')}>

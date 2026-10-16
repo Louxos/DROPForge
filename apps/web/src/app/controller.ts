@@ -129,7 +129,7 @@ export interface ControllerOptions {
    * injectable so tests can read what a notification would really say.
    */
   translate?: (key: string, options?: Record<string, unknown>) => string;
-  /** Update mechanism: service worker on the web, signed Tauri updater on desktop. */
+  /** Update mechanism: the service worker, when there is one. */
   updateSource?: UpdateSource;
   /** Version shown in the settings; reported by the build, never invented. */
   appVersion?: string;
@@ -1427,8 +1427,8 @@ export class AppController {
 
   /**
    * Checks for an update and reports exactly what the platform said. Nothing is
-   * installed here: the user has to approve it, and the desktop build keeps Tauri's
-   * signature verification on.
+   * installed here: the user has to approve it, and the new version only takes over
+   * once the worker that carries it is activated.
    */
   async checkForUpdate(): Promise<void> {
     const source = this.options.updateSource ?? noUpdateSource;

@@ -2,12 +2,12 @@
  * Le logo DropForge, décrit une seule fois.
  *
  * Un logo qui existe en plusieurs versions finit par exister en plusieurs logos : le
- * fichier d'icônes, l'art de l'installateur et le bloc de marque dans l'interface
- * étaient trois dessins différents du même symbole — un « DF » en texte dans
- * l'application, un triangle aux proportions calculées dans l'installateur, un
- * troisième tracé dans le `.ico`. Ce module est la seule description, et tout le reste
- * en dérive : les icônes de la PWA, le `.ico` de l'exécutable, les images de
- * l'installateur, le bloc de marque de l'interface et l'écran de démarrage Windows.
+ * fichier d'icônes, le bloc de marque de l'interface et la page d'accueil étaient trois
+ * dessins différents du même symbole — un « DF » en texte dans l'application, un triangle
+ * aux proportions recalculées ailleurs, un troisième tracé dans un fichier d'icône. Ce
+ * module est la seule description, et tout le reste en dérive : l'icône de l'application,
+ * le favicon, l'icône masquable d'Android, l'image de l'écran d'accueil iOS et la page
+ * publiée.
  *
  * Le symbole : une **goutte** — un coin descendant, puis sa tige détachée par un
  * espace — en dégradé violet vers bleu, sur le noir de l'application. Le forgeage, la
@@ -60,7 +60,7 @@ export const MARK_GRADIENT_ID = 'df';
 
 /**
  * Le logo en SVG, tel qu'il est écrit dans `apps/web/public/icons/icon.svg` et inséré
- * dans l'écran de démarrage de la coque Windows.
+ * dans le bloc de marque de l'interface et la page d'accueil.
  *
  * @param {{ size?: number, gradientId?: string, label?: string | null }} [options]
  */

@@ -5,7 +5,7 @@
  */
 export * from './tokens.js';
 // Le logo, décrit une fois (`brand-mark.mjs`), pour que l'interface, les icônes et
-// l'installateur dessinent tous le même symbole.
+// la page publiée dessinent tous le même symbole.
 export * from './brand-mark.mjs';
 export * from './theme.js';
 export * from './format.js';

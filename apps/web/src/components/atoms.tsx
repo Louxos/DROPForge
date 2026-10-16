@@ -24,7 +24,7 @@ import type { AppController, AppState } from '../app/controller.js';
  *
  * Le symbole est dessiné à partir de la description partagée
  * (`@dropforge/design-system`, `brand-mark.mjs`) : le même tracé que l'icône de
- * l'exécutable Windows, du `.ico` de l'installateur et de l'écran de démarrage. Il
+ * l'icône de l'application, du favicon et de la page d'accueil. Il
  * portait auparavant les lettres « DF », c'est-à-dire un troisième logo.
  *
  * Le dégradé a besoin d'un identifiant unique : deux blocs de marque sur la même page

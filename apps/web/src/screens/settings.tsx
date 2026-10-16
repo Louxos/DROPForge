@@ -19,7 +19,6 @@ export function SettingsScreen({ controller, state }: { controller: AppControlle
   const locale = i18n.resolvedLanguage === 'en' ? 'en' : 'fr';
   const settings = state.settings;
   const capabilities = state.capabilities;
-  const isDesktop = capabilities.platform === 'windows' || capabilities.platform === 'macos' || capabilities.platform === 'linux';
 
   return (
     <section>
@@ -132,31 +131,6 @@ export function SettingsScreen({ controller, state }: { controller: AppControlle
         <summary>{t('settings.advanced')}</summary>
 
         <Card titleKey="settings.advancedDevice">
-          <Field labelKey="settings.autostart">
-            <label className="df-switch">
-              <input
-                type="checkbox"
-                checked={settings.autostart}
-                disabled={!isDesktop}
-                onChange={(event) => void controller.updateSettings({ autostart: event.target.checked })}
-              />
-              {isDesktop ? t('common.yes') : t('capabilities.unavailable')}
-            </label>
-            {!isDesktop ? <p className="df-faint">{t('settings.autostartWindowsOnly')}</p> : null}
-          </Field>
-
-          <Field labelKey="settings.closeBehaviour">
-            <select
-              className="df-input"
-              value={settings.closeBehaviour}
-              disabled={!isDesktop}
-              onChange={(event) => void controller.updateSettings({ closeBehaviour: event.target.value as 'tray' | 'quit' })}
-            >
-              <option value="tray">{t('settings.closeTray')}</option>
-              <option value="quit">{t('settings.closeQuit')}</option>
-            </select>
-          </Field>
-
           <Field labelKey="settings.concurrency">
             <select
               className="df-input"
