@@ -263,7 +263,9 @@ export function TransferScreen({ controller, state }: { controller: AppControlle
               </details>
             ) : null}
 
-            {pending.length > 0 ? (
+            {/* Pendant la connexion, le panneau juste au-dessus dit déjà la même chose,
+                à côté du bouton d'envoi : la répéter ici serait du bruit. */}
+            {!connected && pending.length > 0 ? (
               <p style={{ marginTop: SPACE.md }}>
                 {t('transfer.selected', {
                   count: pending.length,

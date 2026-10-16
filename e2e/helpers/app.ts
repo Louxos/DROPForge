@@ -147,19 +147,31 @@ export async function expectEntryScreen(page: Page): Promise<void> {
 }
 
 async function openStep(page: Page, label: string, marker: (page: Page) => Locator): Promise<void> {
-  if (await marker(page).count()) return;
+  const target = marker(page).first();
+  const choice = entryChoice(page, label);
   // The other step may be open: the two choices only exist on the entry screen, so the
   // way there is « Retour ». Without this, a helper called from the send step would wait
   // twenty seconds for a button that is not on screen.
   const back = page.getByRole('button', { name: L.back, exact: true });
-  if (await back.count()) {
+
+  // The screen changes **by itself** the moment a connection opens: the send step
+  // appears with the peer, and « Retour » leaves the document. A click aimed during that
+  // switch never settles — the button was detached before the press — and Playwright then
+  // waits for a button that will never come back, until the whole test times out. So the
+  // wait comes first: one of the three possible screens, then a decision, never a blind
+  // click. A helper that could not be performed by hand would not prove anything; this
+  // one only waits, exactly as a person would.
+  await expect(target.or(choice).or(back).first()).toBeVisible({ timeout: 20_000 });
+  if (await target.count()) return;
+
+  if ((await choice.count()) > 0) {
+    await choice.click();
+  } else {
     await back.first().click();
     await expectEntryScreen(page);
+    await entryChoice(page, label).click();
   }
-  const choice = entryChoice(page, label);
-  await expect(choice).toBeVisible({ timeout: 20_000 });
-  await choice.click();
-  await expect(marker(page)).toBeVisible({ timeout: 20_000 });
+  await expect(target).toBeVisible({ timeout: 20_000 });
 }
 
 /** Goes to the send step (the file form). */
