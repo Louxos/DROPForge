@@ -371,15 +371,17 @@ GitHub → `DROPForge` (branche `main`) ; réglages appliqués automatiquement
   constante, et elle seule, que la page d'accueil affiche en haut.
 
 **2. La page d'accueil publique** — <https://louxos.github.io/DROPForge/> — GitHub Pages
-est réglé sur **« Deploy from a branch »**, branche `main`, dossier `/` : Pages sert
-`index.html` (généré par `scripts/build-site.mjs` depuis [`site/`](../site)), et le
-README seulement s'il est absent. `.nojekyll` évite que Jekyll réécrive la page.
+est réglé sur **« Deploy from a branch »**, dossier `/`, sur la branche publiée : Pages
+sert `index.html` (généré par `scripts/build-site.mjs` depuis [`site/`](../site)), et le
+README seulement s'il est absent. `.nojekyll` évite que Jekyll réécrive la page. Une
+branche enregistrée comme source publie donc à chaque envoi — vérifiez-la avec
+`gh api repos/<dépôt>/pages` si la page ne bouge pas.
 
 > **Les deux réglages de Pages s'excluent :** « Deploy from a branch » publie la page
 > d'accueil ; « GitHub Actions » publierait l'application PWA à la place (c'est ce que
 > fait `pages.yml` quand on lui en donne l'autorisation). Avec l'application sur
-> Netlify, gardez « Deploy from a branch ». Si la branche publiée disparaît, repassez la
-> même source sur `main` — les fichiers publiés y sont identiques.
+> Netlify, gardez « Deploy from a branch » — les fichiers publiés sont les mêmes dans
+> les deux cas.
 
 `npm run check:site` (inclus dans `npm run verify`) refuse une page désynchronisée de
 ses sources, et `npm run site:build` régénère `index.html`, `favicon.svg` et
