@@ -105,6 +105,25 @@ describe('scripts npm', () => {
     }
   });
 
+  it('aucun script ne construit un paquet qui n’existe plus', () => {
+    // Un espace de travail supprimé laisse derrière lui un `-w @dropforge/…` qui ne
+    // résout plus — et le défaut s'est déjà produit : `npm run package` échouait alors
+    // **uniquement sur un tag**, parce que la chaîne d'intégration appelait
+    // `package --no-build`. Le lancement d'une version est le pire endroit pour
+    // découvrir ce genre d'oubli : ce contrôle le fait ici, à chaque `npm run test`.
+    const names = new Set(workspacePackages.map((entry) => entry.manifest.name));
+    const offenders: string[] = [];
+    for (const { name, source } of scripts) {
+      for (const match of source.matchAll(/'(-w|--workspace)',\s*'([^']+)'/g)) {
+        if (!names.has(match[2]!)) offenders.push(`${name} : ${match[2]} (espace de travail inconnu)`);
+      }
+      for (const match of source.matchAll(/'--workspace=([^']+)'/g)) {
+        if (!names.has(match[1]!)) offenders.push(`${name} : ${match[1]} (espace de travail inconnu)`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
   it('les paquets du dépôt déclarent tous un nom et des scripts cohérents', () => {
     for (const { path, manifest } of workspacePackages) {
       expect(manifest.name, path).toMatch(/^@dropforge\//);

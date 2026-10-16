@@ -106,6 +106,13 @@ versions, et ne sont plus maintenues.
 
 ### Corrigé
 
+- **La publication d'une version ne s'arrête plus en chemin.** `scripts/package.mjs`
+  demandait encore de compiler l'application Windows, pourtant retirée du dépôt :
+  `npm run package` échouait, et avec lui la fabrication des archives d'une version. La
+  chaîne d'intégration, elle, l'appelait avec `--no-build` — l'oubli ne se voyait donc
+  qu'au moment de publier, c'est-à-dire au pire moment. Le script ne construit plus que ce
+  qu'il publie, et un test refuse désormais qu'un script nomme un espace de travail qui
+  n'existe plus.
 - **Se connecter d'abord ne laisse plus sans moyen d'envoyer.** Une fois une connexion
   ouverte, l'écran allait bien à l'envoi — mais le sélecteur de fichiers n'était plus
   rendu du tout : il restait un bouton « Envoyer vers » éteint, aucun fichier
