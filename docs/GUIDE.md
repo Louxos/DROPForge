@@ -335,13 +335,14 @@ Rien de tout cela n'est envoyé où que ce soit : voir
 
 ## 10. Propriétaire du dépôt
 
-Deux choses seulement ne peuvent pas être faites par un agent : une action et une
+Trois choses seulement ne peuvent pas être faites par un agent : deux actions et une
 décision.
 
 | # | Action | Nécessaire pour | Coût |
 | --- | --- | --- | --- |
 | 1 | **Brancher l'application web** (Netlify) | Une adresse publique pour la PWA | 0 € |
-| 2 | **Licence du projet** | Dire ce que les autres ont le droit de faire | 0 € |
+| 2 | **Rebrancher GitHub Pages sur `main`** | Que la page publiée ne dépende plus d'une branche de travail | 0 € |
+| 3 | **Licence du projet** | Dire ce que les autres ont le droit de faire | 0 € |
 
 **1. L'application web.** `netlify.toml` est fourni : Add new site → Import from
 GitHub → `DROPForge` (branche `main`) ; réglages appliqués automatiquement
@@ -371,11 +372,19 @@ GitHub → `DROPForge` (branche `main`) ; réglages appliqués automatiquement
   constante, et elle seule, que la page d'accueil affiche en haut.
 
 **2. La page d'accueil publique** — <https://louxos.github.io/DROPForge/> — GitHub Pages
-est réglé sur **« Deploy from a branch »**, dossier `/`, sur la branche publiée : Pages
-sert `index.html` (généré par `scripts/build-site.mjs` depuis [`site/`](../site)), et le
-README seulement s'il est absent. `.nojekyll` évite que Jekyll réécrive la page. Une
-branche enregistrée comme source publie donc à chaque envoi — vérifiez-la avec
-`gh api repos/<dépôt>/pages` si la page ne bouge pas.
+est réglé sur **« Deploy from a branch »**, dossier `/` : Pages sert `index.html` (généré
+par `scripts/build-site.mjs` depuis [`site/`](../site)), et le README seulement s'il est
+absent. `.nojekyll` évite que Jekyll réécrive la page. La source enregistrée publie à
+chaque envoi sur **cette branche-là**, et c'est le seul réglage du projet qu'un jeton
+d'automatisation ne peut pas changer (`403 Resource not accessible by integration`) :
+
+> **L'action du propriétaire :** GitHub Pages publie aujourd'hui depuis la branche de
+> travail, pas depuis `main`. `main` porte **exactement les mêmes fichiers** ; le geste
+> consiste à pointer la source dessus — Settings → Pages → *Deploy from a branch* →
+> `main` / `/` → **Save** — pour que la page ne dépende plus d'une branche de session.
+> Vérification : `gh api repos/<dépôt>/pages` doit répondre `"branch":"main"`, et la page
+> se reconstruit toute seule en une minute. Tant que la source n'est pas changée, la page
+> reste correcte : c'est la branche enregistrée qui est servie.
 
 > **Les deux réglages de Pages s'excluent :** « Deploy from a branch » publie la page
 > d'accueil ; « GitHub Actions » publierait l'application PWA à la place (c'est ce que
