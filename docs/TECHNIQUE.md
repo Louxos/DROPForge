@@ -418,7 +418,7 @@ sans lui.
 
 | Domaine | État | Précision |
 | --- | --- | --- |
-| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** | 502 tests automatisés, 47 fichiers (§ 9) |
+| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** | 504 tests automatisés, 47 fichiers (§ 9) |
 | Interface React/TypeScript partagée (FR/EN, thèmes) | ✅ Implémentée et **testée** au niveau du contrôleur et du rendu | `apps/web/src/entry.test.tsx`, `ui.test.tsx` |
 | Écran d'entrée « Envoyer / Recevoir », moins d'options visibles | ✅ Implémenté et **testé** | `apps/web/src/screens/transfer.tsx`, cas « ouvre sur le choix » dans `ui.test.tsx` |
 | Adresse du relais : un seul endroit décide, un réglage la change | ✅ Implémenté et **testé** | `apps/web/src/platform/signaling.ts` + `signaling.test.ts`, `packages/settings` (schéma 3) |
@@ -447,7 +447,7 @@ réparation d'une installation Windows.
 
 ```bash
 npm run verify           # tout ce que la chaîne exécute : types, contrôles, tests
-npm test                 # 47 fichiers, 502 tests
+npm test                 # 47 fichiers, 504 tests
 npm run test:unit        # paquets métier, sans DOM
 npm run test:integration # transferts réels en mémoire, sécurité, reprise
 npm run check:desktop    # configuration Windows, icônes, hooks NSIS
@@ -459,7 +459,7 @@ npm i --no-save werift   # facultatif : une pile WebRTC en TypeScript, sans bina
 npm run check:direct     # vérifie le chemin direct avec du vrai WebRTC (hors verify)
 ```
 
-Total vérifié le 15 octobre 2026 : **502 tests, 47 fichiers**, tous au vert sur Linux ; la
+Total vérifié le 16 octobre 2026 : **504 tests, 47 fichiers**, tous au vert sur Linux ; la
 même suite tourne sur **Windows** à chaque envoi (tâche `windows` de `ci.yml`), ce qui a
 déjà fait apparaître deux défauts propres à Windows (scripts `.cmd` lancés sans shell,
 chemins de test non portables).
@@ -513,7 +513,7 @@ l'écran.
 
 **DropForge n'est pas encore une 1.0, et ce document ne prétend pas le contraire.**
 Version actuelle : **0.1.2** — application web, installateur Windows corrigé, serveur de
-signalisation optionnel, 502 tests automatiques et une suite navigateur réelle.
+signalisation optionnel, 504 tests automatiques et une suite navigateur réelle.
 
 | Exigence du cahier des charges | État | Où le vérifier |
 | --- | --- | --- |
