@@ -15,7 +15,7 @@
  */
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -136,9 +136,15 @@ describe('procédure documentée : les deux chemins existent', () => {
     // alors que tous ses fichiers étaient prêts.
     //
     // La leçon vaut d'être **exécutée**, pas seulement relue : le test reprend le vrai
-    // script du workflow et le passe au vrai `awk`, sur le vrai `CHANGELOG.md`. Un
-    // échappement cassé échoue ici, en quelques millisecondes, au lieu d'échouer après
+    // programme `awk` du workflow et le passe au vrai `awk`, sur le vrai `CHANGELOG.md`.
+    // Un échappement cassé échoue ici, en quelques millisecondes, au lieu d'échouer après
     // dix minutes de compilation.
+    //
+    // Le programme est lancé **directement**, sans passer par un shell : c'est le motif
+    // qui a cassé la publication, et un test qui échoue à cause d'un chemin Windows ou
+    // d'une barre oblique inversée mangée par le shell ne prouverait rien sur ce motif.
+    // (Cette version du test est née là : la première passait par `bash -c` et un chemin
+    // temporaire, et rendait zéro octet sur Windows, où la publication n'a jamais lieu.)
     const workflow = read('.github/workflows/release.yml');
     const lines = workflow.split('\n');
     const start = lines.findIndex((line) => line.includes('awk -v v='));
@@ -154,46 +160,47 @@ describe('procédure documentée : les deux chemins existent', () => {
       }
       scriptLines.push(line.slice(indentation.length));
     }
-    const awkScript = scriptLines.join('\n');
-    expect(awkScript).toContain('CHANGELOG.md');
+    const awkStep = scriptLines.join('\n').replace(/\r/g, '');
+    expect(awkStep).toContain('CHANGELOG.md');
 
     // Les deux formes, écrites exactement comme elles doivent l'être : deux barres
     // obliques dans la chaîne (awk en retire une), une seule dans le motif littéral.
-    const chain = awkScript.split('\n').find((line) => line.includes('$0 ~ ')) ?? '';
-    const literal = awkScript.split('\n').find((line) => line.trim().startsWith('found && /')) ?? '';
+    const chain = awkStep.split('\n').find((line) => line.includes('$0 ~ ')) ?? '';
+    const literal = awkStep.split('\n').find((line) => line.trim().startsWith('found && /')) ?? '';
     expect(chain).toContain('"^## \\\\[" v "\\\\]"');
     expect(literal.trim()).toBe('found && /^## \\[/ { exit }');
     // Et la forme fautive, celle qui a bloqué la publication, n'est nulle part.
-    expect(awkScript).not.toContain('found && /^## \\\\[/');
+    expect(awkStep).not.toContain('found && /^## \\\\[');
+
+    // Le programme seul, tel qu'il est écrit entre apostrophes dans l'étape.
+    const program = awkStep.match(/awk -v v="\$VERSION" '([\s\S]*?)'\s+CHANGELOG\.md/)?.[1];
+    expect(program, awkStep).toBeDefined();
 
     // `awk` n'existe pas partout (un poste Windows sans outils Unix) : le test ne doit
     // pas échouer pour un outil manquant. Là où il est, l'extraction doit être prouvée.
     // `awk --version` ne dit rien : mawk (Ubuntu) refuse l'option et sort en erreur.
-    const available = spawnSync('awk', ['BEGIN { exit 0 }'], { encoding: 'utf8' }).status === 0;
-    if (!available) return;
+    const probe = spawnSync('awk', ['BEGIN { exit 0 }'], { encoding: 'utf8' });
+    if (probe.error || probe.status !== 0) return;
 
     const version = (JSON.parse(read('package.json')) as { version: string }).version;
-    const directory = mkdtempSync(join(tmpdir(), 'dropforge-notes-'));
-    const notesFile = join(directory, 'notes.md');
-    try {
-      // Le script du workflow, amputé de ses appels à `gh` : on ne teste ici que
-      // l'extraction, la publication elle-même étant le travail de GitHub.
-      const runnable = awkScript.replace('"$NOTES_FILE"', `"${notesFile}"`);
-      const result = spawnSync('bash', ['-c', `VERSION=${version}\n${runnable}`], { encoding: 'utf8' });
-      expect(result.stderr).not.toContain('runaway');
-      expect(result.stderr).not.toContain('unterminated');
-      expect(result.status).toBe(0);
+    // Le journal par l'entrée standard, la version par `-v` : aucune source de panne en
+    // dehors du programme lui-même.
+    const result = spawnSync('awk', ['-v', `v=${version}`, program!], {
+      input: read('CHANGELOG.md'),
+      encoding: 'utf8',
+    });
+    const diagnosis = `awk: ${String(result.stderr)}\nProgramme : ${String(program)}`;
+    expect(result.stderr, diagnosis).not.toContain('runaway');
+    expect(result.stderr, diagnosis).not.toContain('unterminated');
+    expect(result.status, diagnosis).toBe(0);
 
-      const notes = readFileSync(notesFile, 'utf8');
-      // La section extraite est bien celle de la version : elle porte son contenu et
-      // s'arrête avant le titre suivant.
-      expect(notes.length).toBeGreaterThan(100);
-      expect(notes).not.toContain(`## [${version}]`);
-      expect(notes).not.toContain('## [Non publiée]');
-      expect(notes).toContain('### Corrigé');
-    } finally {
-      rmSync(directory, { recursive: true, force: true });
-    }
+    const notes = String(result.stdout);
+    // La section extraite est bien celle de la version : elle porte son contenu et
+    // s'arrête avant le titre suivant.
+    expect(notes.length, diagnosis).toBeGreaterThan(100);
+    expect(notes).not.toContain(`## [${version}]`);
+    expect(notes).not.toContain('## [Non publiée]');
+    expect(notes).toContain('### Corrigé');
   });
 
   it('la documentation tient en quatre fichiers, et rien n’est perdu', () => {

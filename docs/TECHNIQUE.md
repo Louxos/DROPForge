@@ -240,10 +240,13 @@ bornées, et un réglage non applicable à la plateforme est désactivé avec so
   compilée, sur le dépôt comme dans la chaîne d'intégration, et **aucune version ne
   pouvait plus être publiée**. `apps/desktop/src-tauri/Cargo.toml` désactive maintenant la
   fonction optionnelle `zip` du greffon (le reste est inchangé : `rustls-tls`,
-  `system-proxy`). Conséquence à connaître : une mise à jour Windows publiée en `.nsis.zip`
-  ne pourrait pas être décompressée par l'application. Comme aucune clé de signature n'est
-  configurée, aucune mise à jour de ce genre n'existe aujourd'hui — **à rouvrir en même
-  temps que les clés**, quand le greffon acceptera `zip 9`.
+  `system-proxy`). Conséquence exacte, vérifiée dans le code du greffon : une mise à jour
+  Windows **publiée en `.nsis.zip`** n'est pas décompressée (`InvalidUpdaterFormat`), alors
+  qu'une mise à jour livrée en `.exe` ou `.msi` brut s'installe normalement. Or
+  `createUpdaterArtifacts` produit justement un `.nsis.zip` : le jour où les clés de
+  signature arrivent, il faudra **rouvrir la fonction d'abord** (quand le greffon acceptera
+  `zip 9`). Aujourd'hui, rien n'est perdu : sans clé, aucun artefact de mise à jour n'est
+  produit, et l'application n'essaie aucune mise à jour.
 
 ## 4. Données locales
 
