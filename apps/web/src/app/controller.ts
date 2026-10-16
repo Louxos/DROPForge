@@ -13,6 +13,7 @@
 import {
   DropForgeError,
   ERROR_CODES,
+  describeError,
   fromPlatformError,
   isTerminal,
   type DropForgeError as DropForgeErrorType,
@@ -51,6 +52,8 @@ import {
   type QueueEntry,
   type ReceiverOutcome,
   type SenderOutcome,
+  type TaskHooks,
+  type TaskResult,
   type TransferProgress,
 } from '@dropforge/transfer-engine';
 import { generateDeviceId, hydrateIdentity, createDeviceIdentity, type StoredIdentity } from '@dropforge/security';
@@ -83,6 +86,12 @@ export interface HostedRoom {
   code: string;
   /** Resolves with the transport once the other device has joined and connected. */
   transport: Promise<Transport>;
+  /**
+   * Resolves once the room really exists — the service has accepted this device
+   * into it. A code is only worth showing after that: a code announced too early
+   * makes the other device fail for a reason that belongs to this side.
+   */
+  ready: Promise<void>;
   close(): Promise<void>;
 }
 
@@ -120,7 +129,7 @@ export interface ControllerOptions {
    * injectable so tests can read what a notification would really say.
    */
   translate?: (key: string, options?: Record<string, unknown>) => string;
-  /** Update mechanism: service worker on the web, signed Tauri updater on desktop. */
+  /** Update mechanism: the service worker, when there is one. */
   updateSource?: UpdateSource;
   /** Version shown in the settings; reported by the build, never invented. */
   appVersion?: string;
@@ -173,7 +182,7 @@ export interface AppNotice {
 
 export interface AppState {
   ready: boolean;
-  fatalError?: { code: string; message: string };
+  fatalError?: { code: string; message: string; detail?: string };
   identityFingerprint: string | undefined;
   deviceName: string;
   settings: Preferences;
@@ -211,6 +220,24 @@ export interface AppState {
 }
 
 const DEFAULT_DEVICE_NAME = 'Mon appareil';
+
+/**
+ * What a queue row says about a transfer: the names of what is being moved.
+ *
+ * The row used to read « Windows · 2 fichier(s) » — the peer and a count. The peer is
+ * already shown by the connection panel just above, and a count says nothing about
+ * *what* is moving: two rows from the same device were indistinguishable. Beyond three
+ * names the row would stop being a row, so the rest becomes a count.
+ */
+export function transferLabel(entries: Array<{ path: string }>): string {
+  const names = entries.map((entry) => {
+    const cut = Math.max(entry.path.lastIndexOf('/'), entry.path.lastIndexOf('\\'));
+    return cut >= 0 ? entry.path.slice(cut + 1) : entry.path;
+  });
+  if (names.length === 0) return '—';
+  if (names.length <= 3) return names.join(', ');
+  return `${names.slice(0, 3).join(', ')} + ${names.length - 3}`;
+}
 
 export class AppController {
   private readonly listeners = new Set<() => void>();
@@ -341,7 +368,15 @@ export class AppController {
       this.emit();
     } catch (error) {
       const dfError = fromPlatformError(error);
-      this.state.fatalError = { code: dfError.code, message: dfError.message };
+      // The screen shows a sentence; the reason has to be available too. Without it the
+      // only symptom is "local storage is unavailable" — true, and useless to anyone
+      // trying to understand *why* (a refused database, a blocked profile, no WebCrypto).
+      this.state.fatalError = {
+        code: dfError.code,
+        message: dfError.message,
+        detail: describeError(dfError.cause ?? error),
+      };
+      console.error('[DropForge] démarrage impossible', error);
       this.emit();
     }
   }
@@ -429,7 +464,14 @@ export class AppController {
   /** Reports an error as a notice with its stable code, never with a raw message. */
   private reportError(error: unknown): DropForgeErrorType {
     const dfError = error instanceof DropForgeError ? error : fromPlatformError(error);
-    this.notice('error', `errors.${dfError.code}`, { errorCode: dfError.code });
+    const path = dfError.context['path'];
+    this.notice('error', `errors.${dfError.code}`, {
+      errorCode: dfError.code,
+      // A connection can fail on several paths at once (a direct one, then the
+      // relay). Naming them is the difference between "it did not work" and an
+      // answer: `.df-faint` shows this line under the sentence.
+      ...(typeof path === 'string' && path.length > 0 ? { detail: path } : {}),
+    });
     this.options.logger?.log('warn', 'action failed', { code: dfError.code });
     return dfError;
   }
@@ -603,6 +645,9 @@ export class AppController {
 
   localCapabilities(): Capability[] {
     const capabilities: Capability[] = ['transfer.integrity'];
+    // This device can ask its user whether a brand-new device may be trusted — and it
+    // does: the question is what makes the comparison code worth comparing.
+    capabilities.push('trust.request');
     if (this.state.capabilities.webRtc) capabilities.push('webrtc.direct');
     if (this.state.capabilities.directoryRead) capabilities.push('transfer.folders', 'fs.directory');
     if (this.state.capabilities.downloadStream) capabilities.push('fs.download');
@@ -628,7 +673,7 @@ export class AppController {
         factory: this.resolveLinks() as ConnectionFactory,
         clock: this.clock,
         ...(this.options.logger ? { logger: this.options.logger } : {}),
-        requestTrust: async (peer, method) => await this.askForNewDevice(peer, method),
+        requestTrust: async (peer, method, sas) => await this.askForNewDevice(peer, method, sas),
       });
       const connection = await manager.connect(target);
       this.connectionManager = manager;
@@ -659,7 +704,9 @@ export class AppController {
     if (!target) return false;
     const method = this.chooseMethod(['webrtc.direct', 'relay.blind'], false);
     const choice = selectTransportMethod(method);
-    return await this.connect({ ...target, methods: choice.method ? [choice.method] : ['relay', 'webrtc'] });
+    // Nothing should ever be preferred to a direct path: the relay costs the most and
+    // is the least private of the three, so it is tried last, never first.
+    return await this.connect({ ...target, methods: choice.method ? [choice.method] : ['webrtc', 'relay'] });
   }
 
   private targetFromCode(input: string): ConnectionTarget | undefined {
@@ -732,28 +779,44 @@ export class AppController {
       const code = newRoomCode();
       const room = await links.host(code);
       this.hostedRoom = room;
+      // The code is published *after* the room is real. Showing it earlier is how a
+      // fast hand (a scanned QR code, a pasted link) ends up being told the room does
+      // not exist — a race that belongs to this side, and that the user would pay for.
+      await room.ready;
       this.state.pairingRoom = { code, link: pairingLinkFor(code) };
       this.emit();
       // The waiting side runs the handshake as the responder: it answers whoever
       // dials, and only then does a transfer become possible.
       void room.transport.then(
         async (transport) => {
+          // An answer arrived (or the wait was cancelled): the code has served its
+          // purpose and is withdrawn either way.
+          if (this.state.pairingRoom?.code === code) this.state.pairingRoom = undefined;
           this.hostedRoom = undefined;
-          this.state.pairingRoom = undefined;
           this.state.connecting = true;
           this.emit();
           await this.acceptOnTransport(transport, {});
         },
         () => {
+          // Two outcomes share this path, and they are not the same thing: the user
+          // closed the room (the code is already withdrawn — nothing to say), or the
+          // wait ended by itself (nobody came in time: the code is dead, and saying so
+          // is the only honest thing left).
+          if (this.state.pairingRoom?.code === code) {
+            this.state.pairingRoom = undefined;
+            this.notice('warning', 'errors.PAIRING_CODE_EXPIRED');
+          }
           this.hostedRoom = undefined;
-          this.state.pairingRoom = undefined;
           this.emit();
         },
       );
-      return { code, link: this.state.pairingRoom.link };
+      return { code, link: pairingLinkFor(code) };
     } catch (error) {
-      this.reportError(error);
+      // Nothing is shown as waiting when the room was never opened: the failure is
+      // reported instead of a code that would not work.
+      this.hostedRoom = undefined;
       this.state.pairingRoom = undefined;
+      this.reportError(error);
       this.emit();
       return undefined;
     }
@@ -785,7 +848,7 @@ export class AppController {
       factory: this.resolveLinks() as ConnectionFactory,
       clock: this.clock,
       ...(this.options.logger ? { logger: this.options.logger } : {}),
-      requestTrust: async (peer, method) => await this.askForNewDevice(peer, method),
+      requestTrust: async (peer, method, sas) => await this.askForNewDevice(peer, method, sas),
     });
     const connection = await manager.accept(transport, options.expect ?? {}, {
       requestTrust: true,
@@ -934,7 +997,7 @@ export class AppController {
     this.queue.enqueue({
       id: transferId,
       direction: 'send',
-      label: `${connection.peer.displayName} · ${prepared.offer.entries.length} fichier(s)`,
+      label: transferLabel(prepared.offer.entries),
       totalBytes: prepared.offer.totalBytes,
       filesTotal: prepared.offer.entries.length,
       priority: this.queue.size,
@@ -950,7 +1013,7 @@ export class AppController {
     prepared: ReturnType<typeof prepareTransfer>,
     hooks: Parameters<Parameters<TransferQueue['enqueue']>[0]['run']>[0],
     record: TransferRecord,
-  ): Promise<{ outcome: SenderOutcome['outcome']; errorCode?: string; bytesDone?: number; verifiedFiles?: number }> {
+  ): Promise<TaskResult> {
     const result = await sendTransfer({
       session: connection.session,
       offer: prepared.offer,
@@ -986,6 +1049,12 @@ export class AppController {
       ...(failureCode ? { errorCode: failureCode } : {}),
       bytesDone: result.outcome.bytesDone,
       verifiedFiles: result.outcome.verifiedFiles,
+      // Only a failure the engine itself called retryable may be replayed: a refusal
+      // is the other person's answer, not a passing network problem. Before this, a
+      // refused transfer was silently re-offered up to three times, and the row went
+      // back to « En attente » — the interface said "waiting" about something that
+      // was already over.
+      retryable: result.outcome.retryable === true,
     };
   }
 
@@ -998,6 +1067,24 @@ export class AppController {
     connection.session.events.on('control', (message: ControlMessage) => {
       if (message.t !== 'transferOffer') return;
       void this.receiveOffer(connection, message);
+    });
+    // A connection that dies must stop being shown as alive. Leaving "Envoyer à" on
+    // screen after the other device closed the session (it refused the connection, it
+    // quit, the network went) is a success that never happened — the one thing this
+    // product refuses to do. A deliberate close is already cleared by `disconnect()`.
+    connection.session.events.on('closed', (reason) => {
+      if (this.connection !== connection) return;
+      this.connection = undefined;
+      this.connectionManager = undefined;
+      this.state.connection = undefined;
+      this.state.connecting = false;
+      this.notice('warning', 'errors.CONNECTION_LOST', {
+        errorCode: ERROR_CODES.CONNECTION_LOST,
+        // Why it ended is the useful part: "local" is the user closing it, "transport"
+        // is the link dying, "remote" is the other device leaving.
+        detail: typeof reason === 'object' && 'kind' in reason ? String(reason.kind) : undefined,
+      });
+      this.emit();
     });
   }
 
@@ -1054,6 +1141,51 @@ export class AppController {
         (await this.devices.canAutoAccept(connection.peer.deviceId)) &&
         answer.accepted;
 
+      // The receiving side joins the queue exactly like the sending side. It used to
+      // run outside it, so the person waiting for a file saw an empty « File
+      // d'attente » and no moving progress while the bytes were arriving — the
+      // interface was silent about the very thing happening on that device.
+      this.queue.enqueue({
+        id: transferId,
+        direction: 'receive',
+        label: transferLabel(offer.entries),
+        totalBytes: offer.totalBytes,
+        filesTotal: offer.entries.length,
+        priority: this.queue.size,
+        // An offer is answered once: a failed receive has nothing to retry, and a
+        // replay would wait for an offer that will never come again.
+        retry: false,
+        run: async (hooks) => await this.runReceive(transferId, connection, offer, answer, store, hooks),
+      });
+      void autoAccept;
+    } catch (error) {
+      this.state.incoming = undefined;
+      const dfError = this.reportError(error);
+      await this.finishRecord(transferId, {
+        state: 'failed',
+        bytesDone: 0,
+        verifiedFiles: 0,
+        errorCode: dfError.code,
+      });
+    }
+  }
+
+  /**
+   * The work of one received transfer, run by the queue.
+   *
+   * It reports progress like a send does — the figures come from the engine's real
+   * counters, never from a timer — and it never throws: an error becomes a `failed`
+   * result and a finished record, which is what the queue and the history both need.
+   */
+  private async runReceive(
+    transferId: string,
+    connection: Connection,
+    offer: ControlMessage & { t: 'transferOffer' },
+    answer: Parameters<IncomingRequestState['resolve']>[0],
+    store: FileSystemPort,
+    hooks: TaskHooks,
+  ): Promise<TaskResult> {
+    try {
       const received = await receiveTransfer({
         session: connection.session,
         // The offer was consumed by this controller to build the request above; the
@@ -1063,7 +1195,8 @@ export class AppController {
         ...(this.options.logger ? { logger: this.options.logger } : {}),
         store,
         policy: this.state.settings.conflictPolicy,
-        ...(freeSpace !== undefined ? { freeSpaceBytes: freeSpace } : {}),
+        ...(this.state.freeSpace !== undefined ? { freeSpaceBytes: this.state.freeSpace } : {}),
+        onProgress: (progress) => hooks.onProgress(progress),
         requestDecision: async () => ({
           accepted: answer.accepted,
           decisions: answer.decisions,
@@ -1083,9 +1216,15 @@ export class AppController {
       });
       await this.saveResumeTask(transferId, received.offer, receiverResumeState(received.receiver, received.offer));
       await this.notifyOutcome('receive', saved, received.outcome.outcome);
-      void autoAccept;
+      return {
+        outcome: received.outcome.outcome,
+        ...(received.outcome.errorCode ? { errorCode: received.outcome.errorCode } : {}),
+        bytesDone: received.outcome.bytesDone,
+        verifiedFiles: received.outcome.verifiedFiles,
+        retryable: false,
+      };
     } catch (error) {
-      this.state.incoming = undefined;
+      this.activeReceiver = undefined;
       const dfError = this.reportError(error);
       await this.finishRecord(transferId, {
         state: 'failed',
@@ -1093,6 +1232,7 @@ export class AppController {
         verifiedFiles: 0,
         errorCode: dfError.code,
       });
+      return { outcome: 'failed', errorCode: dfError.code, bytesDone: 0, verifiedFiles: 0 };
     }
   }
 
@@ -1287,8 +1427,8 @@ export class AppController {
 
   /**
    * Checks for an update and reports exactly what the platform said. Nothing is
-   * installed here: the user has to approve it, and the desktop build keeps Tauri's
-   * signature verification on.
+   * installed here: the user has to approve it, and the new version only takes over
+   * once the worker that carries it is activated.
    */
   async checkForUpdate(): Promise<void> {
     const source = this.options.updateSource ?? noUpdateSource;

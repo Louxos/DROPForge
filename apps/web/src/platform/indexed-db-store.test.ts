@@ -6,6 +6,10 @@
 import { IDBFactory } from 'fake-indexeddb';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ERROR_CODES } from '@dropforge/app-core';
+import { DEVICE_COLLECTION } from '@dropforge/device-manager';
+import { HISTORY_COLLECTION } from '@dropforge/history';
+import { SETTINGS_COLLECTION } from '@dropforge/settings';
+import { IDENTITY_COLLECTION } from './identity-store.js';
 import { IndexedDbMetaStore } from './indexed-db-store.js';
 
 const realIndexedDb = globalThis.indexedDB;
@@ -23,7 +27,7 @@ describe('IndexedDbMetaStore', () => {
   it('stores and reads a record by collection and key', async () => {
     const store = new IndexedDbMetaStore();
     await store.init();
-    expect(store.schemaVersion).toBe(2);
+    expect(store.schemaVersion).toBe(3);
 
     await store.put('settings', 'preferences', { v: 2, theme: 'dark' });
     expect(await store.get('settings', 'preferences')).toEqual({ v: 2, theme: 'dark' });
@@ -53,6 +57,27 @@ describe('IndexedDbMetaStore', () => {
     ]);
     expect((await store.list('resume', { prefix: 'r' })).map((record) => record.key)).toEqual(['r1', 'r2']);
     expect((await store.list('resume', { limit: 1 })).length).toBe(1);
+    await store.close();
+  });
+
+  it('toutes les collections que l’application utilise existent dans le schéma', async () => {
+    // Le défaut que ce test empêche : l'identité de l'appareil vit dans la collection
+    // « identity », qui n'était pas créée par le schéma. Chaque écriture échouait donc
+    // dans un vrai navigateur — l'application ne démarrait pas — alors que toute la
+    // suite était verte, parce qu'elle remplace le magasin par un objet en mémoire.
+    const store = new IndexedDbMetaStore();
+    await store.init();
+
+    // Les noms viennent des paquets qui les utilisent, jamais d'une copie ici.
+    const used = [IDENTITY_COLLECTION, SETTINGS_COLLECTION, DEVICE_COLLECTION, HISTORY_COLLECTION, 'resume', 'shares'];
+    for (const collection of used) {
+      await store.put(collection, 'clé', { collection });
+      expect(await store.get(collection, 'clé')).toEqual({ collection });
+    }
+
+    // Et les dossiers mémorisés, qui ont leur propre magasin.
+    await store.putHandle('receive-folder', { kind: 'directory', name: 'Reçus' });
+    expect(await store.getHandle('receive-folder')).toEqual({ kind: 'directory', name: 'Reçus' });
     await store.close();
   });
 
@@ -129,7 +154,7 @@ describe('IndexedDbMetaStore migration', () => {
 
     const store = new IndexedDbMetaStore();
     await store.init();
-    expect(store.schemaVersion).toBe(2);
+    expect(store.schemaVersion).toBe(3);
 
     // The history written by the older version is still there…
     expect(await store.get('transfers', 'ancien')).toEqual({ v: 1, id: 'ancien', state: 'completed' });

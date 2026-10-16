@@ -14,10 +14,6 @@ export default defineConfig({
             // tested without a DOM; its rendering is exercised by the dev server.
             'apps/web/src/**/*.test.ts',
             'apps/web/src/**/*.test.tsx',
-            // The desktop shell's pure helpers (path handling) run here too. Tests
-            // that need the Tauri runtime cannot live in this project: only files
-            // that import nothing from `@tauri-apps/*` may be added.
-            'apps/desktop/src/**/*.test.ts',
           ],
         },
       },

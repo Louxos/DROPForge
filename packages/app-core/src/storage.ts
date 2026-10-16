@@ -1,15 +1,15 @@
 /**
  * Storage ports.
  *
- * Two families of data, two different stores, on every platform:
+ * Two families of data, two different stores:
  *  - structured metadata (devices, transfers, files, resume tasks, history,
- *    settings) → SQLite on Windows, IndexedDB on the PWA. Schema is versioned
- *    and migrated (see docs/DATA-MODEL.md).
- *  - file bytes → a real filesystem on Windows, the File System Access API or
- *    a Blob download in the browser. Never kept in the metadata store.
+ *    settings) → IndexedDB, with a versioned schema that is migrated
+ *    (see docs/TECHNIQUE.md) ;
+ *  - file bytes → the File System Access API, or a Blob download as the fallback.
+ *    Never kept in the metadata store.
  *
  * The engine only talks to these interfaces, so the same transfer code runs on
- * desktop and in a browser without a single `if (isTauri)` inside the engine.
+ * several browsers and environments without a single platform test inside the engine.
  */
 import type { TransferState } from './state-machine.js';
 
@@ -69,12 +69,12 @@ export interface FileStat {
 /**
  * Filesystem abstraction. Every method takes a *relative*, already sanitised
  * path ('' means the root of the receiving folder): the port decides where that
- * root is (chosen folder, Tauri scope, browser download). Implementations MUST
+ * root is (chosen folder, or the browser's download stream). Implementations MUST
  * refuse paths that escape the root, and MUST NOT replace an existing file
  * unless `overwrite` is true.
  */
 export interface FileSystemPort {
-  readonly kind: 'tauri' | 'browser-fs' | 'browser-download' | 'memory';
+  readonly kind: 'browser-fs' | 'browser-download' | 'memory';
   /** Capabilities actually available on this platform. */
   readonly features: {
     /** Directory handles can be kept between sessions. */
@@ -128,7 +128,7 @@ export interface SourceProvider {
 }
 
 /* ------------------------------------------------------------------ *
- * Persisted models (docs/DATA-MODEL.md, version 1)
+ * Persisted models (docs/TECHNIQUE.md, version 1)
  * ------------------------------------------------------------------ */
 
 export interface DeviceRecord {

@@ -9,7 +9,14 @@
 import { DropForgeError, ERROR_CODES, type MetaStore } from '@dropforge/app-core';
 import type { StoredIdentity } from '@dropforge/security';
 
-const COLLECTION = 'identity';
+/**
+ * The store this device's identity lives in.
+ *
+ * Exported so the schema test can prove it exists: it did not, and the application
+ * could not start in any real browser (see `indexed-db-store.ts`, version 3).
+ */
+export const IDENTITY_COLLECTION = 'identity';
+const COLLECTION = IDENTITY_COLLECTION;
 const KEY = 'self';
 
 export class IndexedDbIdentityStore {

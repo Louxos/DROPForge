@@ -43,7 +43,7 @@ export interface DeliveredNotification extends NotificationRequest {
   createdAt: number;
 }
 
-/** The platform's notification channel (Web Notifications, Tauri, or nothing). */
+/** The platform's notification channel (Web Notifications, or nothing at all). */
 export interface NotificationChannel {
   readonly supported: boolean;
   permission(): Promise<NotificationPermission>;

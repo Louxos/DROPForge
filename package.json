@@ -1,9 +1,9 @@
 {
   "name": "dropforge",
-  "version": "0.1.0",
+  "version": "0.1.3",
   "private": true,
-  "description": "DropForge \u2014 transfert de fichiers entre appareils, sans compte, chiffr\u00e9 de bout en bout.",
-  "license": "SEE LICENSE IN docs/LICENCES.md",
+  "description": "DropForge — transfert de fichiers entre appareils, sans compte, chiffré de bout en bout.",
+  "license": "SEE LICENSE IN docs/GUIDE.md",
   "type": "module",
   "engines": {
     "node": ">=20.19"
@@ -11,8 +11,7 @@
   "workspaces": [
     "packages/*",
     "apps/web",
-    "apps/signaling",
-    "apps/desktop"
+    "apps/signaling"
   ],
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -20,26 +19,27 @@
     "test:watch": "vitest",
     "test:unit": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install --with-deps chromium firefox webkit",
+    "check:direct": "tsx scripts/check-direct-path.mts",
     "dev:web": "npm run dev -w @dropforge/web",
     "dev:signaling": "npm run dev -w @dropforge/signaling",
     "build:web": "npm run build -w @dropforge/web",
     "start:signaling": "npm run start -w @dropforge/signaling",
-    "verify": "npm run typecheck && npm run typecheck:desktop && npm run check:desktop && npm run test",
-    "dev:desktop": "npm run tauri dev -w @dropforge/desktop",
-    "build:desktop": "npm run tauri:build -w @dropforge/desktop",
+    "verify": "npm run typecheck && npm run check:site && npm run test",
     "icons": "node scripts/generate-icons.mjs",
     "licences": "node scripts/list-licences.mjs",
-    "typecheck:desktop": "tsc -p apps/desktop/tsconfig.json --noEmit",
-    "check:desktop": "node scripts/check-desktop-config.mjs",
+    "site:build": "node scripts/build-site.mjs",
+    "check:site": "node scripts/build-site.mjs --check",
     "dev": "node scripts/dev.mjs",
+    "lan": "node scripts/serve-lan.mjs",
     "build:signaling": "npm run build -w @dropforge/signaling",
-    "build:desktop:frontend": "npm run build -w @dropforge/desktop",
-    "build": "npm run build:signaling && npm run build:web && npm run build:desktop:frontend",
+    "build": "npm run build:signaling && npm run build:web",
     "package": "node scripts/package.mjs",
-    "smoke:release": "node scripts/smoke-release.mjs",
-    "build:windows": "npm run tauri:build -w @dropforge/desktop"
+    "smoke:release": "node scripts/smoke-release.mjs"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.0",
     "@types/node": "^26.6.5",
     "fake-indexeddb": "^6.2.5",
     "happy-dom": "^21.0.1",

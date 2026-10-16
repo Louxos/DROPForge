@@ -12,7 +12,7 @@
  *
  * What it therefore does **not** prove: rendering in Chromium/Safari/Firefox, CSS
  * layout, touch interactions, or the browser file pickers. Those remain listed as
- * untested in `docs/PLATFORM-MATRIX.md`.
+ * untested in `docs/TECHNIQUE.md`.
  */
 import { act, StrictMode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -91,6 +91,19 @@ async function click(container: HTMLElement, label: string): Promise<void> {
 
 const text = (container: HTMLElement): string => container.textContent ?? '';
 
+/**
+ * The labels of the real buttons on screen.
+ *
+ * Asserting on the whole page text cannot tell « the screen does not offer the file
+ * picker » from « the screen explains the file picker in a sentence » — the entry
+ * screen says « Choisir des fichiers, puis un appareil » without offering anything.
+ * Only the buttons can answer that question.
+ */
+const buttonLabels = (container: HTMLElement): string[] =>
+  [...container.querySelectorAll('button, label.df-button')].map((element) =>
+    (element.textContent ?? '').trim(),
+  );
+
 /** Re-renders after the controller changed state behind React's back. */
 async function flush(): Promise<void> {
   await act(async () => {
@@ -102,8 +115,11 @@ describe('interface montée de bout en bout', () => {
   it('affiche l’attente, puis les quatre sections une fois prête', async () => {
     const rig = await makeRig();
     const container = await mount(rig.host);
-    // Nothing is invented while the controller has not reported readiness.
+    // Nothing is invented while the controller has not reported readiness: the boot
+    // screen says what is being prepared, and no progress figure is shown because
+    // there is none to show.
     expect(text(container)).toContain(i18n.t('app.loading'));
+    expect(text(container)).toContain(i18n.t('app.loadingHint'));
 
     await rig.host.start();
     await flush();
@@ -114,21 +130,65 @@ describe('interface montée de bout en bout', () => {
     expect(text(container)).not.toContain(i18n.t('app.loading'));
   });
 
-  it('annonce l’absence d’appareil au lieu de montrer une liste inventée', async () => {
+  it('ouvre sur le choix « envoyer ou recevoir », et rien d’autre', async () => {
+    const rig = await makeRig();
+    await rig.host.start();
+    const container = await mount(rig.host);
+    await flush();
+
+    // The entry screen offers exactly two gestures. Everything that used to sit on
+    // the first page at once — the drop zone, the code input, the hosting button —
+    // waits behind one of them: an interface that shows everything first explains
+    // nothing.
+    expect(text(container)).toContain(i18n.t('transfer.sendTitle'));
+    expect(text(container)).toContain(i18n.t('transfer.receiveTitle'));
+    expect(buttonLabels(container)).not.toContain(i18n.t('transfer.selectFiles'));
+    expect(buttonLabels(container)).not.toContain(i18n.t('transfer.connect'));
+    expect(buttonLabels(container)).not.toContain(i18n.t('transfer.receiveDevice'));
+
+    // « Envoyer » opens the send step, where the files are chosen — and the way back
+    // is a real button, not a browser back gesture.
+    await click(container, i18n.t('transfer.sendTitle'));
+    expect(buttonLabels(container)).toContain(i18n.t('transfer.selectFiles'));
+    expect(text(container)).toContain(i18n.t('transfer.dropHint'));
+    expect(buttonLabels(container)).not.toContain(i18n.t('transfer.receiveDevice'));
+    await click(container, i18n.t('transfer.back'));
+    expect(buttonLabels(container)).not.toContain(i18n.t('transfer.selectFiles'));
+
+    // « Recevoir » opens the receiving step: the code to give, and the code to paste.
+    await click(container, i18n.t('transfer.receiveTitle'));
+    expect(text(container)).toContain(i18n.t('transfer.pasteCode'));
+    expect(buttonLabels(container)).toContain(i18n.t('transfer.receiveDevice'));
+    expect(buttonLabels(container)).not.toContain(i18n.t('transfer.selectFiles'));
+  });
+
+  it('n’offre aucune destination inventée tant qu’aucun appareil n’est là', async () => {
     const rig = await makeRig();
     await rig.host.start();
     await rig.guest.start();
     const container = await mount(rig.host);
     await flush();
-    // With nothing paired and nothing discovered, the screen says so instead of
-    // offering a destination that does not exist.
-    expect(text(container)).toContain(i18n.t('transfer.noDevices'));
 
-    // It disappears the moment a device is really there.
+    // Hick : rien à envoyer sans appareil, donc aucune destination n'est proposée —
+    // ni sur l'écran d'entrée, ni dans l'étape d'envoi. Pas de liste vide à lire, pas
+    // de bouton « Envoyer vers » qui ne pourrait viser personne.
+    expect(buttonLabels(container)).not.toContain(i18n.t('transfer.sendTo'));
+    await click(container, i18n.t('transfer.sendTitle'));
+    expect(text(container)).toContain(i18n.t('transfer.pickFirst'));
+    expect(buttonLabels(container)).not.toContain(i18n.t('transfer.sendTo'));
+
+    // L'appareil apparaît au moment où il est réellement là, sous son vrai nom, et
+    // l'action principale de l'écran devient « Envoyer vers ».
     await connectPair(rig);
     await flush();
     expect(text(container)).toContain('Téléphone');
-    expect(text(container)).not.toContain(i18n.t('transfer.noDevices'));
+    expect(buttonLabels(container)).toContain(i18n.t('transfer.sendTo'));
+
+    // Et se connecter **d'abord** ne laisse jamais sans moyen de dire quoi envoyer : le
+    // sélecteur de fichiers reste à l'écran une fois la connexion établie. Sans cette
+    // ligne, le défaut ne se voyait que sur un vrai navigateur : un bouton « Envoyer
+    // vers » éteint, aucun fichier sélectionnable, et rien à faire d'autre que fermer.
+    expect(buttonLabels(container)).toContain(i18n.t('transfer.selectFiles'));
   });
 
   it('suit un transfert réel jusqu’à « Terminé », avec sa vérification', async () => {
@@ -170,6 +230,10 @@ describe('interface montée de bout en bout', () => {
     expect(row).toContain(i18n.t('activity.filterSend'));
     expect(row).toContain(i18n.t('states.completed'));
     expect(row).not.toContain(i18n.t('states.failed'));
+    // The name of what was transferred is on the row itself, without opening the
+    // details: a history whose entries say « Envoi · 1 · 3,0 Mio » makes the person
+    // open every entry to find the file they are looking for.
+    expect(row).toContain('rapport.txt');
 
     // Details: the file is listed, and its verification status is the engine's, not
     // something the interface decided.
@@ -237,6 +301,39 @@ describe('interface montée de bout en bout', () => {
 
     expect(text(container)).toContain(String(i18n.t('settings.title', { lng: 'en' })));
     expect(text(container)).not.toContain(i18n.t('settings.title', { lng: 'fr' }));
+  });
+
+  it('les deux gestes d’entrée portent un nom accessible utilisable par un banc', async () => {
+    // Ce test existe à cause d'un vrai échec des tests de navigateur : les boutons
+    // « Envoyer » et « Recevoir » portent leur titre **et** leur sous-titre, donc leur
+    // nom accessible n'est pas « Recevoir » mais « Recevoir Donner un code… ». Un banc
+    // qui les cherche par nom exact ne les trouve jamais, et le résultat ressemble à
+    // soudain « l'interface a changé » plutôt qu'à « le sélecteur est trop strict ».
+    //
+    // On lit donc ce que le navigateur lit : le titre est le début du nom accessible, et
+    // le sous-titre suit — les deux sont utiles, aucun ne doit disparaître.
+    const rig = await makeRig();
+    await rig.host.start();
+    const container = await mount(rig.host);
+    await flush();
+
+    const entries = [...container.querySelectorAll('button.df-choice')].map((button) => ({
+      accessibleName: (button.textContent ?? '').replace(/\s+/g, ' ').trim(),
+      leads: button.classList.contains('df-choice--primary'),
+    }));
+    expect(entries).toHaveLength(2);
+
+    const send = entries.find((entry) => entry.accessibleName.startsWith(i18n.t('transfer.sendTitle')));
+    const receive = entries.find((entry) => entry.accessibleName.startsWith(i18n.t('transfer.receiveTitle')));
+    expect(send).toBeDefined();
+    expect(receive).toBeDefined();
+    // Le sous-titre est bien là : c'est ce qui explique le geste, et le retirer pour
+    // faciliter un test serait prendre le problème à l'envers.
+    expect(send!.accessibleName.length).toBeGreaterThan(i18n.t('transfer.sendTitle').length);
+    expect(receive!.accessibleName.length).toBeGreaterThan(i18n.t('transfer.receiveTitle').length);
+    // Hick : un seul des deux porte le style principal.
+    expect(entries.filter((entry) => entry.leads)).toHaveLength(1);
+    expect(send!.leads).toBe(true);
   });
 
   it('dit qu’une fonction n’est pas disponible au lieu de la proposer', async () => {

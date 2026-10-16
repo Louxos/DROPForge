@@ -10,9 +10,12 @@
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-const root = new URL('..', import.meta.url).pathname;
+// `new URL(...).pathname` donne « /D:/… » sous Windows, ce qui n'est pas un chemin
+// utilisable : le dépôt doit se lire de la même façon sur les trois systèmes.
+const root = fileURLToPath(new URL('..', import.meta.url));
 
 interface Manifest {
   name: string;
@@ -102,6 +105,25 @@ describe('scripts npm', () => {
     }
   });
 
+  it('aucun script ne construit un paquet qui n’existe plus', () => {
+    // Un espace de travail supprimé laisse derrière lui un `-w @dropforge/…` qui ne
+    // résout plus — et le défaut s'est déjà produit : `npm run package` échouait alors
+    // **uniquement sur un tag**, parce que la chaîne d'intégration appelait
+    // `package --no-build`. Le lancement d'une version est le pire endroit pour
+    // découvrir ce genre d'oubli : ce contrôle le fait ici, à chaque `npm run test`.
+    const names = new Set(workspacePackages.map((entry) => entry.manifest.name));
+    const offenders: string[] = [];
+    for (const { name, source } of scripts) {
+      for (const match of source.matchAll(/'(-w|--workspace)',\s*'([^']+)'/g)) {
+        if (!names.has(match[2]!)) offenders.push(`${name} : ${match[2]} (espace de travail inconnu)`);
+      }
+      for (const match of source.matchAll(/'--workspace=([^']+)'/g)) {
+        if (!names.has(match[1]!)) offenders.push(`${name} : ${match[1]} (espace de travail inconnu)`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
   it('les paquets du dépôt déclarent tous un nom et des scripts cohérents', () => {
     for (const { path, manifest } of workspacePackages) {
       expect(manifest.name, path).toMatch(/^@dropforge\//);
@@ -112,5 +134,23 @@ describe('scripts npm', () => {
         }
       }
     }
+  });
+});
+
+describe('processus externes', () => {
+  it('un exécutable Windows (.cmd) n’est jamais lancé sans shell', () => {
+    // Sous Windows, `npm` n'est pas un exécutable mais un script `.cmd`. Node refuse de
+    // le lancer directement (« spawn EINVAL ») : il faut passer par un shell, sinon la
+    // commande échoue à l'exécution alors que tout va bien en développement sous
+    // Linux ou macOS. Ce défaut a été trouvé par la tâche Windows de la chaîne
+    // d'intégration ; ce test l'empêche de revenir.
+    const offenders: string[] = [];
+    for (const { name, source } of scripts) {
+      const launchesCmd = /['"][^'"]*\.cmd['"]/.test(source) || /npm\.cmd/.test(source);
+      if (!launchesCmd) continue;
+      if (!/execFileSync|spawn|execSync/.test(source)) continue;
+      if (!/shell:/.test(source)) offenders.push(name);
+    }
+    expect(offenders).toEqual([]);
   });
 });

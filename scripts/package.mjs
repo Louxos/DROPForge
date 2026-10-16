@@ -10,9 +10,10 @@
  *  - `SHA256SUMS` — the checksums of both archives, in the format every verification
  *    tool understands.
  *
- * The Windows installer is deliberately **not** produced here: it needs a Windows
- * machine with the Rust toolchain. `.github/workflows/release.yml` builds it, signed,
- * from a tag — see `docs/DOWNLOAD.md`.
+ * These two archives are everything DropForge publishes: there is no installer to
+ * build here, and no Windows machine or Rust toolchain anywhere in the chain. It only
+ * builds what it publishes — `.github/workflows/release.yml` runs exactly this script
+ * from a tag, then publishes what it produced.
  */
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
@@ -29,7 +30,9 @@ const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const say = (message) => console.log(`[package] ${message}`);
 
 function run(args, env = {}) {
-  execFileSync(npm, args, { cwd: root, stdio: 'inherit', env: { ...process.env, ...env } });
+  // Un `.cmd` ne se lance pas directement sous Windows (Node refuse : « spawn EINVAL ») :
+  // le shell est requis là, et seulement là.
+  execFileSync(npm, args, { cwd: root, stdio: 'inherit', env: { ...process.env, ...env }, shell: process.platform === 'win32' });
 }
 
 /** Every file under `directory`, with its path relative to it. */
@@ -61,12 +64,11 @@ const sha256 = (file) => createHash('sha256').update(readFileSync(file)).digest(
  * ------------------------------------------------------------------ */
 
 if (!process.argv.includes('--no-build')) {
-  say(`compilation des trois cibles (version ${version})`);
+  say(`compilation des deux cibles (version ${version})`);
   run(['run', 'build:signaling']);
   // The archive is served from an arbitrary folder, so its references must be
   // relative unless the caller asks for a hosted base (Pages, domain root).
   run(['run', 'build:web'], { DROPFORGE_VERSION: version, DROPFORGE_BASE: process.env['DROPFORGE_BASE'] ?? './' });
-  run(['run', 'build', '-w', '@dropforge/desktop']);
 }
 
 /* ------------------------------------------------------------------ *
@@ -133,5 +135,5 @@ writeFileSync(join(releaseDir, 'SHA256SUMS'), `${sums.join('\n')}\n`);
 say('SHA256SUMS');
 for (const line of sums) console.log(`         ${line}`);
 
-say(`prêt : ${relative(root, releaseDir)}/ — l’installateur Windows est produit par GitHub Actions sur un tag (docs/DOWNLOAD.md)`);
+say(`prêt : ${relative(root, releaseDir)}/`);
 void dirname;

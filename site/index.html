@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DropForge — transférez vos fichiers d'un appareil à l'autre</title>
+    <meta
+      name="description"
+      content="DropForge envoie vos fichiers entre Windows, Android, iOS et n'importe quel navigateur : sans compte obligatoire, chiffré de bout en bout, en direct quand c'est possible. Application web : rien à télécharger, rien à installer."
+    />
+    <meta name="theme-color" content="#08080b" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="DropForge — transférez vos fichiers d'un appareil à l'autre" />
+    <meta
+      property="og:description"
+      content="Sans compte obligatoire, chiffré de bout en bout, en direct quand c'est possible. Application web."
+    />
+    <meta property="og:url" content="{{SITE_URL}}" />
+    <meta property="og:image" content="{{SITE_URL}}favicon.svg" />
+    <meta name="twitter:card" content="summary" />
+    <style>
+{{INLINE_CSS}}
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#application">Aller à l'application web</a>
+
+    <header class="topbar">
+      <div class="wrap">
+        <a class="brand" href="#top">
+          {{MARK_SVG}}
+          <span>DropForge</span>
+        </a>
+        <nav class="topnav" aria-label="Sections de la page">
+          <a href="#transfers">Transferts</a>
+          <a href="#security">Sécurité</a>
+          <a class="hide-sm" href="#etat">État réel</a>
+          <a class="hide-sm" href="{{REPO_URL}}/blob/main/docs/GUIDE.md">Guide</a>
+          <a class="stars" href="{{REPO_URL}}">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <path
+                d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.42 7.42 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A7.995 7.995 0 0 0 16 8c0-4.42-3.58-8-8-8Z"
+              />
+            </svg>
+            Voir le code
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="top">
+      <!-- ------------------------------------------------------------------ *
+           Héros : d'abord où aller, ensuite pourquoi. Le bloc « application »
+           porte l'adresse de l'application web — le seul chemin, et il suffit :
+           l'application s'installe depuis le navigateur.
+           ------------------------------------------------------------------ -->
+      <div class="wrap hero">
+        <p class="pill"><span class="dot" aria-hidden="true"></span> Version {{VERSION}} · aperçu public</p>
+        <h1>Vos fichiers, d'un appareil à l'autre. <span class="grad">Sans détour.</span></h1>
+        <p class="lede">
+          DropForge envoie vos fichiers entre Windows, Android, iOS et n'importe quel navigateur. Sans compte
+          obligatoire, chiffré de bout en bout, et en direct de machine à machine dès que le réseau le permet.
+        </p>
+
+        <div class="gateway" id="application">
+          <h2>L'application web</h2>
+          <p class="hint">
+            C'est ici qu'il faut aller : rien à installer, l'application s'ouvre dans votre navigateur et
+            s'installe sur votre écran d'accueil si vous le souhaitez.
+          </p>
+
+          <!--GATEWAY:LIVE-->
+          <div class="urlbox">
+            <code id="app-url">{{WEB_APP_URL}}</code>
+            <button class="copy" type="button" data-copy="{{WEB_APP_URL}}">Copier le lien</button>
+          </div>
+          <div class="actions">
+            <a class="btn btn-primary" href="{{WEB_APP_URL}}">
+              Ouvrir l'application web
+              <svg width="17" height="17" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06L7.28 12.78a.75.75 0 0 1-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z" />
+              </svg>
+            </a>
+            <a class="btn btn-ghost" href="{{REPO_URL}}/releases/latest">Voir les versions publiées</a>
+          </div>
+          <!--/GATEWAY:LIVE-->
+
+          <!--GATEWAY:SOON-->
+          <div class="urlbox">
+            <code>L'adresse de l'application web est en cours de mise en ligne.</code>
+          </div>
+          <div class="actions">
+            <span class="btn btn-primary" aria-disabled="true">Application web · bientôt</span>
+            <a class="btn btn-ghost" href="{{REPO_URL}}/releases/latest">Voir les versions publiées</a>
+          </div>
+          <!--/GATEWAY:SOON-->
+
+          <p class="footnote">
+            <strong>Un seul chemin, et il suffit :</strong> l'application web. Ouvrez-la, puis installez-la
+            (menu du navigateur → « Installer l'application ») : elle s'ouvre ensuite comme un logiciel, sans
+            barre d'adresse, et fonctionne hors ligne. Sur Android et iOS, le menu propose « Ajouter à l'écran
+            d'accueil ».
+          </p>
+        </div>
+      </div>
+
+      <!-- ------------------------------------------------------------------ *
+           Trois promesses, tenues par le code.
+           ------------------------------------------------------------------ -->
+      <div class="wrap">
+        <div class="grid">
+          <div class="card">
+            <span class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+                <path d="M12 3v12m0 0-4.5-4.5M12 15l4.5-4.5M4 18v1.5A1.5 1.5 0 0 0 5.5 21h13A1.5 1.5 0 0 0 20 19.5V18" />
+              </svg>
+            </span>
+            <h3>Sans compte obligatoire</h3>
+            <p>
+              Aucune inscription pour transférer. Pas de télémétrie par défaut, pas de fichier conservé sur un
+              serveur : ce qui vous appartient reste chez vous.
+            </p>
+          </div>
+          <div class="card">
+            <span class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+                <path d="M4 12h16M4 12l4-4M4 12l4 4M20 12l-4-4M20 12l-4 4" />
+              </svg>
+            </span>
+            <h3>Direct dès que possible</h3>
+            <p>
+              Même réseau : le transfert ne sort jamais du réseau local, et rien d'autre que vos deux appareils
+              n'intervient. Entre deux réseaux différents, un canal chiffré est négocié de machine à machine — le
+              serveur ne voit jamais les fichiers — mais cette mise en relation demande un relais que vous hébergez :
+              c'est la feuille de route, pas la promesse du jour.
+            </p>
+          </div>
+          <div class="card">
+            <span class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+                <path d="M12 3l7 3v5.5c0 4.3-2.9 8-7 9.5-4.1-1.5-7-5.2-7-9.5V6l7-3Z" />
+                <path d="m9.2 12.1 2 2 3.6-3.9" />
+              </svg>
+            </span>
+            <h3>Chiffré et vérifié</h3>
+            <p>
+              Chiffrement de bout en bout par les bibliothèques du navigateur, intégrité SHA-256 avant tout état
+              « terminé », reprise après coupure, jamais d'écrasement silencieux.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ------------------------------------------------------------------ *
+           Fonctionnalités
+           ------------------------------------------------------------------ -->
+      <section id="transfers">
+        <div class="wrap">
+          <h2 class="section">Ce que DropForge fait vraiment</h2>
+          <p class="sub">
+            Chaque ligne ci-dessous correspond à du code exécuté à chaque envoi, avec ses tests. Ce qui n'est pas
+            encore fait est dit plus bas, sans arrangement.
+          </p>
+          <div class="grid">
+            <div class="card">
+              <h3>Transferts</h3>
+              <p>
+                Tous types de fichiers, sélection multiple, glisser-déposer et dossiers là où le système le
+                permet. File d'attente avec pause, reprise, annulation, réessai et réordonnancement.
+              </p>
+            </div>
+            <div class="card">
+              <h3>Appareils</h3>
+              <p>
+                Découverte sur le réseau local, appairage par code et QR code, connexion manuelle par code de
+                salle, appareils de confiance révocables, favoris avec envoi en une action.
+              </p>
+            </div>
+            <div class="card">
+              <h3>Historique et réglages</h3>
+              <p>
+                Historique cherchable et filtrable, notifications, langue (français et anglais), thème sombre ou
+                clair, dossier de réception, règles de conflit, limites de parallélisme.
+              </p>
+            </div>
+            <div class="card">
+              <h3>Installable partout</h3>
+              <p>
+                Une seule interface React/TypeScript, une seule application : elle s'installe depuis le
+                navigateur, sur ordinateur comme sur téléphone, et se lance ensuite comme un logiciel.
+              </p>
+            </div>
+            <div class="card">
+              <h3>Sans réseau</h3>
+              <p>
+                Une fois installée, l'application web fonctionne hors ligne et se sert depuis n'importe quel
+                dossier : utile sur un réseau isolé ou une clé USB.
+              </p>
+            </div>
+            <div class="card">
+              <h3>Le code est ouvert, les limites aussi</h3>
+              <p>
+                Aucune promesse de capacité illimitée, aucune estimation optimiste : le modèle de menace et la
+                matrice des plateformes disent ce qui est protégé — et ce qui ne l'est pas.
+              </p>
+            </div>
+          </div>
+
+          <h2 class="section" style="margin-top: 52px">Comment la connexion est choisie</h2>
+          <p class="sub">
+            Dans l'ordre, la première méthode qui fonctionne réellement. Si aucune ne fonctionne, DropForge le dit
+            clairement au lieu de faire semblant.
+          </p>
+          <ol class="flow">
+            <li><strong>Réseau local</strong> Les deux appareils sont sur le même réseau : rien ne sort du réseau local. <em>C'est ce qui est prêt aujourd'hui</em>, et une seule commande le met en place : <code>npm run lan</code>.</li>
+            <li><strong>Direct (WebRTC)</strong> Un canal chiffré de bout en bout est négocié avec l'aide d'un serveur de signalisation qui ne voit que de la négociation. Le code est écrit et testé ; il attend un relais que vous hébergez.</li>
+            <li><strong>Relais aveugle</strong> En dernier recours, un serveur relaie des octets déjà chiffrés qu'il ne peut pas lire. Même chose : implémenté et testé, hors de l'interface tant qu'aucun relais n'est déclaré.</li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- ------------------------------------------------------------------ *
+           Sécurité
+           ------------------------------------------------------------------ -->
+      <section id="security">
+        <div class="wrap">
+          <h2 class="section">Ce qui protège vos fichiers — et ce qui ne les protège pas</h2>
+          <p class="sub">
+            La sécurité se raconte mal en une phrase. Voici la version honnête, tirée du modèle de menace du
+            dépôt.
+          </p>
+          <div class="grid">
+            <div class="card">
+              <h3>Protégé</h3>
+              <p>
+                Contenu chiffré de bout en bout ; le serveur de signalisation ne voit jamais les fichiers ; aucune
+                clé, aucun secret et aucun contenu de fichier dans les journaux ; appairage vérifiant l'identité
+                cryptographique des appareils, pas seulement leur nom.
+              </p>
+            </div>
+            <div class="card">
+              <h3>Pas protégé</h3>
+              <p>
+                Un appareil compromis par un logiciel malveillant, un réseau qui bloque tout, ou la réception en
+                arrière-plan dans un navigateur mobile. DropForge ne prétend pas résoudre ces cas.
+              </p>
+            </div>
+            <div class="card">
+              <h3>À la maison</h3>
+              <p>
+                Tout est stocké localement : préférences, historique, appareils de confiance. La désinstallation
+                propose de supprimer ces données (case décochée par défaut) et ne touche jamais à vos fichiers
+                reçus.
+              </p>
+            </div>
+          </div>
+          <ul class="links">
+            <li><a href="{{REPO_URL}}/blob/main/docs/TECHNIQUE.md">Sécurité, vie privée et limites (documentation technique, § 5 et 6)</a></li>
+            <li><a href="{{REPO_URL}}/blob/main/docs/GUIDE.md">Guide : installer, utiliser, dépanner</a></li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ------------------------------------------------------------------ *
+           Télécharger
+           ------------------------------------------------------------------ -->
+      <section id="download">
+        <div class="wrap">
+          <h2 class="section">Télécharger</h2>
+          <p class="sub">
+            Les fichiers publiés sont sur la page des versions, accompagnés de leurs sommes de contrôle. Aucun
+            compte n'est nécessaire pour les télécharger.
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Vous êtes sur</th>
+                <th scope="col">Prenez</th>
+                <th scope="col">Comment</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Ordinateur, téléphone, tablette</td>
+                <td><span class="badge ok">Application web</span></td>
+                <td>Le bouton en haut de cette page : rien à installer, l'application s'ouvre dans le navigateur.</td>
+              </tr>
+              <tr>
+                <td>Un réseau isolé</td>
+                <td><span class="badge">Archive hors ligne</span></td>
+                <td><code>dropforge-pwa-{{VERSION}}.zip</code> de la dernière version, servi en HTTPS depuis n'importe quel dossier.</td>
+              </tr>
+              <tr>
+                <td>Deux réseaux différents</td>
+                <td><span class="badge">Feuille de route</span></td>
+                <td>
+                  Le service de relais est dans le dépôt (<code>dropforge-signaling-{{VERSION}}.zip</code>, puis
+                  <code>npm install --omit=dev &amp;&amp; npm start</code>) et son code est testé, mais le chemin
+                  « deux réseaux » n'est pas encore annoncé comme prêt : il demande un relais joignable en permanence,
+                  et une adresse à configurer à la compilation.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- DROPFORGE-AVERTISSEMENT : DropForge est une application web installable.
+               Il n'y a plus d'installateur ; les fichiers des versions précédentes restent
+               téléchargeables et ne sont plus maintenus. Voir CHANGELOG.md. -->
+          <p class="callout">
+            <strong>Aucun installateur à télécharger.</strong> DropForge est une application web : elle
+            s'installe depuis le navigateur, et c'est la seule version maintenue. Les installateurs Windows
+            publiés avec les versions précédentes <strong>restent téléchargeables mais ne sont plus
+            maintenus</strong> — l'application Windows a été retirée du projet (
+            <a href="{{REPO_URL}}/blob/main/CHANGELOG.md">historique des versions</a>). Ce qui n'est pas
+            encore prouvé est écrit ici : l'application web est <strong>testée dans trois navigateurs réels</strong>,
+            mais elle n'a <strong>pas encore été essayée sur un téléphone réel</strong>.
+          </p>
+
+          <ul class="links">
+            <li><a href="{{REPO_URL}}/releases/latest">Toutes les versions et leurs sommes de contrôle</a></li>
+            <li><a href="{{REPO_URL}}/blob/main/docs/GUIDE.md">Télécharger, vérifier, installer, dépanner</a></li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ------------------------------------------------------------------ *
+           État réel
+           ------------------------------------------------------------------ -->
+      <section id="etat">
+        <div class="wrap">
+          <h2 class="section">État réel du projet</h2>
+          <p class="sub">
+            DropForge n'est pas encore une version 1.0. Ce tableau dit où en est chaque partie — pas d'estimation
+            optimiste, pas de fonctionnalité annoncée sur la seule foi d'un écran.
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Partie</th>
+                <th scope="col">Statut</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Moteur de transfert (chiffrement, reprise, vérification, file d'attente)</td>
+                <td><span class="badge ok">Implémenté et testé</span></td>
+              </tr>
+              <tr>
+                <td>Application web progressive (PWA) installable</td>
+                <td><span class="badge ok">Implémentée et testée</span> <span class="badge no">pas encore sur un téléphone réel</span></td>
+              </tr>
+              <tr>
+                <td>Serveur de signalisation / relais aveugle</td>
+                <td><span class="badge ok">Implémenté et testé</span></td>
+              </tr>
+              <tr>
+                <td>Liens de partage hébergés</td>
+                <td><span class="badge warn">Code client prêt</span> <span class="badge no">nécessite un hébergement</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <ul class="links">
+            <li><a href="{{REPO_URL}}/blob/main/docs/TECHNIQUE.md">Documentation technique : architecture, sécurité, plateformes, tests, état réel</a></li>
+            <li><a href="{{REPO_URL}}/blob/main/CHANGELOG.md">Historique des versions</a></li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ------------------------------------------------------------------ *
+           Contribuer
+           ------------------------------------------------------------------ -->
+      <section id="contribuer" class="noborder">
+        <div class="wrap">
+          <h2 class="section">Construire et contribuer</h2>
+          <p class="sub">
+            Node 22 et npm suffisent : l'application web, le serveur optionnel et les tests n'ont besoin de
+            rien d'autre.
+          </p>
+          <div class="grid">
+            <div class="card">
+              <h3>Lancer le projet</h3>
+              <p class="codewrap">git clone {{REPO_URL}}.git<br />cd DROPForge &amp;&amp; npm install<br />npm run dev</p>
+            </div>
+            <div class="card">
+              <h3>Vérifier avant de proposer</h3>
+              <p class="codewrap">npm run verify</p>
+              <p style="margin-top: 12px">
+                Typage, cohérence de la page publiée et tests : la même commande que la chaîne d'intégration.
+              </p>
+            </div>
+          </div>
+          <ul class="links">
+            <li><a href="{{REPO_URL}}">Code source et tickets</a></li>
+            <li><a href="{{REPO_URL}}/blob/main/docs/TECHNIQUE.md">Architecture</a></li>
+            <li><a href="{{REPO_URL}}/blob/main/docs/GUIDE.md">Dépannage</a></li>
+          </ul>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <span class="brand">{{MARK_SVG}}<span>DropForge</span></span>
+        <span>Version {{VERSION}}</span>
+        <span class="spacer"></span>
+        <span>Aucun compte obligatoire · Aucune télémétrie par défaut</span>
+        <a href="{{REPO_URL}}/blob/main/docs/TECHNIQUE.md">Licences</a>
+      </div>
+    </footer>
+
+    <script>
+      // Un seul comportement interactif : copier l'adresse de l'application web.
+      // Le bouton disparaît là où l'API n'existe pas, plutôt que d'échouer en silence.
+      (function () {
+        var buttons = document.querySelectorAll('.copy');
+        var copyable = navigator.clipboard && navigator.clipboard.writeText;
+        for (var i = 0; i < buttons.length; i += 1) {
+          var button = buttons[i];
+          if (!copyable) {
+            button.hidden = true;
+            continue;
+          }
+          button.addEventListener('click', function (event) {
+            var target = event.currentTarget;
+            navigator.clipboard.writeText(target.getAttribute('data-copy') || '').then(function () {
+              target.textContent = 'Lien copié';
+              setTimeout(function () {
+                target.textContent = 'Copier le lien';
+              }, 2200);
+            });
+          });
+        }
+      })();
+    </script>
+  </body>
+</html>

@@ -237,6 +237,45 @@ describe('blind relay', () => {
     expect(stats.relayedFrames).toBeGreaterThanOrEqual(2);
   });
 
+  it('asks the other peer before switching the room to relay mode', async () => {
+    const { url } = await start();
+    const { a, b } = await joinedPair(url);
+
+    // One side asking is not enough, and it must not be: the room only relays once both
+    // sides asked, so the peer that did not ask is *asked*, never switched.
+    a.send({ t: 'relay-ready' });
+    const asked = await b.waitFor((m) => m['t'] === 'relay-requested');
+    expect(asked['t']).toBe('relay-requested');
+    expect(a.messages.some((m) => m['t'] === 'relay-open')).toBe(false);
+    expect(b.messages.some((m) => m['t'] === 'relay-open')).toBe(false);
+
+    // Asking once per peer: the answer must not come back as a request, or two clients
+    // would answer each other forever.
+    a.send({ t: 'relay-ready' });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(b.messages.filter((m) => m['t'] === 'relay-requested')).toHaveLength(1);
+
+    // The second side agrees, and only then is the room relaying.
+    b.send({ t: 'relay-ready' });
+    await a.waitFor((m) => m['t'] === 'relay-open');
+    await b.waitFor((m) => m['t'] === 'relay-open');
+    expect(a.messages.filter((m) => m['t'] === 'relay-requested')).toHaveLength(1);
+  });
+
+  it('keeps the room on its direct path when the other peer never answers', async () => {
+    const { server, url } = await start();
+    const { a, b } = await joinedPair(url);
+    a.send({ t: 'relay-ready' });
+    await b.waitFor((m) => m['t'] === 'relay-requested');
+
+    // Alice waits, and the service does nothing behind her back: no relay, no byte
+    // forwarded, the room as it was.
+    a.sendBinary(new Uint8Array([0x01, 0x02, 0x03]));
+    const error = await a.waitFor((m) => m['t'] === 'error');
+    expect(error['code']).toBe('RELAY_NOT_READY');
+    expect(server.stats().relayedFrames).toBe(0);
+  });
+
   it('refuses relayed bytes before both peers agreed to relay mode', async () => {
     const { url } = await start();
     const { a } = await joinedPair(url);

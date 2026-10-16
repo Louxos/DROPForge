@@ -14,16 +14,15 @@ packages/*/src/**/*.js
 packages/*/src/**/*.js.map
 apps/*/src/**/*.js.map
 
-# Tauri / Rust
-apps/desktop/src-tauri/target/
-target/
-
 # Release artifacts produced by `npm run package` (never committed)
 release/
 out/
 deploy/.env
 dist/
-apps/desktop/src-tauri/tauri.updater.conf.json
+
+# Netlify (état local de `netlify dev`) : le site publié, lui, est décrit par
+# `netlify.toml`, qui est versionné.
+.netlify/
 
 # Test & coverage artifacts
 coverage/
@@ -46,9 +45,18 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 
+# Certificat du mode « même Wi‑Fi » (`npm run lan`) : une clé privée et un certificat
+# propres à cette machine, fabriqués localement, jamais publiés.
+.lan-tls/
+
 # Local runtime data (transfer spool, dev storage)
 .data/
 .local-storage/
 *.sqlite
 *.sqlite-journal
 *.sqlite-wal
+
+# Playwright
+playwright-report/
+test-results/
+blob-report/

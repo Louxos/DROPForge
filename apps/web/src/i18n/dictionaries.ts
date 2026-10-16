@@ -12,6 +12,7 @@ export interface Dictionary {
     name: string;
     tagline: string;
     loading: string;
+    loadingHint: string;
     offline: string;
     installPrompt: string;
     installAction: string;
@@ -41,10 +42,7 @@ export interface Dictionary {
     selectFolder: string;
     selected: string;
     dropHint: string;
-    dropTarget: string;
     dropNothing: string;
-    quickSend: string;
-    quickSendHint: string;
     clear: string;
     sendTo: string;
     noDevices: string;
@@ -66,7 +64,6 @@ export interface Dictionary {
     accept: string;
     refuse: string;
     queue: string;
-    emptyQueue: string;
     incomingRequest: string;
     incomingFiles: string;
     conflictsFound: string;
@@ -88,9 +85,31 @@ export interface Dictionary {
     methodWebrtc: string;
     methodRelay: string;
     sasWarning: string;
+    /** Le choix d'entrée : envoyer ou recevoir, rien d'autre. */
+    chooseSubtitle: string;
+    sendTitle: string;
+    sendSubtitle: string;
+    receiveTitle: string;
+    receiveSubtitle: string;
+    toWhichDevice: string;
+    pickFirst: string;
+    orCode: string;
+    orCodeHint: string;
+    codePlaceholder: string;
+    pasteCodeHint: string;
+    back: string;
+    connected: string;
+    /** Hick : une seule action principale par état. */
+    moreOptions: string;
+    connectFirst: string;
+    connectDevice: string;
+    sameNetwork: string;
+    conflictAsk: string;
   };
   devices: {
     title: string;
+    onNetwork: string;
+    connect: string;
     subtitle: string;
     known: string;
     trusted: string;
@@ -113,6 +132,7 @@ export interface Dictionary {
     title: string;
     subtitle: string;
     search: string;
+    filter: string;
     filterAll: string;
     filterSend: string;
     filterReceive: string;
@@ -140,11 +160,6 @@ export interface Dictionary {
     notifications: string;
     notificationsUnsupported: string;
     enableNotifications: string;
-    autostart: string;
-    autostartWindowsOnly: string;
-    closeBehaviour: string;
-    closeTray: string;
-    closeQuit: string;
     transfers: string;
     receiveFolder: string;
     receiveFolderChoose: string;
@@ -162,6 +177,16 @@ export interface Dictionary {
     diagnostics: string;
     hostedSharing: string;
     hostedSharingUnavailable: string;
+    advanced: string;
+    advancedDevice: string;
+    relay: string;
+    relayAuto: string;
+    relayNone: string;
+    relayCustom: string;
+    relayApply: string;
+    relayResolved: string;
+    relayAbsent: string;
+    relayNote: string;
     historyRetention: string;
     keepForever: string;
     days: string;
@@ -243,6 +268,12 @@ export interface Dictionary {
     details: string;
     hide: string;
   };
+  relay: {
+    none: string;
+    disabled: string;
+    note: string;
+    settings: string;
+  };
   errors: Record<string, string>;
 }
 
@@ -251,6 +282,7 @@ export const FR: Dictionary = {
     name: 'DropForge',
     tagline: 'Transférer des fichiers entre vos appareils, sans compte.',
     loading: 'Chargement…',
+    loadingHint: 'Préparation de cet appareil : identité, stockage local, réglages.',
     offline: 'Le relais est injoignable : seuls les transferts sur le réseau local fonctionneront.',
     installPrompt: 'Installer DropForge sur cet appareil',
     installAction: 'Installer',
@@ -280,10 +312,7 @@ export const FR: Dictionary = {
     selectFolder: 'Choisir un dossier',
     selected: '{{count}} élément(s) sélectionné(s) — {{size}}',
     dropHint: 'Vous pouvez aussi déposer des fichiers ou un dossier ici.',
-    dropTarget: 'Déposez pour ajouter',
     dropNothing: 'Rien n’a pu être lu dans ce dépôt.',
-    quickSend: 'Envoi rapide',
-    quickSendHint: 'En une seule action : connecte l’appareil si besoin, puis envoie la sélection.',
     clear: 'Vider la sélection',
     sendTo: 'Envoyer vers',
     noDevices: 'Aucun appareil joignable pour le moment.',
@@ -306,7 +335,6 @@ export const FR: Dictionary = {
     accept: 'Accepter',
     refuse: 'Refuser',
     queue: 'File d’attente',
-    emptyQueue: 'Aucun transfert en cours.',
     incomingRequest: 'Demande de réception',
     incomingFiles: '{{count}} fichier(s), {{size}}',
     conflictsFound: 'Certains fichiers existent déjà sur cet appareil.',
@@ -328,9 +356,29 @@ export const FR: Dictionary = {
     methodWebrtc: 'Connexion directe (WebRTC)',
     methodRelay: 'Relais aveugle',
     sasWarning: 'Les codes ne correspondent pas : refusez la connexion.',
+    chooseSubtitle: 'Deux gestes possibles, un seul à la fois.',
+    sendTitle: 'Envoyer',
+    sendSubtitle: 'Choisir des fichiers, puis un appareil.',
+    receiveTitle: 'Recevoir',
+    receiveSubtitle: 'Donner un code à l’autre appareil, ou coller le sien.',
+    toWhichDevice: 'Vers quel appareil ?',
+    pickFirst: 'Choisissez d’abord ce que vous voulez envoyer.',
+    orCode: 'Ou bien un code reçu de l’autre appareil',
+    orCodeHint: 'Si l’autre personne vous a donné un code, collez-le ici : la connexion se fera directement.',
+    codePlaceholder: 'ABC-234 ou https://…',
+    pasteCodeHint: 'Le code relie les deux appareils sans qu’aucun serveur ne voie vos fichiers.',
+    back: 'Retour',
+    connected: 'Appareil connecté',
+    moreOptions: 'Options',
+    connectFirst: 'Aucun appareil n’est connecté pour le moment.',
+    connectDevice: 'Connecter un appareil',
+    sameNetwork: 'Les deux appareils doivent être sur le même réseau Wi‑Fi.',
+    conflictAsk: 'Certains fichiers existent déjà : que faire ?',
   },
   devices: {
     title: 'Appareils',
+    onNetwork: 'Sur votre réseau en ce moment',
+    connect: 'Connecter',
     subtitle: 'Les appareils que cet appareil a déjà vus, et ceux que vous avez approuvés.',
     known: 'Connu',
     trusted: 'Approuvé',
@@ -353,6 +401,7 @@ export const FR: Dictionary = {
     title: 'Historique',
     subtitle: 'Tout reste sur cet appareil. Vous pouvez supprimer n’importe quelle entrée.',
     search: 'Rechercher un appareil, un nom de fichier…',
+    filter: 'Filtrer',
     filterAll: 'Tout',
     filterSend: 'Envoyés',
     filterReceive: 'Reçus',
@@ -380,11 +429,6 @@ export const FR: Dictionary = {
     notifications: 'Notifications',
     notificationsUnsupported: 'Ce navigateur ne permet pas les notifications.',
     enableNotifications: 'Activer les notifications',
-    autostart: 'Lancer au démarrage de Windows',
-    autostartWindowsOnly: 'Disponible uniquement dans l’application Windows.',
-    closeBehaviour: 'À la fermeture de la fenêtre',
-    closeTray: 'Continuer en arrière-plan',
-    closeQuit: 'Quitter DropForge',
     transfers: 'Transferts',
     receiveFolder: 'Dossier de réception',
     receiveFolderChoose: 'Choisir un dossier',
@@ -403,6 +447,18 @@ export const FR: Dictionary = {
     hostedSharing: 'Autoriser les liens hébergés (temporaires)',
     hostedSharingUnavailable:
       'Aucun service d’hébergement n’est configuré : cette option n’est donc proposée qu’en lecture. Le transfert direct et les codes d’appairage restent disponibles et ne dépendent d’aucun serveur payant.',
+    advanced: 'Avancé',
+    advancedDevice: 'Cet appareil',
+    relay: 'Adresse du relais',
+    relayAuto: 'Automatique (celui de cette page, s’il existe)',
+    relayNone: 'Aucun relais (réseau local uniquement)',
+    relayCustom: 'Adresse personnalisée (mon propre relais)',
+    relayApply: 'Utiliser cette adresse',
+    relayResolved: 'Adresse utilisée : {{url}}',
+    relayAbsent:
+      'Aucun relais : les appareils du même réseau Wi‑Fi se trouvent seuls, les autres non. Rien ne sera contacté à l’extérieur.',
+    relayNote:
+      'Le relais ne voit que les messages de mise en relation, jamais le contenu : les fichiers sont chiffrés de bout en bout, avant de quitter cet appareil.',
     historyRetention: 'Conserver l’historique',
     keepForever: 'Toujours',
     days: '{{count}} jours',
@@ -411,7 +467,7 @@ export const FR: Dictionary = {
     saved: 'Réglages enregistrés',
     about: 'À propos',
     aboutText: 'DropForge {{version}} — logiciel libre, sans compte et sans service payant.',
-    license: 'La licence du projet reste à définir ; les licences des composants utilisés sont listées dans docs/LICENCES.md.',
+    license: 'La licence du projet reste à définir ; les licences des composants utilisés sont listées dans docs/TECHNIQUE.md.',
     checkUpdate: 'Rechercher une mise à jour',
     installUpdate: 'Installer maintenant',
     relaunch: 'Redémarrer',
@@ -425,7 +481,7 @@ export const FR: Dictionary = {
     updateUnregistered: 'Aucune version installée à mettre à jour : rechargez la page pour la dernière version.',
     updateCheckFailed: 'Recherche impossible : le réseau est injoignable.',
     updateNothingToInstall: 'Aucune mise à jour n’est en attente.',
-    updateWebNote: 'Dans le navigateur, la version installée est mise à jour automatiquement ; rechargez la page pour la dernière version. Les mises à jour signées concernent l’application Windows.',
+    updateWebNote: 'La nouvelle version est proposée par le navigateur, jamais imposée : elle ne s’applique que si vous l’acceptez.',
     storageEstimate: 'Données locales de l’application : {{usage}} utilisés sur {{quota}} autorisés par le navigateur.',
     installed: 'Application installée sur cet appareil.',
     notInstalled: 'Affiché dans un onglet : installez l’application pour un usage hors ligne.',
@@ -463,7 +519,7 @@ export const FR: Dictionary = {
     hasServiceWorker: 'Fonctionnement hors ligne de l’interface',
     hasBackgroundReceive: 'Recevoir en arrière-plan',
     backgroundReceiveNote:
-      'Sur le web, un transfert ne continue que si l’onglet reste ouvert. DropForge ne promet pas le contraire : l’application Windows, elle, continue en arrière-plan.',
+      'Un transfert ne continue que si l’onglet reste ouvert. DropForge ne promet pas le contraire : c’est la limite du navigateur.',
     hasDownloadStream: 'Téléchargement direct d’un gros fichier',
     downloadFallbackNote:
       'Sans accès direct au disque, les fichiers reçus sont proposés au téléchargement : le navigateur les écrit lui-même, et la vérification d’intégrité a lieu avant le téléchargement.',
@@ -487,6 +543,12 @@ export const FR: Dictionary = {
     copied: 'Copié',
     details: 'Détails',
     hide: 'Masquer',
+  },
+  relay: {
+    none: 'Aucun relais n’est configuré : les appareils du même réseau Wi‑Fi peuvent encore se joindre, les autres non.',
+    disabled: 'Le relais est désactivé dans les réglages : rien ne sera contacté à l’extérieur.',
+    note: 'Pour joindre un appareil à distance, indiquez une adresse de relais dans les réglages.',
+    settings: 'Ouvrir les réglages',
   },
   errors: {
     NO_COMMON_TRANSPORT: 'Aucun chemin disponible entre les deux appareils pour le moment.',
@@ -521,7 +583,8 @@ export const FR: Dictionary = {
     TOO_LARGE: 'Ce transfert est trop volumineux pour la destination choisie.',
     TOO_MANY_TRANSFERS: 'Trop de transferts en cours : attendez qu’un autre se termine.',
     BUSY: 'L’autre appareil est occupé.',
-    CRYPTO_UNAVAILABLE: 'Ce navigateur ne fournit pas le chiffrement nécessaire.',
+    CRYPTO_UNAVAILABLE:
+      'Le chiffrement est indisponible ici : une adresse en clair (http://…) n’a pas le droit de l’utiliser. Ouvrez l’application en https://, ou depuis localhost.',
     IDENTITY_UNAVAILABLE: 'L’identité de cet appareil est indisponible.',
     PLATFORM_UNSUPPORTED: 'Cette fonction n’est pas disponible sur cet appareil.',
     BACKGROUND_UNSUPPORTED:
@@ -540,6 +603,7 @@ export const EN: Dictionary = {
     name: 'DropForge',
     tagline: 'Move files between your devices, with no account.',
     loading: 'Loading…',
+    loadingHint: 'Preparing this device: identity, local storage, settings.',
     offline: 'The relay is unreachable: only local network transfers will work.',
     installPrompt: 'Install DropForge on this device',
     installAction: 'Install',
@@ -569,10 +633,7 @@ export const EN: Dictionary = {
     selectFolder: 'Choose a folder',
     selected: '{{count}} item(s) selected — {{size}}',
     dropHint: 'You can also drop files or a folder here.',
-    dropTarget: 'Drop to add',
     dropNothing: 'Nothing could be read from that drop.',
-    quickSend: 'Quick send',
-    quickSendHint: 'One action: connects the device if needed, then sends the selection.',
     clear: 'Clear selection',
     sendTo: 'Send to',
     noDevices: 'No device is reachable right now.',
@@ -595,7 +656,6 @@ export const EN: Dictionary = {
     accept: 'Accept',
     refuse: 'Refuse',
     queue: 'Queue',
-    emptyQueue: 'No transfer running.',
     incomingRequest: 'Incoming request',
     incomingFiles: '{{count}} file(s), {{size}}',
     conflictsFound: 'Some files already exist on this device.',
@@ -617,9 +677,29 @@ export const EN: Dictionary = {
     methodWebrtc: 'Direct connection (WebRTC)',
     methodRelay: 'Blind relay',
     sasWarning: 'The codes do not match: refuse the connection.',
+    chooseSubtitle: 'Two possible moves, one at a time.',
+    sendTitle: 'Send',
+    sendSubtitle: 'Pick files, then a device.',
+    receiveTitle: 'Receive',
+    receiveSubtitle: 'Hand a code to the other device, or paste theirs.',
+    toWhichDevice: 'To which device?',
+    pickFirst: 'Choose what you want to send first.',
+    orCode: 'Or a code given to you by the other device',
+    orCodeHint: 'If the other person gave you a code, paste it here: the connection goes straight through.',
+    codePlaceholder: 'ABC-234 or https://…',
+    pasteCodeHint: 'The code links the two devices without any server seeing your files.',
+    back: 'Back',
+    connected: 'Device connected',
+    moreOptions: 'Options',
+    connectFirst: 'No device is connected yet.',
+    connectDevice: 'Connect a device',
+    sameNetwork: 'Both devices must be on the same Wi‑Fi network.',
+    conflictAsk: 'Some files already exist: what should happen?',
   },
   devices: {
     title: 'Devices',
+    onNetwork: 'On your network right now',
+    connect: 'Connect',
     subtitle: 'Devices this installation has seen, and the ones you approved.',
     known: 'Known',
     trusted: 'Approved',
@@ -642,6 +722,7 @@ export const EN: Dictionary = {
     title: 'Activity',
     subtitle: 'Everything stays on this device. You can delete any entry.',
     search: 'Search a device or a file name…',
+    filter: 'Filter',
     filterAll: 'All',
     filterSend: 'Sent',
     filterReceive: 'Received',
@@ -669,11 +750,6 @@ export const EN: Dictionary = {
     notifications: 'Notifications',
     notificationsUnsupported: 'This browser does not allow notifications.',
     enableNotifications: 'Enable notifications',
-    autostart: 'Start with Windows',
-    autostartWindowsOnly: 'Only available in the Windows application.',
-    closeBehaviour: 'When closing the window',
-    closeTray: 'Keep running in the background',
-    closeQuit: 'Quit DropForge',
     transfers: 'Transfers',
     receiveFolder: 'Receiving folder',
     receiveFolderChoose: 'Choose a folder',
@@ -692,6 +768,18 @@ export const EN: Dictionary = {
     hostedSharing: 'Allow hosted (temporary) links',
     hostedSharingUnavailable:
       'No hosting service is configured, so this option is shown read-only. Direct transfers and pairing codes remain available and need no paid server.',
+    advanced: 'Advanced',
+    advancedDevice: 'This device',
+    relay: 'Relay address',
+    relayAuto: 'Automatic (this page’s own, when it has one)',
+    relayNone: 'No relay (local network only)',
+    relayCustom: 'Custom address (my own relay)',
+    relayApply: 'Use this address',
+    relayResolved: 'Address in use: {{url}}',
+    relayAbsent:
+      'No relay: devices on the same Wi-Fi find each other, the others do not. Nothing will be contacted outside.',
+    relayNote:
+      'The relay only sees the introduction messages, never the content: files are end-to-end encrypted before they leave this device.',
     historyRetention: 'Keep history for',
     keepForever: 'Forever',
     days: '{{count}} days',
@@ -700,7 +788,7 @@ export const EN: Dictionary = {
     saved: 'Settings saved',
     about: 'About',
     aboutText: 'DropForge {{version}} — free software, no account and no paid service.',
-    license: 'The project’s licence is still to be decided; the licences of the components it uses are listed in docs/LICENCES.md.',
+    license: 'The project’s licence is still to be decided; the licences of the components it uses are listed in docs/TECHNIQUE.md.',
     checkUpdate: 'Check for an update',
     installUpdate: 'Install now',
     relaunch: 'Restart',
@@ -714,7 +802,7 @@ export const EN: Dictionary = {
     updateUnregistered: 'Nothing is installed to update: reload the page for the latest version.',
     updateCheckFailed: 'Check failed: the network is unreachable.',
     updateNothingToInstall: 'No update is waiting.',
-    updateWebNote: 'In a browser, the installed version updates itself; reload the page for the latest build. Signed updates concern the Windows application.',
+    updateWebNote: 'The browser proposes the new version, never imposes it: it is applied only if you accept it.',
     storageEstimate: 'Local application data: {{usage}} used of {{quota}} allowed by the browser.',
     installed: 'Application installed on this device.',
     notInstalled: 'Running in a tab: install the application for offline use.',
@@ -752,7 +840,7 @@ export const EN: Dictionary = {
     hasServiceWorker: 'Offline user interface',
     hasBackgroundReceive: 'Receive in the background',
     backgroundReceiveNote:
-      'On the web a transfer only continues while the tab stays open. DropForge does not claim otherwise: the Windows app does continue in the background.',
+      'A transfer only continues while the tab stays open. DropForge does not claim otherwise: that is a browser limit.',
     hasDownloadStream: 'Streaming download of a large file',
     downloadFallbackNote:
       'Without direct disk access, received files are offered as a download: the browser writes them itself, and the integrity check happens before the download.',
@@ -775,6 +863,12 @@ export const EN: Dictionary = {
     copied: 'Copied',
     details: 'Details',
     hide: 'Hide',
+  },
+  relay: {
+    none: 'No relay is configured: devices on the same Wi-Fi can still reach each other, the others cannot.',
+    disabled: 'The relay is turned off in the settings: nothing will be contacted outside.',
+    note: 'To reach a device from elsewhere, set a relay address in the settings.',
+    settings: 'Open settings',
   },
   errors: {
     NO_COMMON_TRANSPORT: 'No path is available between the two devices right now.',
@@ -809,7 +903,8 @@ export const EN: Dictionary = {
     TOO_LARGE: 'This transfer is too large for the chosen destination.',
     TOO_MANY_TRANSFERS: 'Too many transfers running: wait for another one to finish.',
     BUSY: 'The other device is busy.',
-    CRYPTO_UNAVAILABLE: 'This browser does not provide the required encryption.',
+    CRYPTO_UNAVAILABLE:
+      'Encryption is unavailable here: a plain address (http://…) is not allowed to use it. Open the application over https://, or from localhost.',
     IDENTITY_UNAVAILABLE: 'This device identity is unavailable.',
     PLATFORM_UNSUPPORTED: 'This feature is not available on this device.',
     BACKGROUND_UNSUPPORTED:

@@ -111,8 +111,21 @@ export interface ConnectionManagerOptions {
   factory: ConnectionFactory;
   clock?: Clock;
   logger?: Logger;
-  /** Asks the user whether a new device may be remembered. Default: never ask. */
-  requestTrust?: (peer: PeerInfo, method: TransportMethod) => Promise<boolean>;
+  /**
+   * Asks the user whether a new device may be remembered. Default: never ask.
+   *
+   * Its presence is also **announced** to the other device: a manager that can ask for a
+   * decision tells the peer to ask for one too, so that neither side ends up connected to
+   * a device it never approved. A manager without this callback announces nothing —
+   * inventing a request nobody can answer would leave the other side waiting forever.
+   */
+  /**
+   * Asks the user to approve a brand-new device. The comparison code travels with
+   * the question: a dialog that cannot show it asks someone to approve a device they
+   * have no way to check — which is exactly what happened when the code was left out
+   * and both devices displayed a dash instead of six digits.
+   */
+  requestTrust?: (peer: PeerInfo, method: TransportMethod, sas: string) => Promise<boolean>;
   /** Secret from the QR code, when the devices were paired that way. */
   pairingSecret?: Uint8Array;
   /** Time allowed to open one transport. */
@@ -181,7 +194,12 @@ export class ConnectionManager {
 
       try {
         this.emit({ type: 'handshaking', method });
-        const outcome = await this.runHandshake(transport, 'initiator', target);
+        const outcome = await this.runHandshake(transport, 'initiator', target, {
+          // The side that dials confirms the device it reached, exactly like the side
+          // that answers. Both questions exist for the same reason: the comparison code
+          // is only worth comparing if each person was actually shown it.
+          requestTrust: this.options.requestTrust !== undefined,
+        });
         const connection = await this.finish(transport, method, outcome);
         this.phase = 'connected';
         return connection;
@@ -210,7 +228,16 @@ export class ConnectionManager {
       failures.length === 1
         ? failures[0]!.message
         : 'No available path allowed a connection to this device',
-      { retryable: true, context: { attempts: failures.length } },
+      {
+        retryable: true,
+        // The per-path outcome travels with the error: a caller that only shows
+        // "unreachable" throws away the one piece of information that explains it
+        // ("webrtc: the other device did not answer · relay: this code has expired").
+        context: {
+          attempts: failures.length,
+          path: failures.map((failure) => `${failure.method}:${failure.code}`).join(' · '),
+        },
+      },
     );
     this.emit({ type: 'failed', code: error.code, message: error.message, failures });
     throw error;
@@ -379,7 +406,7 @@ export class ConnectionManager {
     outcome: HandshakeOutcome,
   ): Promise<Connection> {
     if (outcome.peerRequestedTrust && this.options.requestTrust) {
-      const approved = await this.options.requestTrust(outcome.peer, method);
+      const approved = await this.options.requestTrust(outcome.peer, method, outcome.sas);
       if (!approved) {
         throw new DropForgeError(ERROR_CODES.DEVICE_NOT_TRUSTED, 'This device was not approved', {
           context: { method },

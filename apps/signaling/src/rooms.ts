@@ -166,10 +166,17 @@ export class RoomRegistry {
     return room?.members.find((member) => member.socketId !== socketId);
   }
 
-  /** Switches a room to blind relay mode once both peers asked for it. */
+  /**
+   * Switches a room to blind relay mode once both peers asked for it.
+   *
+   * Two, not one: a single request must not be enough to move the other device onto a
+   * path it did not choose. This is what the documentation promises to users, and the
+   * `members.length < 2` guard alone did not keep it.
+   */
   markRelaying(code: string): boolean {
     const room = this.rooms.get(code);
     if (!room || room.members.length < 2) return false;
+    if (!room.members.every((member) => member.capabilities.includes('relay.ready'))) return false;
     room.relaying = true;
     return true;
   }

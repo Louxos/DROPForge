@@ -282,6 +282,12 @@ export class Handshake {
         this.bufferedAuth = { signature: message.signature };
         break;
       }
+      case 'trustRequest': {
+        // A request, never a decision: the answer is the user's, and it is what
+        // `finish()` in the connection manager waits for.
+        this.peerRequestedTrust = true;
+        break;
+      }
       case 'pairProof': {
         this.peerRequestedTrust = message.requestTrust;
         this.peerPairingProof = fromBase64Url(message.hmac);
@@ -306,6 +312,13 @@ export class Handshake {
   }
 
   private readyReceived = false;
+  private sentTrustRequest = false;
+
+  /** True once the peer announced it can ask its user (see `trust.request`). */
+  private get peerCanAsk(): boolean {
+    return this.peerHello?.caps.includes('trust.request') ?? false;
+  }
+
   private bufferedAuth: { signature: string } | undefined;
   private bufferedAuthVerified = false;
 
@@ -347,8 +360,17 @@ export class Handshake {
     // Each side sends its own authentication exactly once.
     if (!this.sentAuth) {
       if (!this.session) await this.deriveKeys();
+      // The trust request and the pair proof travel *before* `auth`: each side's outcome
+      // must be able to include them, and an outcome is taken as soon as the peer's
+      // authentication is verified.
+      //
+      // Sent only to a peer that announced `trust.request`: asking a device that cannot
+      // ask its user would leave the session waiting for a decision nobody will make.
+      if (this.options.requestTrust && this.peerCanAsk && !this.sentTrustRequest) {
+        send.push({ t: 'trustRequest' });
+        this.sentTrustRequest = true;
+      }
       const proof = this.makePairingProof();
-      // The pair proof travels before `auth` so the peer's outcome can include it.
       if (proof) send.push(proof);
       send.push({ t: 'auth', signature: toBase64Url(await signBytes(this.options.identity, this.authPayload())) });
       this.sentAuth = true;

@@ -28,14 +28,37 @@ export interface WebRtcLinkOptions {
   platform: string;
   fingerprint?: string;
   capabilities: string[];
-  /** STUN servers; public ones by default, and none is needed on a local network. */
+  /**
+   * ICE servers (STUN/TURN), for connections that leave the local network.
+   *
+   * **None by default, and that is a decision, not an oversight.** The product's rule
+   * is that the client contacts nothing but its own signaling service: a public STUN
+   * server sees this device's address and learns when it connects, which is exactly the
+   * kind of third party DropForge exists to avoid. On the local network — what this
+   * version promises — no server is needed at all: the peers find each other directly.
+   *
+   * A deployment that needs to cross NATs (a friend's network, a mobile connection)
+   * can configure one with `VITE_ICE_URLS`, and then says so to its users. The previous
+   * default was a hard-coded Google STUN server, which both broke that rule and made
+   * every connection attempt depend on a third party being reachable.
+   */
   iceServers?: RTCIceServer[];
   /** How long one attempt may take before it is reported as failed. */
   timeoutMs?: number;
+  /**
+   * How long a *hosted room* may wait for the other device, in ms.
+   *
+   * Separate from `timeoutMs` on purpose: an attempt is machine-paced, while a room
+   * waits for a person to read a code and type it in. Measuring both with the same
+   * short timer is what made a device stop listening after twenty seconds — while it
+   * was still showing its code.
+   */
+  hostWaitMs?: number;
   logger?: { log: (level: 'info' | 'warn', message: string, fields?: Record<string, unknown>) => void };
 }
 
-const DEFAULT_ICE: RTCIceServer[] = [{ urls: 'stun:stun.l.google.com:19302' }];
+/** No ICE server unless one is configured: see `iceServers` above. */
+const DEFAULT_ICE: RTCIceServer[] = [];
 
 export class WebRtcLinkFactory implements LinkFactory {
   private session: PeerAttempt | undefined;
@@ -56,6 +79,15 @@ export class WebRtcLinkFactory implements LinkFactory {
     return {
       code,
       transport: attempt.open(),
+      // The room exists only once the service has answered `joined`, and that answer
+      // is not instant. Publishing the code before it arrives hands the other device
+      // a code that leads nowhere — its own connection is refused as "this room is
+      // not available", which reads like the other person's problem when it is ours.
+      ready: withDeadline(
+        attempt.ready,
+        this.options.timeoutMs ?? 20_000,
+        'The signaling service did not open the room in time',
+      ),
       close: async () => {
         this.hosted = undefined;
         await attempt.close();
@@ -95,6 +127,9 @@ class PeerAttempt {
   private remoteDescriptionSet = false;
   private closed = false;
   private settle: { resolve: (transport: Transport) => void; reject: (error: unknown) => void; timer: unknown } | undefined;
+  /** Resolved once the service accepted this peer into its room (`joined`). */
+  readonly ready: Promise<void>;
+  private readonly readySettle: { resolve: () => void; reject: (error: unknown) => void };
 
   constructor(
     private readonly options: WebRtcLinkOptions,
@@ -117,16 +152,40 @@ class PeerAttempt {
         capabilities: options.capabilities,
       },
       onSignal: (data) => this.onSignal(data),
-      onRelayOpen: () => this.relay.markOpen(),
+      // Asked by the other side, answered here: agreeing is the only way the relay can
+      // ever be switched on, and it is always a deliberate act in code.
+      onRelayRequested: () => this.client.requestRelay(),
+      onRelayOpen: () => {
+        // Both peers agreed to relay mode: the relay *is* this attempt's transport.
+        // Marking it open without handing it to `settle` is what made the fallback a
+        // dead end — the attempt looked alive, waited for a channel nobody would open,
+        // and every connection that needed the relay failed with a timeout. The
+        // comment on `open()` promised a fallback; this line is what makes it exist.
+        this.relay.markOpen();
+        this.succeed(this.relay);
+      },
       onError: (code, message) => {
         this.settle?.reject(new DropForgeError(codeToErrorCode(code), message, { retryable: true }));
       },
     });
     this.relay = new RelayTransport(this.client);
+    let settleReady: { resolve: () => void; reject: (error: unknown) => void } = {
+      resolve: () => {},
+      reject: () => {},
+    };
+    this.ready = new Promise<void>((resolve, reject) => {
+      settleReady = { resolve, reject };
+    });
+    this.readySettle = settleReady;
+    // A dialling attempt never reads `ready`; without a handler of its own, a failed
+    // room would surface as an unhandled rejection instead of a reported failure.
+    void this.ready.catch(() => undefined);
   }
 
   async open(): Promise<Transport> {
-    const timeoutMs = this.options.timeoutMs ?? 20_000;
+    // The waiting side is paced by a person; the dialling side by the network.
+    const timeoutMs =
+      this.role === 'host' ? (this.options.hostWaitMs ?? 5 * 60_000) : (this.options.timeoutMs ?? 20_000);
     const opened = new Promise<Transport>((resolve, reject) => {
       const timer = systemClock.setTimeout(() => {
         reject(
@@ -138,7 +197,13 @@ class PeerAttempt {
       this.settle = { resolve, reject, timer };
     });
 
-    await this.client.connect();
+    try {
+      await this.client.connect();
+    } catch (error) {
+      this.readySettle.reject(error);
+      throw error;
+    }
+    this.readySettle.resolve();
     if (this.method === 'relay') {
       // Ask the service to switch the room to relay mode; both peers must agree.
       this.client.requestRelay();
@@ -254,6 +319,12 @@ class PeerAttempt {
   async close(): Promise<void> {
     if (this.closed) return;
     this.closed = true;
+    if (this.settle) {
+      // A closed attempt must not wake up later to report a failure nobody is
+      // waiting for any more (the caller has already moved on, or given up).
+      systemClock.clearTimeout(this.settle.timer);
+      this.settle = undefined;
+    }
     this.client.close();
     this.channel?.close();
     this.connection?.close();
@@ -263,6 +334,13 @@ class PeerAttempt {
 
 function codeToErrorCode(code: string): string {
   switch (code) {
+    case 'ROOM_UNAVAILABLE':
+      // The service has no room under that code: nobody is waiting with it any more,
+      // or the code never existed. Saying "the other device is unreachable" would
+      // blame the network for what is a code problem.
+      return ERROR_CODES.PAIRING_CODE_EXPIRED;
+    case 'NOT_IN_ROOM':
+      return ERROR_CODES.PAIRING_CODE_EXPIRED;
     case 'ROOM_FULL':
       return ERROR_CODES.BUSY;
     case 'RATE_LIMITED':
@@ -272,6 +350,31 @@ function codeToErrorCode(code: string): string {
     default:
       return ERROR_CODES.RELAY_UNAVAILABLE;
   }
+}
+
+/**
+ * A promise that has to settle within a delay.
+ *
+ * Used for the steps with no socket-level failure to report: a service that accepts
+ * the connection and then says nothing would leave the interface waiting forever,
+ * and silence is the one thing this product does not do.
+ */
+function withDeadline<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = systemClock.setTimeout(() => {
+      reject(new DropForgeError(ERROR_CODES.CONNECTION_TIMEOUT, message, { retryable: true }));
+    }, timeoutMs);
+    promise.then(
+      (value) => {
+        systemClock.clearTimeout(timer);
+        resolve(value);
+      },
+      (error: unknown) => {
+        systemClock.clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
 }
 
 function randomId(): string {

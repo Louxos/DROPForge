@@ -147,6 +147,48 @@ describe('AppController: pairing', () => {
     expect(rig.host.state.pairingRoom).toBeUndefined();
   });
 
+  it('never shows a code for a room the service refused to open', async () => {
+    const rig = await makeRig();
+    await rig.host.start();
+    // The service is reachable but will not hold the room: publishing the code anyway
+    // would send the other device to a room that does not exist.
+    rig.relay.refuseRooms = true;
+    expect(await rig.host.hostRoom()).toBeUndefined();
+    expect(rig.host.state.pairingRoom).toBeUndefined();
+    expect(rig.host.state.notices[0]?.kind).toBe('error');
+    expect(rig.host.state.notices[0]?.errorCode).toBeDefined();
+  });
+
+  it('cesse d’afficher une connexion qui n’existe plus', async () => {
+    const rig = await makeRig();
+    await rig.host.start();
+    await rig.guest.start();
+    await connectPair(rig);
+    expect(rig.guest.state.connection).toBeDefined();
+
+    // L'autre appareil ferme la session (il a refusé, il est parti, le réseau est
+    // tombé) : garder « Envoyer à » à l'écran serait annoncer une réussite qui n'a pas
+    // eu lieu — exactement ce que ce produit s'interdit.
+    await rig.host.disconnect();
+    await settle(60);
+    expect(rig.guest.state.connection).toBeUndefined();
+    const notice = rig.guest.state.notices.find((entry) => entry.errorCode === 'CONNECTION_LOST');
+    expect(notice?.kind).toBe('warning');
+  });
+
+  it('tries a direct path before the relay, whatever the capability plan said', async () => {
+    const rig = await makeRig();
+    await rig.guest.start();
+    // A code nobody is waiting on: both paths fail, and the order they were tried in is
+    // the point. The relay is the least private path, so it is never the first one.
+    expect(await rig.guest.connectWithCode('ABCD2345XYZ')).toBe(false);
+    expect(rig.relay.attemptedMethods).toEqual(['webrtc', 'relay']);
+    expect(rig.guest.state.notices[0]?.messageKey).toBe('errors.PEER_UNREACHABLE');
+    // The failure travels with the paths that were tried: an explanation, not a shrug.
+    expect(rig.guest.state.notices[0]?.detail).toContain('webrtc:');
+    expect(rig.guest.state.notices[0]?.detail).toContain('relay:');
+  });
+
   it('says the platform is unsupported when no room can be hosted', async () => {
     const rig = new AppController({
       store: new MemoryStore(),
@@ -170,6 +212,28 @@ describe('AppController: pairing', () => {
     expect(rig.host.state.connection?.sas).toBe(rig.guest.state.connection?.sas);
     expect(rig.host.state.connection?.fingerprint).toBe(rig.guest.state.identityFingerprint);
     expect(rig.host.state.pairingRoom).toBeUndefined();
+  });
+
+  it('shows the comparison code inside the question, on both devices', async () => {
+    const rig = await makeRig();
+    await rig.host.start();
+    await rig.guest.start();
+    const room = await rig.host.hostRoom();
+    expect(room).toBeDefined();
+    const connecting = rig.guest.connectWithCode(room!.code);
+    await settle();
+
+    // La question demande de comparer un code : ce code doit donc être **dans** la
+    // question. Il ne l'était pas — les deux appareils affichaient un tiret, et
+    // demandaient de vérifier six chiffres que personne ne voyait.
+    expect(rig.host.state.newDevice?.sas).toMatch(/^[0-9]{6}$/);
+    expect(rig.guest.state.newDevice?.sas).toMatch(/^[0-9]{6}$/);
+    expect(rig.host.state.newDevice?.sas).toBe(rig.guest.state.newDevice?.sas);
+
+    rig.host.answerNewDevice(true, false);
+    await settle();
+    rig.guest.answerNewDevice(true, false);
+    expect(await connecting).toBe(true);
   });
 });
 
@@ -217,6 +281,16 @@ describe('AppController: transfer', () => {
     expect(guestRecord?.state).toBe('completed');
     expect(guestRecord?.files[0]?.verified).toBe(true);
     expect(guestRecord?.bytesDone).toBe(bytes.length);
+
+    // The receiving device shows the transfer in its own queue, like the sending one:
+    // it used to show an empty « File d'attente » while the bytes were arriving, which
+    // is the interface staying silent about the thing happening on that device.
+    const receiving = rig.guest.state.queue.find((entry) => entry.id === transferId);
+    expect(receiving?.direction).toBe('receive');
+    expect(receiving?.label).toBe('note.txt');
+    expect(receiving?.state).toBe('completed');
+    // And the sender's row names what is moving, not how many files it is.
+    expect(rig.host.state.queue.find((entry) => entry.id === transferId)?.label).toBe('note.txt');
   });
 
   it('lets the receiver refuse a transfer and never reports it as completed', async () => {

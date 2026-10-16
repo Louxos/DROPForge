@@ -20,13 +20,20 @@ import { ReceiveFolderService } from './platform/receive-folder.js';
 import { WebRtcLinkFactory } from './platform/webrtc-link.js';
 import { ServiceWorkerUpdateSource, noUpdateSource, type UpdateSource } from './platform/updater.js';
 import { createInstallWatch } from './platform/install.js';
+import { describeError, fromPlatformError } from '@dropforge/app-core';
+import { signalingUrlFor } from './platform/signaling.js';
 import { AppController } from './app/controller.js';
-import { Shell } from './app/shell.js';
+import { FatalScreen, Shell } from './app/shell.js';
 import { useAppState } from './app/use-app-state.js';
 import { BrandMark } from './components/atoms.js';
 import { SPACE } from '@dropforge/design-system';
 
-const APP_VERSION = import.meta.env['VITE_APP_VERSION'] ?? '0.0.0-dev';
+// Point d'accès **avec des points**, et non `['VITE_APP_VERSION']` : la substitution
+// faite à la compilation (`define` dans `vite.config.ts`) ne reconnaît que cette
+// écriture. En notation crochets, la version n'était jamais remplacée et « À propos »
+// annonçait `0.0.0-dev` dans l'application publiée — une version qui ne veut rien dire,
+// alors que le dépôt, lui, savait laquelle il venait de construire.
+const APP_VERSION = import.meta.env.VITE_APP_VERSION ?? '0.0.0-dev';
 
 async function boot(): Promise<void> {
   const capabilities = detectCapabilities();
@@ -42,7 +49,13 @@ async function boot(): Promise<void> {
   // failed write in the middle of a transfer.
   await receiveFolders.load();
 
-  const controller = new AppController({
+  // Declared before the controller because the transport factory needs to read the
+  // *current* settings: the relay address is a preference, and changing it must apply
+  // to the next connection without a reload. The factory only runs after `start()`,
+  // so the reference is always assigned by then.
+  let controller: AppController;
+
+  controller = new AppController({
     store,
     identities: new IndexedDbIdentityStore(store),
     capabilities,
@@ -50,7 +63,8 @@ async function boot(): Promise<void> {
     // not prove this device's identity to the other side.
     links: (info) =>
       new WebRtcLinkFactory({
-        signalingUrl: signalingUrlFor(),
+        signalingUrl: signalingUrlFor(controller.state.settings.signalingUrl),
+        ...(iceServers().length > 0 ? { iceServers: iceServers() } : {}),
         deviceId: info.deviceId,
         displayName: info.displayName,
         platform: info.platform,
@@ -78,6 +92,27 @@ async function boot(): Promise<void> {
   exposeForDiagnostics(controller);
 }
 
+/**
+ * Shows why the application could not open, instead of nothing at all.
+ *
+ * The entry point used to end with a bare `void boot()`: any throw while building the
+ * platform — local storage unavailable, no WebCrypto, a service worker that refuses to
+ * register — rejected a promise nobody looked at and left the page **blank**. No
+ * message, no way to tell "still loading" from "broken". That is the same failure the
+ * removed shell had, and it is the one thing an application should never do.
+ */
+function reportBootFailure(error: unknown): void {
+  const dfError = fromPlatformError(error);
+  console.error('[DropForge] démarrage impossible', error);
+  const root = document.getElementById('root');
+  if (!root) return;
+  createRoot(root).render(
+    <StrictMode>
+      <FatalScreen code={dfError.code} message={dfError.message} detail={describeError(error)} />
+    </StrictMode>,
+  );
+}
+
 function App({ controller, install }: { controller: AppController; install: InstallWatch }): React.ReactElement {
   const state = useAppState(controller);
   const [ready, setReady] = useState(false);
@@ -99,17 +134,21 @@ function App({ controller, install }: { controller: AppController; install: Inst
 }
 
 /**
- * The signaling endpoint. On the web app the relay is expected on the same origin
- * (``/ws``), which works behind a reverse proxy and in the dev server; a deployment
- * can point elsewhere with `VITE_SIGNALING_URL`.
+ * ICE servers, when a deployment configured some.
+ *
+ * `VITE_ICE_URLS=stun:stun.example.org:3478,turn:turn.example.org` — a comma-separated
+ * list. Empty by default: DropForge then contacts nothing but its own signaling
+ * service, which is the promise. Adding one is a deliberate act, and it is visible in
+ * the built application.
  */
-function signalingUrlFor(): string {
-  const configured = import.meta.env['VITE_SIGNALING_URL'];
-  if (configured) return configured;
-  const location = globalThis.location;
-  const secure = location?.protocol === 'https:';
-  const host = location?.host ?? 'localhost:5173';
-  return `${secure ? 'wss' : 'ws'}://${host}/ws`;
+function iceServers(): RTCIceServer[] {
+  const configured = import.meta.env['VITE_ICE_URLS'];
+  if (!configured) return [];
+  return configured
+    .split(',')
+    .map((url) => url.trim())
+    .filter((url) => url.length > 0)
+    .map((urls) => ({ urls }));
 }
 
 function updateSourceFor(capabilities: PlatformCapabilities): UpdateSource {
@@ -138,4 +177,4 @@ function exposeForDiagnostics(controller: AppController): void {
   (globalThis as { dropforge?: { controller: AppController } }).dropforge = { controller };
 }
 
-void boot();
+void boot().catch(reportBootFailure);

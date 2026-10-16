@@ -15,11 +15,57 @@ import type { InstallWatch } from '../platform/install.js';
 
 export type Route = 'transfer' | 'devices' | 'activity' | 'settings';
 
+/**
+ * What is shown when the application cannot start at all: the local storage, the
+ * identity keys, the interface. It says what is broken and carries
+ * `data-dropforge-shell` like every other screen — the marker means "the interface
+ * really rendered something", and an honest error screen is something.
+ *
+ * This is the lesson of the first run of the browser suite: eleven scenarios waited
+ * for that marker on a screen that rendered fine but did not carry it, and every one
+ * of them failed with "element not found" — the least useful possible message.
+ */
+export function FatalScreen({
+  code,
+  message,
+  detail,
+}: {
+  code: string;
+  message: string;
+  /** The underlying reason, already bounded to one line (`describeError`). */
+  detail?: string;
+}): React.ReactElement {
+  // `main.tsx` can reach here before the dictionaries are loaded (a failure while
+  // setting them up is one of the ways in). Showing the platform's own sentence is
+  // then the honest answer — it is English, and it is true.
+  const { t, i18n } = useTranslation();
+  const text = i18n.isInitialized ? t(`errors.${code}` as never, message) : message;
+  return (
+    <div className="df-app df-app--error" data-dropforge-shell="">
+      <div style={{ padding: SPACE.xxl, maxWidth: 640 }}>
+        <BrandMark />
+        <div className="df-error" role="alert" style={{ marginTop: SPACE.xl }}>
+          <strong>{text}</strong>
+          <span className="df-faint">{code}</span>
+          {detail ? (
+            // The reason, not a stack trace: one line, and it is what makes a report
+            // useful. A person who sees "the local database could not be opened
+            // (InvalidStateError)" can act; the code alone says nothing.
+            <span className="df-faint" style={{ marginTop: SPACE.sm }}>
+              {detail}
+            </span>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export interface ShellProps {
   controller: AppController;
   state: AppState;
   /**
-   * Installation watch, when the host has one (the browser does, the Windows shell
+   * Installation watch, when the host has one (the browser does, the removed shell
    * does not). Absent means: no install banner, which is the truth there.
    */
   install?: InstallWatch;
@@ -87,30 +133,46 @@ export function Shell({ controller, state, install }: ShellProps): React.ReactEl
 
   if (state.fatalError) {
     return (
-      <div style={{ padding: SPACE.xxl, maxWidth: 640 }}>
-        <BrandMark />
-        <div className="df-error" role="alert" style={{ marginTop: SPACE.xl }}>
-          <strong>{t(`errors.${state.fatalError.code}` as never, state.fatalError.message)}</strong>
-          <span className="df-faint">{state.fatalError.code}</span>
-        </div>
-      </div>
+      <FatalScreen
+        code={state.fatalError.code}
+        message={state.fatalError.message}
+        {...(state.fatalError.detail ? { detail: state.fatalError.detail } : {})}
+      />
     );
   }
 
   if (!state.ready) {
+    // The first thing anyone sees, and the reason it is worth doing properly: a
+    // half-empty screen with the word « Loading… » on it is what makes an application
+    // feel unfinished. Here: the mark, the name, the line that says what is being
+    // prepared (identity, storage, settings — all of it local), and a bar that moves
+    // without ever claiming a percentage, because there is no percentage to claim.
     return (
-      <div style={{ padding: SPACE.xxl }}>
-        <BrandMark />
-        <div className="df-loading" style={{ marginTop: SPACE.xl }} aria-live="polite">
-          <div className="df-skeleton" style={{ width: 220 }} />
-          <span>{t('app.loading')}</span>
+      <div className="df-app df-app--loading" data-dropforge-shell="">
+        <div className="df-boot" role="status" aria-live="polite">
+          <div className="df-boot__mark">
+            <span className="df-boot__halo" aria-hidden="true" />
+            <BrandMark />
+          </div>
+          <div className="df-boot__titles">
+            <span className="df-boot__name">{t('app.name')}</span>
+            <span className="df-boot__tagline">{t('app.tagline')}</span>
+          </div>
+          <div className="df-boot__bar" aria-hidden="true">
+            <span className="df-boot__bar-fill" />
+          </div>
+          <p className="df-boot__text">{t('app.loading')}</p>
+          <p className="df-boot__hint">{t('app.loadingHint')}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="df-app">
+    // `data-dropforge-shell` is how a host that cannot see the screen checks that the
+    // interface really rendered — the removed shell used it to report a blank window
+    // instead of leaving it unexplained.
+    <div className="df-app df-app--ready" data-dropforge-shell="">
       <aside className="df-sidebar" aria-label={t('app.name')}>
         <BrandMark />
         <nav className="df-nav">

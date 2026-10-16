@@ -1,7 +1,7 @@
 /**
  * Hard limits of the protocol. These are safety rails, not product quotas:
  * they protect memory, the relay service and the receiving device.
- * Documented in docs/SPEC.md § Limits.
+ * Documented in docs/TECHNIQUE.md § Limits.
  */
 
 /** Chunk size used for file data. 256 KiB keeps memory flat and relay-friendly. */

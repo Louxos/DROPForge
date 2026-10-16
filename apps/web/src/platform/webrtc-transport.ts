@@ -162,6 +162,14 @@ export interface SignalingClientOptions {
   onPeerJoined?: (peer: Record<string, unknown>) => void;
   onPeerLeft?: () => void;
   onRelayOpen?: () => void;
+  /**
+   * The other peer asked for relay mode.
+   *
+   * The room only relays once *both* sides asked, so a peer that needs it cannot get
+   * there alone: this callback is where the second half answers. A deployment that
+   * refuses to relay simply leaves it out and keeps its direct path.
+   */
+  onRelayRequested?: () => void;
   onError?: (code: string, message: string) => void;
   create?: boolean;
   /** Injected for tests. */
@@ -186,6 +194,18 @@ export class SignalingClient {
   }
 
   connect(): Promise<void> {
+    // No address means there *is* no relay here (see `platform/signaling.ts`). Rejecting
+    // with DropForge's own code keeps the reason stable and translatable; letting
+    // `new WebSocket('')` throw would produce a bare syntax error from the browser.
+    if (this.options.url.trim().length === 0) {
+      return Promise.reject(
+        new DropForgeError(
+          ERROR_CODES.RELAY_UNAVAILABLE,
+          'No relay is configured: only devices on the same local network can be reached',
+          { retryable: false },
+        ),
+      );
+    }
     const factory = this.options.socketFactory ?? ((url: string) => new WebSocket(url));
     const socket = factory(this.options.url);
     this.socket = socket;
@@ -220,6 +240,9 @@ export class SignalingClient {
             break;
           case 'peer-left':
             this.options.onPeerLeft?.();
+            break;
+          case 'relay-requested':
+            this.options.onRelayRequested?.();
             break;
           case 'relay-open':
             this.relayReady = true;

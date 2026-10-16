@@ -99,8 +99,8 @@ export function detectCapabilities(scope: {
     serviceWorker,
     // The File System Access API is what allows writing a stream to disk.
     downloadStream: directoryPicker,
-    // Honest by construction: only the desktop app can work when the window is
-    // closed, and nothing on the web can. A visible tab is required.
+    // Honest by construction: nothing on the web can work when the tab is closed.
+    // A visible tab is required, and the UI says so.
     backgroundTransfer: false,
     ios,
     standalone: win?.matchMedia?.('(display-mode: standalone)').matches === true || nav?.standalone === true,

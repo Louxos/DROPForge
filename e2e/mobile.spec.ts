@@ -1,0 +1,111 @@
+/**
+ * The same product, on a phone-sized screen (Chromium / Android).
+ *
+ * Two things are checked here that a desktop browser cannot show: that the layout is
+ * really adapted to a small screen (fixed bottom navigation, no sidebar), and that a
+ * real transfer works from a phone-shaped viewport — including receiving it as a
+ * download, which is what an Android browser without File System Access does.
+ */
+import { expect, test } from '@playwright/test';
+import {
+  acceptIncoming,
+  attempt,
+  answerNewDevice,
+  collectDownloads,
+  createTestFiles,
+  expectQueueState,
+  hostRoom,
+  joinRoom,
+  L,
+  openDevice,
+  selectFiles,
+  sendSelection,
+} from './helpers/app.js';
+
+const FIXTURE = createTestFiles({ largeBytes: 512 * 1024 });
+const file = FIXTURE.files[0]!;
+const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+test.describe('PWA sur un écran de téléphone', () => {
+  test('la navigation basse est là, la barre latérale non', async ({ browser }) => {
+    const device = await openDevice(await browser.newContext());
+
+    // The two layouts exist in the DOM; CSS decides which one is visible at this width.
+    await expect(device.page.locator('.df-bottom-nav')).toBeVisible();
+    await expect(device.page.locator('.df-sidebar')).toBeHidden();
+
+    // The bar is anchored to the bottom of the screen and covers the width: that is
+    // what makes it reachable with a thumb.
+    const bar = await device.page.locator('.df-bottom-nav').boundingBox();
+    const viewport = device.page.viewportSize();
+    expect(bar).not.toBeNull();
+    expect(viewport).not.toBeNull();
+    expect(Math.abs(bar!.y + bar!.height - viewport!.height)).toBeLessThan(2);
+    expect(bar!.width).toBeGreaterThanOrEqual(viewport!.width - 2);
+
+    // Every screen is reachable from the bottom bar, which is the whole point of the
+    // bar. Each tap is checked *before* it is attempted: the point the browser would
+    // click on is resolved through `elementFromPoint`, so an element in the way is
+    // named here — a click that silently lands elsewhere costs a 150-second timeout
+    // and says nothing about what covered it.
+    for (const label of [L.devicesNavigation, L.history, L.settings, L.transfers]) {
+      await attempt(device.page, `appui sur « ${label} » dans la barre basse`, async () => {
+        // A fixed bar is positioned against the viewport, not the document: scrolling
+        // back to the top keeps the click point where the layout put it.
+        await device.page.evaluate(() => window.scrollTo(0, 0));
+        const button = device.page.locator('.df-bottom-nav__item', { hasText: label }).first();
+        await expect(button).toBeVisible();
+        const box = await button.boundingBox();
+        expect(box).not.toBeNull();
+        expect(box!.height).toBeGreaterThan(0);
+        // L'appui passe par Playwright, avec `force: true` : la boucle de stabilité est
+        // sautée — la barre composée par `backdrop-filter` ne la rapporte jamais sur un
+        // téléphone émulé — mais le point reste calculé par Playwright, dans le repère où
+        // il clique vraiment. Deux repères de mesure ont déjà divergé ici : le point venait
+        // de `getBoundingClientRect()` lu dans la page et tombait à 1 650 px de haut dans
+        // une fenêtre de 839.
+        const point = { x: box!.x + box!.width / 2, y: box!.y + box!.height / 2 };
+        // Ce qui recouvrirait la barre est mesuré, puis **joint à l'échec** au lieu d'être
+        // une condition préalable : cette mesure a déjà menti sur un écran émulé. Ce qui
+        // compte est vérifié juste après — la barre répond, et l'onglet courant change.
+        const covering = await device.page.evaluate(({ x, y }) => {
+          const element = document.elementFromPoint(x, y);
+          if (element?.closest('.df-bottom-nav__item')) return null;
+          return element ? `${element.tagName.toLowerCase()}.${element.className}` : 'rien';
+        }, point);
+        await button.click({ force: true });
+        await expect(
+          button,
+          `rien sous le point ${JSON.stringify(point)} : ${covering ?? 'la barre elle-même'}`,
+        ).toHaveAttribute('aria-current', 'page');
+        await expect(device.page.locator('.df-main')).toBeVisible();
+      });
+    }
+
+    await device.context.close();
+  });
+
+  test('un téléphone envoie vers un autre appareil, et reçoit un fichier complet', async ({ browser }) => {
+    const phone = await openDevice(await browser.newContext());
+    const other = await openDevice(await browser.newContext());
+
+    // The phone shows the code (the gesture that matters on mobile: no typing).
+    const code = await hostRoom(phone.page);
+    await joinRoom(other.page, code);
+    const [sasPhone, sasOther] = await Promise.all([answerNewDevice(phone.page, true), answerNewDevice(other.page, true)]);
+    expect(sasPhone).toBe(sasOther);
+
+    // The other device sends; the phone receives it as a download.
+    const downloads = collectDownloads(phone.page, 1);
+    await selectFiles(other.page, [file.path]);
+    await sendSelection(other.page);
+    await acceptIncoming(phone.page);
+
+    const received = await downloads;
+    expect(received.get(file.name)?.length).toBe(file.bytes.length);
+    await expectQueueState(phone.page, new RegExp(escapeRegExp(file.name)), L.completed);
+
+    await phone.context.close();
+    await other.context.close();
+  });
+});

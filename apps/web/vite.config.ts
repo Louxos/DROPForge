@@ -7,15 +7,38 @@
  *    instead of being pre-built (the same aliases as the root tsconfig);
  *  - the dev server listens on 0.0.0.0 so it can be reached from another device on
  *    the local network — that is how a phone is used to test a transfer;
+ *  - TLS is switched on when the local-network mode asks for it (`DROPFORGE_TLS_KEY`
+ *    and `DROPFORGE_TLS_CERT`, written by `scripts/serve-lan.mjs`). Not a preference:
+ *    on a plain `http://192.168.x.x` address the browser strips `crypto.subtle`, which
+ *    is the encryption this product is made of. A secure context is `https://`,
+ *    `http://localhost` or `http://127.0.0.1` — nothing else;
  *  - the signaling service is proxied on the same origin (`/ws`), so the browser
  *    never needs a second origin and no CORS rule has to be relaxed.
  */
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 const fromHere = (path: string): string => fileURLToPath(new URL(path, import.meta.url));
+
+/**
+ * The version of the product, read from the root `package.json`.
+ *
+ * Read here rather than written by hand: the release script can still override it with
+ * `DROPFORGE_VERSION`, and a plain `npm run build:web` (what a host like Netlify runs)
+ * then shows the true version too.
+ */
+function appVersion(): string {
+  try {
+    const manifest = JSON.parse(readFileSync(fromHere('../../package.json'), 'utf8')) as { version?: string };
+    return manifest.version ?? '0.0.0-unknown';
+  } catch {
+    // A build must not fail over a line in "À propos": the version says it is unknown.
+    return '0.0.0-unknown';
+  }
+}
 
 /** The workspace packages the application consumes, as TypeScript sources. */
 const WORKSPACE_PACKAGES = [
@@ -43,6 +66,21 @@ const SIGNALING_ORIGIN = process.env['DROPFORGE_SIGNALING_ORIGIN'] ?? 'http://12
  * installed application keeps working whatever the path.
  */
 const BASE = process.env['DROPFORGE_BASE'] ?? '/';
+
+/**
+ * The local certificate, when the local-network mode provided one.
+ *
+ * Read from files rather than pasted into the environment: a PEM does not survive a
+ * command line on Windows, and the private key has no business being in `ps` output.
+ */
+function tlsOptions(): { key: Buffer; cert: Buffer } | undefined {
+  const key = process.env['DROPFORGE_TLS_KEY'];
+  const cert = process.env['DROPFORGE_TLS_CERT'];
+  if (!key || !cert) return undefined;
+  return { key: readFileSync(key), cert: readFileSync(cert) };
+}
+
+const TLS = tlsOptions();
 
 export default defineConfig({
   root: fromHere('.'),
@@ -91,6 +129,14 @@ export default defineConfig({
       },
     }),
   ],
+  // The version is compiled in so "À propos" shows the real one, never a guess. This
+  // belongs at the top level: Vite 8 has no `build.define`, and the option written
+  // there was silently ignored — the published application announced `0.0.0-dev`
+  // instead of the version it was built from. The fallback reads `package.json` rather
+  // than repeating a string here, which would stay behind on the next release.
+  define: {
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(process.env['DROPFORGE_VERSION'] ?? appVersion()),
+  },
   resolve: {
     // Exact matches plus sub-paths (the design system also ships a stylesheet):
     // a prefix alias would rewrite `@dropforge/design-system/styles.css` into
@@ -106,6 +152,7 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     strictPort: true,
+    ...(TLS ? { https: TLS } : {}),
     // The preview host is served through a reverse proxy: the dev server must not
     // reject the forwarded Host header, and WebSocket upgrades must work.
     allowedHosts: true,
@@ -118,6 +165,7 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 4173,
     strictPort: true,
+    ...(TLS ? { https: TLS } : {}),
     allowedHosts: true,
     proxy: {
       '/ws': { target: SIGNALING_ORIGIN, ws: true, changeOrigin: true },
@@ -127,10 +175,6 @@ export default defineConfig({
     // The application is meant to run offline from a cold start, so it is served as
     // one bundle rather than split into lazy chunks the user would have to fetch.
     chunkSizeWarningLimit: 800,
-    // The version is compiled in so "À propos" shows the real one, never a guess.
-    define: {
-      'import.meta.env.VITE_APP_VERSION': JSON.stringify(process.env['DROPFORGE_VERSION'] ?? '0.1.0'),
-    },
     target: 'es2022',
     sourcemap: true,
     outDir: 'dist',

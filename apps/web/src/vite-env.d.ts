@@ -10,6 +10,12 @@ interface ImportMetaEnv {
   readonly VITE_SIGNALING_URL?: string;
   /** Origin of the optional hosted-sharing service. */
   readonly VITE_SHARE_ORIGIN?: string;
+  /**
+   * ICE servers for connections that leave the local network, comma-separated
+   * (`stun:…` or `turn:…`). Empty by default: the client then contacts nothing but its
+   * own signaling service.
+   */
+  readonly VITE_ICE_URLS?: string;
 }
 
 interface ImportMeta {
@@ -18,3 +24,13 @@ interface ImportMeta {
 
 /** CSS is imported for its side effects; Vite handles the bundling. */
 declare module '*.css';
+
+/**
+ * `fake-indexeddb/auto` installs a compliant IndexedDB on `globalThis` when imported
+ * for its side effects. `apps/web/src/entry.test.tsx` needs it: that test starts the
+ * real entry point, outside a browser, and IndexedDB is part of what it exercises.
+ *
+ * The package does ship typings, but its `exports` map does not expose them, so the
+ * import is declared here rather than left as an implicit `any`.
+ */
+declare module 'fake-indexeddb/auto';

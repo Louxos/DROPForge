@@ -83,6 +83,18 @@ export const pairProofMessageSchema = z.object({
   requestTrust: z.boolean(),
 });
 
+/**
+ * "please ask your user about me".
+ *
+ * The flag used to travel inside `pairProof`, which only exists when the devices were
+ * paired by QR code (`pairingSecret`). A device reached by typing a code was therefore
+ * connected with *no confirmation at all* — on either side. This message carries the
+ * request on its own, so the question is asked whenever the peer can ask it.
+ */
+export const trustRequestMessageSchema = z.object({
+  t: z.literal('trustRequest'),
+});
+
 export const readyMessageSchema = z.object({
   t: z.literal('ready'),
   /**
@@ -300,6 +312,7 @@ export const controlMessageSchema = z.union([
 export const handshakeMessageSchema = z.union([
   helloMessageSchema,
   keyMessageSchema,
+  trustRequestMessageSchema,
   authMessageSchema,
   pairProofMessageSchema,
   readyMessageSchema,
@@ -309,6 +322,7 @@ export type HelloMessage = z.infer<typeof helloMessageSchema>;
 export type KeyMessage = z.infer<typeof keyMessageSchema>;
 export type AuthMessage = z.infer<typeof authMessageSchema>;
 export type PairProofMessage = z.infer<typeof pairProofMessageSchema>;
+export type TrustRequestMessage = z.infer<typeof trustRequestMessageSchema>;
 export type ReadyMessage = z.infer<typeof readyMessageSchema>;
 export type ManifestEntry = z.infer<typeof manifestEntrySchema>;
 export type TransferOffer = z.infer<typeof transferOfferSchema>;

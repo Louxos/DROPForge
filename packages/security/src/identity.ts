@@ -3,10 +3,9 @@
  *
  * The identity is a signature key pair generated on the device and never
  * exported in clear:
- *   - platform-tauri : stored in the OS keystore / app data directory, mode 0600
- *   - platform-web   : stored in IndexedDB, flagged as non-extractable where the
- *                      runtime allows it; the UI states that browser storage is
- *                      weaker than a desktop keystore (documented honestly)
+ *   - platform-web : stored in IndexedDB, flagged as non-extractable where the
+ *                    runtime allows it; the UI states plainly that browser storage
+ *                    is weaker than a key held by the operating system
  *
  * The identity fingerprint (SHA-256 of the public key) is what a user compares
  * out of band and what "trusted device" records bind to. A display name is

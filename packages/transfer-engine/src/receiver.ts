@@ -113,6 +113,8 @@ export interface ReceiverOutcome {
   failed: Array<{ index: number; reason: 'digestMismatch' | 'writeFailed' | 'noSpace' }>;
   bytesDone: number;
   errorCode?: string;
+  /** Whether trying the same transfer again may succeed (see `SenderOutcome`). */
+  retryable?: boolean;
 }
 
 interface FileState {
@@ -247,6 +249,7 @@ export class TransferReceiver {
           .map((f) => ({ index: f.index, reason: 'writeFailed' as const })),
         bytesDone: this.bytesDone,
         errorCode: dfError.code,
+        retryable: dfError.retryable,
       };
     } finally {
       this.options.clock.clearInterval(this.stallHandle);
@@ -318,7 +321,7 @@ export class TransferReceiver {
     // A verified, chunk-aligned prefix of a file that belongs to this exact
     // manifest is adopted *before* conflicts are computed: continuing a partial
     // download is the whole point of resume, and it is not a name conflict (the
-    // file on disk is the receiving side's own half-written file, see docs/SPEC.md).
+    // file on disk is the receiving side's own half-written file, see docs/TECHNIQUE.md).
     await this.adoptResumeState(store);
     const resumedPaths = new Set([...this.files.values()].filter((f) => f.resumePrefix).map((f) => f.path));
     const conflicts = await TransferReceiver.detectConflicts(store, offer, resumedPaths);

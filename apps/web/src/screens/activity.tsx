@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SPACE, formatBytes, formatDateTime, shortFingerprint } from '@dropforge/design-system';
-import type { AppController, AppState } from '../app/controller.js';
+import { transferLabel, type AppController, type AppState } from '../app/controller.js';
 import { EmptyState, PageHeader, StateBadge } from '../components/atoms.js';
 
 export function ActivityScreen({ controller, state }: { controller: AppController; state: AppState }): React.ReactElement {
@@ -32,6 +32,9 @@ export function ActivityScreen({ controller, state }: { controller: AppControlle
     <section>
       <PageHeader titleKey="activity.title" subtitleKey="activity.subtitle" />
 
+      {/* One search field and one filter list. The four filters used to be four buttons
+          of the same size, three of which applied nothing most of the time: a list is one
+          control, one action, and it says what is currently filtered. */}
       <div className="df-row" style={{ marginBottom: SPACE.lg, flexWrap: 'wrap' }}>
         <input
           className="df-input"
@@ -40,22 +43,20 @@ export function ActivityScreen({ controller, state }: { controller: AppControlle
           onChange={(event) => apply(event.target.value, filter)}
           style={{ flex: 1, minWidth: 220 }}
         />
-        {(['all', 'send', 'receive', 'failed'] as const).map((option) => (
-          <button
-            key={option}
-            type="button"
-            className={`df-button df-button--small${filter === option ? ' df-button--primary' : ''}`}
-            onClick={() => apply(query, option)}
-          >
-            {option === 'all'
-              ? t('activity.filterAll')
-              : option === 'send'
-                ? t('activity.filterSend')
-                : option === 'receive'
-                  ? t('activity.filterReceive')
-                  : t('activity.filterFailed')}
-          </button>
-        ))}
+        <label className="df-faint" htmlFor="df-activity-filter" style={{ display: 'none' }}>
+          {t('activity.filter')}
+        </label>
+        <select
+          id="df-activity-filter"
+          className="df-input"
+          value={filter}
+          onChange={(event) => apply(query, event.target.value as typeof filter)}
+        >
+          <option value="all">{t('activity.filterAll')}</option>
+          <option value="send">{t('activity.filterSend')}</option>
+          <option value="receive">{t('activity.filterReceive')}</option>
+          <option value="failed">{t('activity.filterFailed')}</option>
+        </select>
       </div>
 
       <p className="df-faint" style={{ marginBottom: SPACE.lg }}>
@@ -77,11 +78,16 @@ export function ActivityScreen({ controller, state }: { controller: AppControlle
                   <strong>
                     {entry.direction === 'send' ? t('activity.filterSend') : t('activity.filterReceive')}
                   </strong>{' '}
-                  <span className="df-faint">
-                    {entry.peerName} · {formatDateTime(entry.updatedAt, locale)}
-                  </span>
+                  {/* Ce qui a été transféré, nommé : une entrée qui ne dit que
+                      « Envoi · Windows · 2 · 3,0 Mio / 3,0 Mio » oblige à ouvrir les
+                      détails pour savoir de quel fichier il s'agit — dans un écran
+                      dont le seul but est de retrouver ce qu'on a envoyé. */}
+                  <span>{transferLabel(entry.files)}</span>
                   <div className="df-faint">
-                    {entry.files.length} · {formatBytes(entry.bytesDone, locale)} / {formatBytes(entry.totalBytes, locale)}
+                    {entry.peerName} · {formatDateTime(entry.updatedAt, locale)}
+                  </div>
+                  <div className="df-faint">
+                    {formatBytes(entry.bytesDone, locale)} / {formatBytes(entry.totalBytes, locale)}
                     {entry.transport ? ` · ${entry.transport}` : ''}
                   </div>
                 </div>
@@ -89,17 +95,10 @@ export function ActivityScreen({ controller, state }: { controller: AppControlle
                   <StateBadge state={entry.state} />
                   <button
                     type="button"
-                    className="df-button df-button--ghost df-button--small"
+                    className="df-button df-button--small"
                     onClick={() => setExpanded(expanded === entry.id ? undefined : entry.id)}
                   >
                     {expanded === entry.id ? t('common.hide') : t('common.details')}
-                  </button>
-                  <button
-                    type="button"
-                    className="df-button df-button--danger df-button--small"
-                    onClick={() => void controller.deleteHistoryEntry(entry.id)}
-                  >
-                    {t('activity.deleteOne')}
                   </button>
                 </div>
               </div>
@@ -111,6 +110,7 @@ export function ActivityScreen({ controller, state }: { controller: AppControlle
               ) : null}
 
               {expanded === entry.id ? (
+                <>
                 <ul className="df-list" style={{ marginTop: SPACE.md }}>
                   {entry.files.map((file) => (
                     <li key={file.index} className="df-row df-row--between df-faint">
@@ -122,6 +122,15 @@ export function ActivityScreen({ controller, state }: { controller: AppControlle
                     </li>
                   ))}
                 </ul>
+                <button
+                  type="button"
+                  className="df-button df-button--danger df-button--small"
+                  style={{ marginTop: SPACE.md }}
+                  onClick={() => void controller.deleteHistoryEntry(entry.id)}
+                >
+                  {t('activity.deleteOne')}
+                </button>
+                </>
               ) : null}
 
               {entry.state === 'failed' && entry.bytesDone > 0 ? (
@@ -132,20 +141,25 @@ export function ActivityScreen({ controller, state }: { controller: AppControlle
         </ul>
       )}
 
-      <div className="df-row" style={{ marginTop: SPACE.xl }}>
-        <button type="button" className="df-button" onClick={() => void controller.exportHistory()}>
-          {t('activity.export')}
-        </button>
-        <button
-          type="button"
-          className="df-button df-button--danger"
-          onClick={() => {
-            if (window.confirm(t('activity.deleteAllConfirm'))) void controller.clearHistory();
-          }}
-        >
-          {t('activity.deleteAll')}
-        </button>
-      </div>
+      {state.history.length > 0 ? (
+        <details className="df-details" style={{ marginTop: SPACE.xl }}>
+          <summary>{t('transfer.moreOptions')}</summary>
+          <div className="df-row" style={{ marginTop: SPACE.md, flexWrap: 'wrap' }}>
+            <button type="button" className="df-button df-button--small" onClick={() => void controller.exportHistory()}>
+              {t('activity.export')}
+            </button>
+            <button
+              type="button"
+              className="df-button df-button--danger df-button--small"
+              onClick={() => {
+                if (window.confirm(t('activity.deleteAllConfirm'))) void controller.clearHistory();
+              }}
+            >
+              {t('activity.deleteAll')}
+            </button>
+          </div>
+        </details>
+      ) : null}
 
       {state.identityFingerprint ? (
         <p className="df-faint" style={{ marginTop: SPACE.xl }}>

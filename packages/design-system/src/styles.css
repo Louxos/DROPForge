@@ -278,9 +278,25 @@ body {
  * Buttons
  * ---------------------------------------------------------------- */
 
+/* Every interactive element. The rules that make a click *feel* immediate are the
+ * three lines below every button: the browser's own tap delay and highlight are
+ * removed (they are what makes a button feel late on a touch screen), the press is
+ * drawn locally by scaling the button down, and the transition is short enough that
+ * the press is visible without waiting for it. */
+.df-button,
+.df-choice,
+.df-tab,
+.df-back,
+button,
+[role='button'] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
 .df-button {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: var(--df-space-sm);
   padding: var(--df-space-md) var(--df-space-lg);
   border-radius: var(--df-radius-md);
@@ -290,8 +306,13 @@ body {
   font: inherit;
   font-weight: 500;
   cursor: pointer;
+  /* `will-change: transform` keeps the press on the compositor: no repaint between
+   * the pointer going down and the scale being drawn. */
+  will-change: transform;
   transition: transform var(--df-motion-fast) var(--df-motion-easing),
-    background var(--df-motion-fast) var(--df-motion-easing);
+    background var(--df-motion-fast) var(--df-motion-easing),
+    border-color var(--df-motion-fast) var(--df-motion-easing),
+    box-shadow var(--df-motion-fast) var(--df-motion-easing);
 }
 
 .df-button:hover:not(:disabled) {
@@ -299,13 +320,247 @@ body {
   border-color: var(--df-accent);
 }
 
+/* The press: a real scale, not a one-pixel nudge, and no transition on the way
+ * down — the response to a finger has to be in the same frame. */
 .df-button:active:not(:disabled) {
-  transform: translateY(1px);
+  transform: scale(0.97);
+  transition-duration: 0ms;
+}
+
+.df-button:focus-visible {
+  outline: 2px solid var(--df-accent);
+  outline-offset: 2px;
 }
 
 .df-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* A button doing slow work (opening a folder picker, connecting) keeps its size and
+ * shows a spinner instead of freezing the interface. */
+.df-button--busy {
+  pointer-events: none;
+}
+
+.df-button--busy::after {
+  content: '';
+  width: 1em;
+  height: 1em;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  animation: df-spin 700ms linear infinite;
+}
+
+@keyframes df-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------------------------------------------------------------- *
+ * The entry choice: two large targets, nothing else
+ * ---------------------------------------------------------------- */
+.df-choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--df-space-lg);
+  margin: var(--df-space-xl) 0;
+}
+
+.df-choice {
+  display: flex;
+  align-items: center;
+  gap: var(--df-space-lg);
+  padding: var(--df-space-xl);
+  text-align: left;
+  border-radius: var(--df-radius-lg);
+  border: 1px solid var(--df-border);
+  background: linear-gradient(150deg, var(--df-surface-elevated), var(--df-surface));
+  color: var(--df-text);
+  font: inherit;
+  cursor: pointer;
+  transition: transform var(--df-motion-base) var(--df-motion-easing),
+    border-color var(--df-motion-base) var(--df-motion-easing),
+    box-shadow var(--df-motion-base) var(--df-motion-easing);
+}
+
+.df-choice:hover {
+  border-color: var(--df-accent);
+  box-shadow: 0 18px 40px -24px var(--df-accent);
+  transform: translateY(-2px);
+}
+
+.df-choice:active {
+  transform: scale(0.98);
+  transition-duration: 0ms;
+}
+
+.df-choice:focus-visible {
+  outline: 2px solid var(--df-accent);
+  outline-offset: 2px;
+}
+
+.df-choice__icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--df-radius-md);
+  background: color-mix(in srgb, var(--df-accent) 18%, transparent);
+  color: var(--df-accent);
+}
+
+.df-choice__icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.df-choice__text {
+  display: grid;
+  gap: var(--df-space-xs, 2px);
+}
+
+.df-choice__text strong {
+  font-size: var(--df-text-lg);
+  font-weight: 600;
+}
+
+/* Hick's law, drawn: the main action of a screen must *look* like the main action.
+   The entry screen offers two gestures, so the first one is bigger, accented, raised
+   and lit; the second one is quiet and flat. Nothing else on the page competes. */
+.df-choice--primary {
+  border-color: color-mix(in srgb, var(--df-accent) 55%, transparent);
+  background:
+    radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--df-accent) 22%, transparent), transparent 60%),
+    linear-gradient(150deg, var(--df-surface-elevated), var(--df-surface));
+  box-shadow: 0 26px 50px -34px var(--df-accent);
+  padding: calc(var(--df-space-xl) + 4px);
+}
+
+.df-choice--primary .df-choice__icon {
+  width: 64px;
+  height: 64px;
+  background: color-mix(in srgb, var(--df-accent) 26%, transparent);
+}
+
+.df-choice--primary .df-choice__text strong {
+  font-size: var(--df-text-xl);
+}
+
+/* The one button a screen is about. Larger, raised, and it is the only element allowed
+   to carry the accent gradient at full strength. */
+.df-button--lead {
+  padding: var(--df-space-md) var(--df-space-xl);
+  font-size: var(--df-text-base);
+  font-weight: 600;
+  box-shadow: 0 16px 30px -20px var(--df-accent);
+}
+
+.df-button--lead:hover:not(:disabled) {
+  box-shadow: 0 20px 38px -20px var(--df-accent);
+}
+
+/* ---------------------------------------------------------------- *
+ * Disclosures: where rare options wait
+ * ---------------------------------------------------------------- */
+.df-details {
+  border-radius: var(--df-radius-md);
+}
+
+.df-details > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--df-space-sm);
+  padding: var(--df-space-xs) var(--df-space-sm);
+  margin-left: calc(-1 * var(--df-space-sm));
+  border-radius: var(--df-radius-sm);
+  color: var(--df-text-muted);
+  font-size: var(--df-text-md);
+  cursor: pointer;
+  list-style: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.df-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.df-details > summary::before {
+  content: '›';
+  display: inline-block;
+  font-size: 1.1em;
+  line-height: 1;
+  transition: transform var(--df-motion-fast) var(--df-motion-easing);
+}
+
+.df-details[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.df-details > summary:hover {
+  color: var(--df-text);
+}
+
+.df-details > summary:focus-visible {
+  outline: 2px solid var(--df-accent);
+  outline-offset: 2px;
+}
+
+/* A whole card of advanced settings, folded away. */
+.df-details--card {
+  margin-bottom: var(--df-space-lg);
+}
+
+.df-details--card > summary {
+  padding: var(--df-space-md) var(--df-space-lg);
+  margin-left: 0;
+  border: 1px solid var(--df-border);
+  border-radius: var(--df-radius-md);
+  background: var(--df-surface);
+  font-size: var(--df-text-base);
+  color: var(--df-text);
+}
+
+.df-details--card > summary::before {
+  font-size: 1.3em;
+}
+
+.df-details--card[open] > summary {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-bottom-color: transparent;
+}
+
+/* The small « Retour » link above a step: quiet, but still a real target. */
+.df-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--df-space-sm);
+  margin-bottom: var(--df-space-md);
+  padding: var(--df-space-xs, 2px) var(--df-space-sm);
+  border: 0;
+  background: transparent;
+  color: var(--df-text-muted);
+  font: inherit;
+  cursor: pointer;
+  border-radius: var(--df-radius-sm);
+}
+
+.df-back:hover {
+  color: var(--df-text);
+}
+
+.df-back:active {
+  transform: scale(0.97);
+}
+
+.df-back:focus-visible {
+  outline: 2px solid var(--df-accent);
+  outline-offset: 2px;
 }
 
 .df-button--primary {
@@ -529,8 +784,42 @@ body {
   }
 }
 
-/* Scrollbars: subtle, theme-aware, never a bright white bar in a dark app. */
+/* Scrollbars: ours, drawn to match the interface — the default bright bar is the one
+   element of a dark application that never looks like it belongs. `scrollbar-color`
+   covers Firefox and recent Chromium; the `::-webkit-` rules cover the rest, and the
+   two are kept identical so a page never shows two different bars. */
 * {
-  scrollbar-color: var(--df-border-strong) transparent;
   scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--df-text-faint) 55%, transparent) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: var(--df-radius-pill);
+  background-clip: content-box;
+  background-color: color-mix(in srgb, var(--df-text-faint) 55%, transparent);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--df-accent) 80%, transparent);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* No horizontal scrollbar anywhere: a side-scrolling window is always a layout bug,
+   never an intention, and hiding the overflow would hide the bug with it. */
+html,
+body {
+  overflow-x: hidden;
 }

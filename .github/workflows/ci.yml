@@ -1,4 +1,4 @@
-# Vérification de chaque changement : types, tests, compilation des trois cibles.
+# Vérification de chaque changement : types, tests, compilation des deux cibles.
 #
 # Rien n'est publié ici : c'est le rôle de `release.yml` (sur un tag). Ce workflow
 # existe pour qu'une branche ne puisse pas être fusionnée avec des tests rouges ou
@@ -27,9 +27,18 @@ jobs:
           cache: npm
       - name: Dépendances
         run: npm ci --no-audit --no-fund
-      - name: Types et tests (web + bureau)
+      - name: Types et tests
         run: npm run verify
-      - name: Compilation des trois cibles
+      - name: Visuels à jour
+        # Les icônes sont générées par du code (`node scripts/generate-icons.mjs`). Si
+        # les fichiers versionnés diffèrent de ce que le générateur produit, c'est qu'un
+        # visuel a été modifié à la main ou oublié : le contrôle le dit ici, au lieu de
+        # le laisser découvrir une fois l'application publiée.
+        run: |
+          npm run icons
+          git diff --exit-code -- apps/web/public/icons \
+            || { echo "::error::les icônes versionnées ne correspondent plus à leur générateur (npm run icons)"; exit 1; }
+      - name: Compilation des deux cibles
         # Base relative : l'archive publiée doit fonctionner depuis n'importe quel
         # dossier, pas seulement depuis la racine d'un domaine.
         run: DROPFORGE_BASE=./ npm run build
@@ -48,3 +57,42 @@ jobs:
           path: release/dropforge-pwa-*.zip
           if-no-files-found: error
           retention-days: 14
+
+  e2e:
+    # Les navigateurs réels, et deux appareils.
+    #
+    # Tout le reste de la chaîne remplace le transport, le système de fichiers et le
+    # DOM. Ici rien n'est remplacé : deux contextes de navigateur, deux identités, le
+    # vrai service de signalisation, un vrai canal WebRTC, et les octets reçus sont
+    # hachés pour vérifier qu'ils sont identiques à ceux envoyés.
+    name: Navigateurs réels (bout en bout)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Navigateurs
+        run: npx playwright install --with-deps chromium firefox webkit
+      - name: Transfert réel entre deux navigateurs
+        shell: bash
+        # Le journal est conservé et, en cas d'échec, publié en **annotation** : le
+        # journal complet d'un travail n'est pas toujours récupérable depuis
+        # l'extérieur de GitHub, une annotation l'est toujours.
+        run: |
+          set -o pipefail
+          npm run test:e2e 2>&1 | tee e2e.log || {
+            node scripts/ci-annotate.mjs e2e.log "Tests de bout en bout" 60
+            exit 1
+          }
+      - name: Traces en cas d'échec
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: dropforge-e2e-traces
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7

@@ -238,8 +238,20 @@ export function createSignalingServer(options: SignalingServerOptions = {}): Sig
             fail('NOT_IN_ROOM', 'Join a room first');
             return;
           }
-          const member = room.members.find((entry) => entry.socketId === socketIds.get(socket));
+          const self = socketIds.get(socket);
+          const member = room.members.find((entry) => entry.socketId === self);
+          const first = member !== undefined && !member.capabilities.includes('relay.ready');
           if (member) member.capabilities = [...new Set([...member.capabilities, 'relay.ready'])];
+          if (first) {
+            // The other peer is *asked*, never switched: the room only relays once both
+            // sides said yes (`Room.relaying`), and a peer that does not answer simply
+            // keeps its direct path. Asking once per peer is what keeps two clients
+            // from answering each other forever.
+            for (const other of room.members) {
+              if (other.socketId === self) continue;
+              socketFor(other.socketId)?.send(JSON.stringify({ t: 'relay-requested' }));
+            }
+          }
           if (rooms.markRelaying(room.code)) {
             for (const other of room.members) {
               // Both peers are told, including the one that asked second: the relay

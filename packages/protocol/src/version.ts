@@ -16,7 +16,7 @@ export const CAPABILITIES = [
   'webrtc.direct',
   /** Binary frames can be relayed (encrypted) by the signaling/relay service. */
   'relay.blind',
-  /** Receiver can write into a user-chosen directory handle (File System Access / Tauri). */
+  /** Receiver can write into a user-chosen directory handle (File System Access). */
   'fs.directory',
   /** Receiver can request a download per file (browser fallback). */
   'fs.download',
@@ -28,6 +28,14 @@ export const CAPABILITIES = [
   'transfer.folders',
   /** Integrity manifest (per-chunk + whole-file digests) is supported. */
   'transfer.integrity',
+  /**
+   * The peer can ask its user to confirm a brand-new device, and can answer such a
+   * request (`trustRequest`, see packages/security).
+   *
+   * Announced, and used only when both sides announced it: a peer that cannot ask its
+   * user must never be sent a request nobody can answer.
+   */
+  'trust.request',
 ] as const;
 
 export type Capability = (typeof CAPABILITIES)[number];

@@ -251,10 +251,18 @@ export async function runTransfer(r: Rig, options: RunOptions = {}): Promise<Run
       store: r.store,
       policy: options.policy ?? 'ask',
       ...(options.resume ? { resume: options.resume } : {}),
-      offerTimeoutMs: options.timeoutMs ?? 4000,
+      // Banc d'essai, pas produit : les valeurs du produit sont de trente secondes. Sur
+      // une machine d'intégration partagée, un morceau d'un mégaoctet peut attendre son
+      // accusé de réception bien plus d'une seconde, et lire ce délai comme « le pair
+      // est mort » a fait échouer la suite (deux fois) au moment de publier une version.
+      offerTimeoutMs: options.timeoutMs ?? 15_000,
       progressIntervalMs: options.progressIntervalMs ?? 25,
       progressThrottleMs: options.progressThrottleMs ?? 250,
-      stallTimeoutMs: options.stallTimeoutMs ?? 1200,
+      // Cinq secondes, et non une : les tests de reprise ne parlent pas du détecteur
+      // d'immobilité, et sur une machine d'intégration chargée une pause de
+      // planification d'une seconde entre deux morceaux est normale. Le détecteur,
+      // lui, a ses propres tests — qui passent un délai court *exprès*.
+      stallTimeoutMs: options.stallTimeoutMs ?? 15_000,
       requestDecision: async (request) => {
         if (!options.requestDecision) return { accepted: true, decisions: options.decisions ?? [] };
         const answer = await options.requestDecision({
@@ -275,8 +283,8 @@ export async function runTransfer(r: Rig, options: RunOptions = {}): Promise<Run
       clock: r.clock,
       logger: r.logger,
       streamIndex,
-      acceptTimeoutMs: options.timeoutMs ?? 4000,
-      ackTimeoutMs: options.ackTimeoutMs ?? 2000,
+      acceptTimeoutMs: options.timeoutMs ?? 15_000,
+      ackTimeoutMs: options.ackTimeoutMs ?? 20_000,
       progressThrottleMs: options.progressThrottleMs ?? 250,
       onProgress: (progress, running) => {
         sender = running;
