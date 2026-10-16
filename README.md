@@ -12,8 +12,8 @@ direct d'un appareil à l'autre. Quand un serveur s'en mêle, il ne voit jamais 
 des fichiers.
 
 <p align="center">
-  <em>Un seul nom, deux coques : une application Windows (Tauri 2 + Rust) et une
-  application web progressive (PWA) qui partagent exactement la même interface.</em>
+  <em>Une application web installable (PWA) : rien à télécharger, rien à installer —
+  l'interface s'installe depuis le navigateur, sur ordinateur comme sur téléphone.</em>
 </p>
 
 ---
@@ -22,7 +22,7 @@ des fichiers.
 
 | Document | Contenu |
 | --- | --- |
-| **[docs/GUIDE.md](docs/GUIDE.md)** | Installer, s'en servir, **dépannage**, réparer une installation Windows coincée, publier, déployer |
+| **[docs/GUIDE.md](docs/GUIDE.md)** | Installer, s'en servir, mode « même Wi‑Fi », **dépannage**, publier, déployer |
 | **[docs/TECHNIQUE.md](docs/TECHNIQUE.md)** | Architecture, comportement, données, sécurité, plateformes, tests, **état réel du projet**, annexes générées (dépendances, licences) |
 | **[CHANGELOG.md](CHANGELOG.md)** | Ce qui a changé, version par version — c'est aussi le texte des notes de version publiées |
 | **[Page d'accueil](https://louxos.github.io/DROPForge/)** | La vitrine publique : où aller, ce que DropForge fait, ses limites |
@@ -32,26 +32,23 @@ des fichiers.
 | Vous êtes sur | Prenez | Comment |
 | --- | --- | --- |
 | **Ordinateur, téléphone, tablette** | l'application web | l'adresse publiée (Netlify, ou la vôtre : [docs/GUIDE.md](docs/GUIDE.md) § 9-10), puis « Installer l'application » / « Sur l'écran d'accueil » |
-| **Windows** | l'installateur | page **[Releases](../../releases/latest)** → `DropForge_<version>_x64-setup.exe` (par utilisateur, sans droits administrateur) ou le `.msi` |
 | **Un réseau isolé** | l'archive hors ligne | `dropforge-pwa-<version>.zip` de la dernière version, servi en **HTTPS** depuis n'importe quel dossier |
 | **Deux réseaux différents** | le serveur optionnel | `dropforge-signaling-<version>.zip` : `npm install --omit=dev && npm start` |
 | **Un serveur à vous** | les conteneurs | `cd deploy && docker compose up -d --build` → `http://localhost:8080` |
 
-Sommes de contrôle, installation, et réparation d'une installation Windows bloquée :
-[docs/GUIDE.md](docs/GUIDE.md) § 3 et § 7.
+Installation depuis le navigateur, sommes de contrôle et dépannage :
+[docs/GUIDE.md](docs/GUIDE.md) § 2 et § 7.
 
 ## État réel du projet
 
-DropForge n'est **pas** encore une 1.0, et il le dit. Version actuelle : **0.1.2**.
+DropForge n'est **pas** encore une 1.0, et il le dit. Version actuelle : **0.1.3**.
 
 | Partie | Statut |
 | --- | --- |
-| Moteur de transfert (chiffrement de bout en bout, reprise, vérification SHA-256, file d'attente) | ✅ Implémenté et **testé** (504 tests automatisés, 47 fichiers) |
+| Moteur de transfert (chiffrement de bout en bout, reprise, vérification SHA-256, file d'attente) | ✅ Implémenté et **testé** (445 tests automatisés, 42 fichiers) |
 | Interface partagée React/TypeScript (FR/EN, thèmes sombre et clair) | ✅ Implémentée et **testée** au niveau du contrôleur et du rendu |
 | Application web progressive (PWA) installable | ✅ Implémentée et **testée** — pas encore essayée sur un téléphone réel |
 | Serveur de signalisation / relais aveugle (Node) | ✅ Implémenté et **testé** |
-| Application Windows (Tauri + Rust) | ⚠️ **Compilée et empaquetée** à chaque envoi par la chaîne d'intégration — **jamais ouverte sur un vrai Windows**, c'est la seule chose qu'elle ne peut pas faire |
-| Installateur et désinstallateur Windows | ⚠️ **Corrigé en 0.1.2** (écran de démarrage qui restait affiché, désinstallation refusée) ; correctifs **pas encore essayés** sur un poste réel |
 | Tests dans un vrai navigateur (E2E) | ✅ **Exécutés à chaque envoi** : Chromium, Firefox, WebKit (iPhone), transfert réel avec octets reçus hachés et comparés |
 | Tests sur appareils mobiles réels | ❌ Non exécutés — l'émulation est couverte, pas un vrai iPhone/Android |
 | Liens de partage hébergés | ⚠️ Code client implémenté et testé ; nécessite un hébergement (optionnel) |
@@ -75,7 +72,7 @@ Si aucune méthode ne fonctionne, DropForge le dit clairement et propose une alt
 
 ## Démarrage rapide (développement)
 
-Prérequis : **Node 22+** et npm. Rust n'est nécessaire que pour l'application Windows.
+Prérequis : **Node 22+** et npm. Rien d'autre : ni Rust, ni machine Windows.
 
 ```bash
 npm install
@@ -84,12 +81,12 @@ npm run dev            # application web + signalisation (une seule commande)
 npm run dev:web        # application web seule → http://localhost:5173
 npm run dev:signaling  # signalisation seule → http://localhost:8787
 
-npm run verify         # ce que la chaîne d'intégration exige : types, contrôles, 504 tests
-npm test               # 47 fichiers, 504 tests
+npm run verify         # ce que la chaîne d'intégration exige : types, contrôles, 445 tests
+npm test               # 42 fichiers, 445 tests
 npm run test:e2e       # navigateurs réels (Chromium, Firefox, WebKit) — à installer une fois :
 npm run test:e2e:install
 
-npm run build:windows  # installateur Windows (Rust requis)
+npm run build          # application web + serveur
 npm run package        # archives web + serveur et sommes de contrôle dans release/
 ```
 
@@ -103,12 +100,11 @@ local, l'application fonctionne sans lui.
 | --- | --- |
 | `packages/*` | Le métier, sans React ni DOM : `protocol`, `security`, `app-core`, `transfer-engine`, `connection-manager`, `device-manager`, `history`, `settings`, `sharing`, `notifications`, `design-system` |
 | `apps/web` | Application web progressive (React + Vite) — l'interface partagée |
-| `apps/desktop` | Application Windows (Tauri 2 + Rust) et les hooks de l'installateur |
 | `apps/signaling` | Serveur de signalisation / relais aveugle (Node, WebSocket) |
 | `deploy/` | nginx, Dockerfiles et `docker-compose.yml` : tout sur une seule origine |
 | `site/` | Sources de la page d'accueil publiée (générée par `npm run site:build`) |
 | `e2e/` | Tests de bout en bout dans de vrais navigateurs |
-| `scripts/` | Outils : icônes, paquets, page publiée, inventaire des dépendances, déblocage Windows |
+| `scripts/` | Outils : icônes, paquets, page publiée, inventaire des dépendances, fichiers d'aide du navigateur |
 
 ## Sécurité et confidentialité
 

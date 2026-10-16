@@ -7,12 +7,32 @@ Release. Une seule source, jamais deux textes à garder cohérents.
 Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions
 suivent le [versionnage sémantique](https://semver.org/lang/fr/) une fois la 1.0 atteinte.
 
-## [Non publiée]
+> **À lire avant les versions antérieures.** Jusqu'à la 0.1.2 incluse, DropForge était
+> aussi une application Windows (Tauri 2 + Rust). Cette application a été **retirée du
+> projet** en 0.1.3 : les entrées plus bas qui parlent d'installateur, de `.exe` ou de
+> `.msi` décrivent un produit qui n'existe plus dans ce dépôt. La suite du projet est
+> l'application web installable, et rien d'autre.
 
-**Interface revue selon la loi de Hick, mode « même Wi‑Fi » utilisable en une commande,
-et correction de l'adresse du relais.** Ces changements sont dans le dépôt ; ils ne sont
-pas encore publiés sous forme de version. L'application web, elle, est servie en continu :
-son déploiement suit la branche publiée du dépôt.
+## [0.1.3]
+
+**Le projet se concentre sur une seule chose : l'application web installable.** L'application
+Windows (Tauri 2 + Rust) est **retirée du dépôt** — code, installateurs, scripts et tests.
+Elle a coûté cher sans rien apporter de décisif : elle ne pouvait être compilée et essayée
+que sur une machine Windows, sa dernière version publiée ne s'ouvrait pas (Tauri gèle
+`Object.prototype` avant d'exécuter la page, et une bibliothèque écrivait sur ce prototype —
+l'exception arrivait avant React), et tout ce qu'elle apportait en plus de l'application web
+se paie en défauts qu'aucun test automatique ne pouvait attraper depuis ce dépôt.
+
+Ce qui reste est plus court, plus vérifiable, et testé de bout en bout : l'application web
+s'installe depuis le navigateur, sur ordinateur comme sur téléphone, elle fonctionne hors
+ligne, et le mode « deux appareils sur le même Wi‑Fi » se lance en une commande.
+
+**Ce qui a disparu** : `apps/desktop` (coque Tauri, hooks d'installateur, écran de
+démarrage), les scripts `check-desktop-config`, `generate-installer-art` et
+`unblock-windows.ps1`, le générateur de `.ico`/BMP, les tâches « Application Windows » des
+chaînes d'intégration, les secrets de signature, et les neuf tests qui ne parlaient que de
+tout cela. Les **versions publiées précédemment restent téléchargeables** sur la page des
+versions, et ne sont plus maintenues.
 
 ### Ajouté
 
@@ -86,6 +106,22 @@ son déploiement suit la branche publiée du dépôt.
 
 ### Corrigé
 
+- **Les réglages ne proposent plus ce qui n'existe plus.** « Lancer au démarrage de
+  Windows » et « À la fermeture de la fenêtre » n'avaient de sens que dans l'application
+  Windows : ils disparaissent de l'écran **et** du schéma des préférences, qui passe en
+  **version 4** avec sa migration (un fichier existant garde tout le reste, ces deux clés
+  sont retirées au lieu d'être ignorées en silence).
+- **La chaîne de publication ne construit plus rien d'inutile.** `release.yml` publie les
+  deux archives réellement téléchargeables (application web, serveur optionnel) et leurs
+  sommes de contrôle ; `ci.yml` vérifie deux cibles au lieu de trois. Un dépôt qui ne
+  compile plus de Rust se vérifie en une minute, sur n'importe quelle machine.
+- **`npm run verify` ne demande plus ni Rust, ni machine Windows** : types, cohérence de la
+  page publiée, icônes à jour, puis les tests. C'est la commande que lancent aussi bien la
+  chaîne d'intégration que la page de contribution.
+- **La page publiée ne propose plus qu'un chemin.** Elle disait « deux chemins, un seul
+  logiciel » ; elle dit maintenant où aller — l'application web — et ce qu'il est advenu
+  des installateurs précédents. Le lien vers l'application reste **tout en haut**.
+
 - **L'application web n'invente plus l'adresse de son relais.** Elle construisait
   `wss://<son propre hôte>/ws`, que rien ne sert sur un hébergement statique : « Recevoir »
   et « joindre par code » échouaient donc systématiquement en production, avec une erreur
@@ -107,8 +143,8 @@ son déploiement suit la branche publiée du dépôt.
   erreur de syntaxe brute.
 - **Le banc de navigateur suit le nouvel écran** : les helpers passent par le choix
   d'entrée (idempotents, ils ne cliquent que si l'étape n'est pas déjà ouverte), et les
-  scénarios iOS et téléphone ont été adaptés. Le tableau de bord des tests annonce 492
-  tests sur 46 fichiers.
+  scénarios iOS et téléphone ont été adaptés. Le tableau de bord des tests annonce 445
+  tests sur 42 fichiers.
 
 ## [0.1.2] — 15 octobre 2026
 

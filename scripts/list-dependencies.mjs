@@ -38,7 +38,6 @@ const WORKSPACE_PACKAGES = [
 const manifests = [
   'package.json',
   'apps/web/package.json',
-  'apps/desktop/package.json',
   'apps/signaling/package.json',
   ...WORKSPACE_PACKAGES.map((name) => `packages/${name}/package.json`),
 ];

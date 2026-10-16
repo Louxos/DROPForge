@@ -100,7 +100,8 @@ describe('page publiée : fichiers servis par GitHub Pages', () => {
     expect(page).not.toMatch(/{{[A-Z_]+}}/);
     expect(page).not.toMatch(/GATEWAY:(LIVE|SOON)/);
     expect(page).toContain(`Version ${version}`);
-    expect(page).toContain(`DropForge_${version}_x64-setup.exe`);
+    // Ce qui est réellement publié pour cette version : l'archive de l'application web.
+    expect(page).toContain(`dropforge-pwa-${version}.zip`);
   });
 });
 
@@ -121,10 +122,12 @@ describe('page publiée : où aller, et dans quel ordre', () => {
     expect(app).toBeLessThan(page.indexOf('<section'));
   });
 
-  it('propose les deux chemins : application web, ou téléchargement du logiciel', async () => {
+  it('ne propose qu’un chemin : l’application web', async () => {
     const page = await read(OUTPUTS.page);
     expect(page).toMatch(/Ouvrir l.application web|Application web · bientôt/);
-    expect(page).toContain('Télécharger le logiciel');
+    // Plus d'installateur : la page des versions reste accessible, mais elle n'est plus
+    // présentée comme le chemin à suivre.
+    expect(page).not.toMatch(/Télécharger le logiciel/);
     expect(page).toContain(`${REPO_URL}/releases/latest`);
     // Sans adresse enregistrée, le bouton primaire n'est jamais un lien mort.
     expect(page).not.toMatch(/href="\s*"/);
@@ -195,14 +198,15 @@ describe('page publiée : garde de dérive', () => {
 
   it('rappelle les limites réelles du projet, sans les embellir', async () => {
     const page = await read(OUTPUTS.page);
-    // L'avertissement Windows : les deux défauts sont corrigés, et la page dit aussi ce
-    // qui n'est *pas* prouvé pour autant — aucun essai sur un poste réel.
-    expect(page).toContain('Application Windows');
-    expect(page).toMatch(/0\.1\.2/);
-    expect(page).toMatch(/pas encore été essayé/i);
-    expect(page).toMatch(/pas encore ouverte sur un vrai Windows/);
-    expect(page).toMatch(/pas encore sur un téléphone réel/);
+    // Ce qui n'est *pas* prouvé est écrit noir sur blanc : c'est la règle de cette page.
+    expect(page).toMatch(/pas encore été essayée sur un téléphone réel/);
     expect(page).toMatch(/nécessite un hébergement/);
+    // DropForge est une application web installable : aucun installateur n'est proposé,
+    // et la page dit ce qu'il est advenu de ceux des versions précédentes.
+    expect(page).not.toMatch(/setup\.exe/);
+    expect(page).not.toContain('.msi');
+    expect(page).not.toContain('Tauri');
+    expect(page).toMatch(/restent téléchargeables mais ne sont plus\s+maintenus/);
     // La documentation tient en quatre fichiers : la page ne renvoie qu'à ceux-là.
     expect(page).toContain(`${REPO_URL}/blob/main/docs/TECHNIQUE.md`);
     expect(page).toContain(`${REPO_URL}/blob/main/docs/GUIDE.md`);

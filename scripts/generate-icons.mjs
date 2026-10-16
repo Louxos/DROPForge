@@ -1,34 +1,22 @@
 /**
- * Génère les icônes DropForge et le logo de l'écran de démarrage, à partir de la seule
- * description du logo (`packages/design-system/src/brand-mark.mjs`).
+ * Génère les icônes de l'application web, à partir de la seule description du logo
+ * (`packages/design-system/src/brand-mark.mjs`).
  *
  *   node scripts/generate-icons.mjs     (ou `npm run icons`)
  *
  * Aucun binaire opaque dans le dépôt : tout se redessine. Le tracé est le même partout
- * — icône de la PWA, `.ico` de l'exécutable Windows, écran de démarrage de la coque —
- * parce qu'il n'est écrit qu'une fois et que ce script le met à l'échelle.
- *
- * Le `.ico` contient **sept** images (16, 24, 32, 48, 64, 128 en DIB, 256 en PNG) :
- * Windows choisit la bonne pour le menu Démarrer, la barre des tâches, l'Explorateur et
- * la boîte de dialogue d'installation. Une seule image de 256 aurait été réduite par
- * Windows, et le logo y aurait été flou.
- *
- * Les dépendances : Node, et rien d'autre — PNG écrit avec `zlib`, ICO avec le module
- * maison `scripts/lib/ico.mjs`.
+ * — icône de la PWA, favicon, icône d'écran d'accueil iOS — parce qu'il n'est écrit
+ * qu'une fois et que ce script le met à l'échelle. Les tests (`tests/icons.test.ts`)
+ * régénèrent et comparent : une icône livrée ne peut pas diverger du logo.
  */
 import { deflateSync } from 'node:zlib';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { encodeIco } from './lib/ico.mjs';
 import { MARK, markSvg, wedgePath } from '../packages/design-system/src/brand-mark.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = join(root, 'apps', 'web', 'public', 'icons');
-/** Où la coque Windows cherche ses icônes (configuration du paquet Tauri). */
-const DESKTOP_OUT = join(root, 'apps', 'desktop', 'src-tauri', 'icons');
-/** L'écran de démarrage, affiché avant même que React ait rendu quoi que ce soit. */
-const BOOT_HTML = join(root, 'apps', 'desktop', 'index.html');
 
 /** Le dégradé, en composantes 0-255. */
 const hex = (value) => [1, 3, 5].map((index) => Number.parseInt(value.slice(index, index + 2), 16));
@@ -188,61 +176,3 @@ writeFileSync(join(OUT, 'icon-512.png'), encodePng(512, 512, renderMark(512)));
 writeFileSync(join(OUT, 'icon-maskable-512.png'), encodePng(512, 512, renderMark(512, { maskable: true })));
 writeFileSync(join(OUT, 'apple-touch-icon.png'), encodePng(180, 180, renderMark(180)));
 console.log('Icônes web écrites dans', OUT);
-
-/* ------------------------------------------------------------------ *
- * Icônes de l'application Windows (Tauri)
- * ------------------------------------------------------------------ */
-
-mkdirSync(DESKTOP_OUT, { recursive: true });
-writeFileSync(join(DESKTOP_OUT, 'icon.png'), encodePng(256, 256, renderMark(256)));
-writeFileSync(join(DESKTOP_OUT, '32x32.png'), encodePng(32, 32, renderMark(32)));
-writeFileSync(join(DESKTOP_OUT, '128x128.png'), encodePng(128, 128, renderMark(128)));
-writeFileSync(join(DESKTOP_OUT, '128x128@2x.png'), encodePng(256, 256, renderMark(256)));
-
-// L'icône de la zone de notification, à part des autres : Windows y dessine 16 px (20,
-// 24 ou 32 selon la mise à l'échelle), et lui donner l'image de 256 px l'obligeait à la
-// réduire lui-même — un logo mou dans la barre des tâches. 32 px, rendus avec 4 × 4
-// échantillons par pixel, couvrent exactement le cas 200 % et laissent une réduction
-// propre pour les autres ; c'est la taille que `trayIcon.iconPath` référence.
-writeFileSync(join(DESKTOP_OUT, 'tray-icon.png'), encodePng(32, 32, renderMark(32)));
-
-// Les tailles que Windows demande réellement : 16 (menu Démarrer, barre de titre),
-// 24 et 32 (barre des tâches selon la mise à l'échelle), 48 (Explorateur), 64 et
-// 128 (grandes icônes), 256 (aperçu). Les six premières en DIB, la dernière en PNG.
-const ICO_SIZES = [16, 24, 32, 48, 64, 128];
-writeFileSync(
-  join(DESKTOP_OUT, 'icon.ico'),
-  encodeIco([
-    ...ICO_SIZES.map((size) => ({ size, rgba: renderMark(size) })),
-    { size: 256, png: encodePng(256, 256, renderMark(256)) },
-  ]),
-);
-console.log('Icônes Windows écrites dans', DESKTOP_OUT);
-
-/* ------------------------------------------------------------------ *
- * Écran de démarrage de la coque Windows
- * ------------------------------------------------------------------ */
-
-/**
- * Le logo de `index.html`, entre ses deux repères.
- *
- * Il est écrit ici et pas à la main : c'est le même tracé que l'icône, et une
- * vérification de la chaîne d'intégration régénère les visuels puis refuse toute
- * différence — impossible, donc, que l'écran de démarrage garde un ancien logo.
- */
-const START = '<!-- DROPFORGE_MARK:START -->';
-const END = '<!-- DROPFORGE_MARK:END -->';
-const html = readFileSync(BOOT_HTML, 'utf8');
-const before = html.indexOf(START);
-const after = html.indexOf(END);
-if (before === -1 || after === -1 || after < before) {
-  throw new Error(`repères du logo absents de ${BOOT_HTML} : ${START} … ${END}`);
-}
-const mark = markSvg({ size: 40, label: null });
-const updated = `${html.slice(0, before + START.length)}\n          ${mark}\n          ${html.slice(after)}`;
-if (updated !== html) writeFileSync(BOOT_HTML, updated);
-console.log('Logo de l’écran de démarrage mis à jour dans', BOOT_HTML);
-
-if (wedgePath() !== 'M256 112 L368 272 L144 272 Z') {
-  throw new Error('le tracé du logo a changé : mettez à jour les tests qui le fixent');
-}

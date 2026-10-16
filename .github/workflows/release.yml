@@ -1,23 +1,18 @@
 # Publication d'une version : c'est le moyen officiel de télécharger DropForge.
 #
-#   git tag v0.1.0 && git push origin v0.1.0
+#   git tag v0.1.3 && git push origin v0.1.3
 #
-# Produit, attaches à la Release GitHub du tag :
-#   - DropForge_<version>_x64-setup.exe  (installateur NSIS, par utilisateur)
-#   - DropForge_<version>_x64_en-US.msi  (paquet MSI)
-#   - l'archive de mise à jour signée + son fichier .sig, et `latest.json`
+# Ce qu'une version contient, et rien d'autre :
+#
 #   - dropforge-pwa-<version>.zip        (application web, servable partout)
 #   - dropforge-signaling-<version>.zip  (serveur optionnel, Node pur)
-#   - SHA256SUMS
+#   - SHA256SUMS                         (sommes de contrôle des deux archives)
 #
-# Les mises à jour signées nécessitent deux secrets de dépôt :
-#   DROPFORGE_UPDATER_KEY           clé privée (contenu de la paire générée par
-#                                   `npm run tauri signer generate`)
-#   DROPFORGE_UPDATER_KEY_PASSWORD  mot de passe de cette clé (vide si non protégée)
-#   DROPFORGE_UPDATER_PUBKEY        clé publique correspondante
-# Sans eux, l'installateur est produit **non signé pour les mises à jour** : il
-# fonctionne, mais l'application ne proposera pas de mise à jour automatique.
+# DropForge est une application web installable (PWA) : il n'y a plus d'installateur à
+# compiler, donc plus de machine Windows ni de chaîne d'outils Rust ici. Cette chaîne ne
+# construit que ce qu'elle publie.
 name: Release
+
 
 on:
   push:
@@ -75,155 +70,9 @@ jobs:
             release/SHA256SUMS
           if-no-files-found: error
 
-  windows:
-    name: Application Windows (installateur)
-    needs: verify
-    runs-on: windows-latest
-    timeout-minutes: 60
-    env:
-      # La clé *publique* est exposée au niveau du travail : c'est la seule façon pour
-      # un `if:` d'étape de savoir si les mises à jour signées sont configurées (les
-      # secrets ne sont pas lisibles dans un `if`, et l'`env` propre à une étape n'y est
-      # pas encore évalué au moment du test). La clé privée, elle, ne quitte jamais son
-      # étape de compilation.
-      DROPFORGE_UPDATER_PUBKEY: ${{ secrets.DROPFORGE_UPDATER_PUBKEY }}
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22
-          cache: npm
-      - name: Chaîne d'outils Rust
-        shell: bash
-        run: |
-          rustc --version || rustup default stable
-          rustc --version
-          cargo --version
-      - run: npm ci --no-audit --no-fund
-
-      - name: Version
-        id: version
-        shell: bash
-        run: |
-          VERSION=$(node -p "require('./package.json').version")
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Version du paquet : $VERSION"
-
-      - name: Configuration de mise à jour signée
-        id: updater
-        if: env.DROPFORGE_UPDATER_PUBKEY != ''
-        shell: bash
-        run: |
-          # Le fichier n'est pas versionné : il contient la clé publique réellement
-          # utilisée pour cette publication, et l'URL du manifeste de mise à jour.
-          cat > apps/desktop/src-tauri/tauri.updater.conf.json <<JSON
-          {
-            "bundle": { "createUpdaterArtifacts": true },
-            "plugins": {
-              "updater": {
-                "pubkey": "$DROPFORGE_UPDATER_PUBKEY",
-                "endpoints": [
-                  "https://github.com/${{ github.repository }}/releases/latest/download/latest.json"
-                ],
-                "windows": { "installMode": "passive" }
-              }
-            }
-          }
-          JSON
-          echo "signed=true" >> "$GITHUB_OUTPUT"
-
-      - name: Compilation de l'installateur (signé pour les mises à jour)
-        if: steps.updater.outputs.signed == 'true'
-        working-directory: apps/desktop
-        shell: bash
-        env:
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.DROPFORGE_UPDATER_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.DROPFORGE_UPDATER_KEY_PASSWORD }}
-        run: |
-          set -o pipefail
-          # Les journaux d'exécution ne sont pas toujours récupérables depuis
-          # l'extérieur ; une annotation, elle, reste attachée au passage et contient
-          # la fin de la sortie de compilation. Sans ça, un échec Windows se résume à
-          # « exit code 1 ».
-          if ! npm run tauri:build -- --config src-tauri/tauri.updater.conf.json 2>&1 | tee build.log; then
-            node -e "const f=require('fs');const t=f.readFileSync('build.log','utf8').split('\n').slice(-60).join('\n');console.log('::error::'+t.replace(/%/g,'%25').replace(/\r/g,'').replace(/\n/g,'%0A'))"
-            exit 1
-          fi
-
-      - name: Compilation de l'installateur (mises à jour non configurées)
-        if: steps.updater.outputs.signed != 'true'
-        working-directory: apps/desktop
-        shell: bash
-        run: |
-          echo "::warning::Aucune clé de mise à jour configurée : l'installateur sera produit sans artefacts de mise à jour."
-          set -o pipefail
-          if ! npm run tauri:build 2>&1 | tee build.log; then
-          # Les journaux d'exécution ne sont pas toujours récupérables depuis
-          # l'extérieur ; une annotation, elle, reste attachée au passage et contient
-          # la fin de la sortie de compilation. Sans ça, un échec Windows se résume à
-          # « exit code 1 ».
-            node -e "const f=require('fs');const t=f.readFileSync('build.log','utf8').split('\n').slice(-60).join('\n');console.log('::error::'+t.replace(/%/g,'%25').replace(/\r/g,'').replace(/\n/g,'%0A'))"
-            exit 1
-          fi
-
-      - name: Rassembler les fichiers publiés
-        shell: bash
-        run: |
-          mkdir -p dist-release
-          # Les noms produits par Tauri contiennent la version et l'architecture.
-          rm -f apps/desktop/build.log
-          find apps/desktop/src-tauri/target/release/bundle -maxdepth 2 -type f \
-            \( -name '*.exe' -o -name '*.msi' -o -name '*.zip' -o -name '*.sig' \) \
-            -exec cp {} dist-release/ \;
-          ls -la dist-release
-
-      - name: Manifeste de mise à jour
-        if: steps.updater.outputs.signed == 'true'
-        shell: bash
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-          TAG: ${{ github.ref_type == 'tag' && github.ref_name || format('v{0}', inputs.version) }}
-        run: |
-          set -euo pipefail
-          ARCHIVE=$(ls dist-release/*.nsis.zip 2>/dev/null | head -1 || true)
-          if [ -z "$ARCHIVE" ]; then
-            echo "::error::archive de mise à jour introuvable"
-            exit 1
-          fi
-          SIGNATURE=$(cat "$ARCHIVE.sig")
-          NAME=$(basename "$ARCHIVE")
-          cat > dist-release/latest.json <<JSON
-          {
-            "version": "$VERSION",
-            "notes": "DropForge $VERSION — voir la page de la version pour le détail des changements.",
-            "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-            "platforms": {
-              "windows-x86_64": {
-                "signature": "$SIGNATURE",
-                "url": "https://github.com/${{ github.repository }}/releases/download/$TAG/$NAME"
-              }
-            }
-          }
-          JSON
-          cat dist-release/latest.json
-
-      - name: Sommes de contrôle (Windows)
-        shell: bash
-        run: |
-          cd dist-release
-          # Seuls les fichiers réellement téléchargeables sont listés.
-          sha256sum *.exe *.msi > SHA256SUMS-windows.txt 2>/dev/null || true
-          cat SHA256SUMS-windows.txt
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: paquets-windows
-          path: dist-release/*
-          if-no-files-found: error
-
   publish:
     name: Publication de la version
-    needs: [web, windows]
+    needs: web
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -257,7 +106,7 @@ jobs:
             echo "Notes de version : section [$VERSION] de CHANGELOG.md"
           else
             rm -f "$NOTES_FILE"
-            NOTES=(--notes "Installateurs Windows, application web et serveur optionnel. Vérifiez les sommes de contrôle avec \`sha256sum -c SHA256SUMS\`.")
+            NOTES=(--notes "Application web installable et serveur optionnel. Vérifiez les sommes de contrôle avec \`sha256sum -c SHA256SUMS\`.")
           fi
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" assets/* --clobber

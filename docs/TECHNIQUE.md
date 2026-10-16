@@ -27,15 +27,14 @@ Historique des versions : [`../CHANGELOG.md`](../CHANGELOG.md).
 
 ```
 ┌──────────────────────────────┐        ┌──────────────────────────────┐
-│  Application Windows          │        │  PWA (mobile / navigateur)   │
-│  apps/desktop (Tauri 2)       │        │  apps/web (React + Vite)     │
-│  React + TypeScript partagé   │        │  React + TypeScript partagé  │
+│  Application web installable  │        │  Le même code, sur téléphone │
+│  apps/web (React + Vite)      │        │  installé depuis le navigateur│
+│  service worker, hors ligne   │        │  écran d'accueil (Android/iOS)│
 └──────────────┬───────────────┘        └──────────────┬───────────────┘
                │        mêmes paquets métier (@dropforge/*)              │
                ▼                                        ▼
-        platform-windows                        platform-web
-        (SQLite, dossier, tray)                 (IndexedDB, File System Access)
-               └───────────────┬────────────────────────┘
+                        platform-web
+                        (IndexedDB, File System Access, WebRTC)
                                ▼
         app-core → device-manager, history, settings, notifications, sharing
                                ▼
@@ -49,7 +48,7 @@ Deux règles structurent tout le reste :
 1. **L'interface n'est jamais mélangée au moteur de transfert.** Les paquets `packages/*`
    ne connaissent ni React ni le DOM : ils exposent des ports (`Transport`, `Clock`,
    `Logger`, `MetaStore`, `FileSystemPort`) que les applications implémentent. C'est ce
-   qui permet de tester un transfert complet en mémoire, sans navigateur ni Windows.
+   qui permet de tester un transfert complet en mémoire, sans navigateur.
 2. **Aucune donnée n'est inventée pour l'interface.** Une vitesse inconnue n'est pas
    affichée, une progression non fiable devient une barre indéterminée, une capacité
    absente est désactivée avec son explication. Le contrôleur d'application est la seule
@@ -83,9 +82,6 @@ Deux règles structurent tout le reste :
 | `apps/web/src/platform/webrtc-*.ts` | Transport WebRTC, client de signalisation, fabrique de liens (direct ou relais) |
 | `apps/web/src/platform/signaling.ts` | Où vit le relais : réglage, adresse du déploiement, ou **rien** — décidé en un seul endroit |
 | `apps/web/src/platform/indexed-db-store.ts` | `MetaStore` sur IndexedDB (schéma versionné, migration) |
-| `apps/desktop/src-tauri/src/lib.rs` | Fenêtre, zone de notification, dossier de réception, espace libre, journal de diagnostic |
-| `apps/desktop/index.html` | Écran de démarrage + contrôle de secours qui affiche la cause réelle d'un échec |
-| `apps/desktop/src-tauri/installer/hooks.nsh` | Hooks NSIS : fermeture de l'instance, mise à l'écart de l'exécutable (§ voir `GUIDE.md` § 7) |
 | `apps/signaling` | Serveur WebSocket : salles, mise en relation, relais aveugle |
 
 `apps/signaling` : 2 pairs par salle, TTL 10 min (prolongé à chaque message), 32 signaux
@@ -99,14 +95,12 @@ ne sont relayées qu'après accord des **deux** pairs (`relay-ready`).
 | React seulement dans les applications, jamais dans les paquets | Un transfert doit être testable sans DOM ; l'interface ne doit pas pouvoir contourner le moteur |
 | WebCrypto comme unique primitive (+ `@noble/hashes` en flux) | Aucun algorithme maison ; clés privées non exportables quand la plateforme le permet |
 | Une trame = un octet de type + nonce + charge | Le relais ne peut pas confondre contrôle et données, et ne peut rien déchiffrer |
-| Le contrôleur ne connaît que des ports | Windows (SQLite) et le navigateur (IndexedDB, File System Access) partagent la même logique |
+| Le contrôleur ne connaît que des ports | Le navigateur (IndexedDB, File System Access) et les tests en mémoire partagent la même logique |
 | L'état publié est **remplacé** à chaque changement, jamais muté en place | `useSyncExternalStore` compare par identité : un objet muté laisserait l'interface figée (défaut trouvé par un test d'interface, corrigé dans `emit()`) |
 | Le relais est un serveur Node autonome | Il peut être hébergé n'importe où sans dépendre d'une API payante |
 | Alias `@dropforge/*` vers les sources TypeScript | Un seul `tsc` vérifie tout le dépôt, aucune étape de construction intermédiaire |
 | Aucune ressource externe (police, CDN, script) | L'application doit fonctionner hors ligne, installée, sans requête vers un tiers |
-| Rust ne fait que ce que le système exige | Protocole, chiffrement et transfert restent en TypeScript, testés sans système d'exploitation |
-| L'écran de démarrage porte un contrôle écrit dans la page | Un écran d'attente éternel ne dit rien : celui-ci n'importe rien (il ne peut pas échouer comme ce qu'il surveille) et affiche la cause réelle au bout de 15 s |
-| L'installateur écarte l'exécutable au lieu d'insister | Le contrôle du modèle NSIS (Windows **Restart Manager**, `CheckIfAppIsRunning`) interroge un **chemin** (`$INSTDIR\DropForge.exe`), pas des processus : le hook `DROPFORGE_RELEASE_MAIN_BINARY` renomme le fichier que ce contrôle enregistre, donc il n'a plus d'utilisateurs. Un renommage impossible est écrit dans le journal d'installation, jamais avalé |
+| Aucune coque native (plus de Tauri, plus de Rust) | Une coque ne pouvait être compilée et essayée que sur une machine Windows, et tout ce qu'elle apportait en plus se payait en défauts qu'aucun test de ce dépôt ne pouvait attraper (voir `CHANGELOG.md`, 0.1.3). L'application web installable couvre le même usage, et se vérifie partout |
 
 ## 2. Flux d'un transfert
 
@@ -219,34 +213,22 @@ aucune raison, la notification le dit au lieu d'inventer une cause.
 
 ### Réglages
 
-Langue (fr/en), thème (système/sombre/clair), notifications, démarrage automatique
-Windows, comportement à la fermeture, dossier de réception, politique de conflit,
-concurrence, limite de taille locale, appareils approuvés uniquement, ports locaux
-optionnels, conservation de l'historique, partage hébergé, journaux de diagnostic. Une
+Langue (fr/en), thème (système/sombre/clair), notifications, comportement à la fermeture,
+dossier de réception, politique de conflit, concurrence, limite de taille locale, appareils
+approuvés uniquement, ports locaux optionnels, conservation de l'historique, partage
+hébergé, diagnostic. Une
 valeur inventée est **refusée** (`UNSUPPORTED_OPERATION`), les valeurs numériques sont
 bornées, et un réglage non applicable à la plateforme est désactivé avec son explication.
 
 ### Mises à jour
 
 - Vérification à la demande, jamais d'installation silencieuse.
-- Windows : seules les mises à jour **signées**, vérifiées contre la clé publique
-  intégrée ; cette vérification ne peut pas être désactivée.
 - Navigateur : le service worker signale qu'une nouvelle version est prête et n'active
-  qu'après accord.
-- **La compilation de l'installateur ne dépend plus de `zip`.** Le greffon officiel de
-  mise à jour demande `zip ^4` ; l'auteur de `zip` a retiré du registre toutes les versions
-  antérieures à 9.0 le **16 octobre 2026** (2.x à 8.x). La résolution s'arrêtait donc net
-  — `failed to select a version for the requirement zip = "^2"` — avant la moindre ligne
-  compilée, sur le dépôt comme dans la chaîne d'intégration, et **aucune version ne
-  pouvait plus être publiée**. `apps/desktop/src-tauri/Cargo.toml` désactive maintenant la
-  fonction optionnelle `zip` du greffon (le reste est inchangé : `rustls-tls`,
-  `system-proxy`). Conséquence exacte, vérifiée dans le code du greffon : une mise à jour
-  Windows **publiée en `.nsis.zip`** n'est pas décompressée (`InvalidUpdaterFormat`), alors
-  qu'une mise à jour livrée en `.exe` ou `.msi` brut s'installe normalement. Or
-  `createUpdaterArtifacts` produit justement un `.nsis.zip` : le jour où les clés de
-  signature arrivent, il faudra **rouvrir la fonction d'abord** (quand le greffon acceptera
-  `zip 9`). Aujourd'hui, rien n'est perdu : sans clé, aucun artefact de mise à jour n'est
-  produit, et l'application n'essaie aucune mise à jour.
+  qu'après accord de l'utilisateur. Une page simple (non installée) n'a pas de service
+  worker : l'application répond alors `PLATFORM_UNSUPPORTED` au lieu d'inventer un numéro
+  de version — c'est `apps/web/src/platform/updater.ts`, testé.
+- La version affichée vient de la **compilation** (`DROPFORGE_VERSION`), jamais d'un
+  manifeste qu'il faudrait croire sur parole.
 
 ## 4. Données locales
 
@@ -255,7 +237,7 @@ versionnées (`v`), avec des migrations additives.
 
 | Collection | Clé | Contenu | Où |
 | --- | --- | --- | --- |
-| `settings` (v2) | `preferences` | Préférences utilisateur | SQLite (Windows) / IndexedDB (PWA) |
+| `settings` (v2) | `preferences` | Préférences utilisateur | IndexedDB (navigateur) |
 | `devices` (v1) | identifiant d'appareil | Appareils connus, confiance, révocation | idem |
 | `transfers` (v1) | identifiant de transfert | Historique | idem |
 | `resume` (v1) | identifiant de transfert | Points de reprise (plages durables) | idem |
@@ -272,9 +254,9 @@ versionnées (`v`), avec des migrations additives.
   écrit en une seule transaction, donc jamais à moitié visible.
 
 **Migrations** : IndexedDB s'ouvre en version 2 et n'ajoute que les magasins manquants
-(idempotent — testé avec une base créée par une version antérieure) ; côté Windows,
-`user_version` incrémentée, `ALTER TABLE` additifs, jamais de `DROP`. Une préférence de
-version inconnue est ignorée avec un avertissement plutôt que réinterprétée.
+(idempotent — testé avec une base créée par une version antérieure, `fake-indexeddb` dans
+les tests). Une préférence de version inconnue est ignorée avec un avertissement plutôt
+que réinterprétée.
 
 **Suppression** : une entrée d'historique, tout l'historique, un appareil (oubli), ou
 l'identité entière (ce qui oublie les appareils approuvés). Aucune de ces actions
@@ -317,7 +299,7 @@ n'envoie quoi que ce soit à un service distant.
 | Code d'appairage dans un journal serveur | Le code voyage dans le **fragment** de l'URL, jamais envoyé au serveur | `apps/web/src/app/controller.ts` |
 | Fichiers hébergés lisibles par le serveur | Chiffrement côté expéditeur, clé jamais transmise au serveur | `packages/sharing` |
 | Catalogue d'erreurs fuyant | 42 codes génériques traduits ; jamais le message brut du système | `packages/app-core/src/errors.ts` |
-| Permissions Tauri trop larges | Liste courte, vérifiée par `scripts/check-desktop-config.mjs` | `apps/desktop/src-tauri/capabilities/` |
+| Permissions d'API trop larges | L'application n'utilise que les API qu'elle déclare, et le service worker n'a que les routes qu'il sert | `apps/web/vite.config.ts`, `packages/security` |
 
 ### Ce qui n'est PAS protégé
 
@@ -421,40 +403,36 @@ sans lui.
 
 | Domaine | État | Précision |
 | --- | --- | --- |
-| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** | 504 tests automatisés, 47 fichiers (§ 9) |
+| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** | 445 tests automatisés, 42 fichiers (§ 9) |
 | Interface React/TypeScript partagée (FR/EN, thèmes) | ✅ Implémentée et **testée** au niveau du contrôleur et du rendu | `apps/web/src/entry.test.tsx`, `ui.test.tsx` |
 | Écran d'entrée « Envoyer / Recevoir », moins d'options visibles | ✅ Implémenté et **testé** | `apps/web/src/screens/transfer.tsx`, cas « ouvre sur le choix » dans `ui.test.tsx` |
-| Adresse du relais : un seul endroit décide, un réglage la change | ✅ Implémenté et **testé** | `apps/web/src/platform/signaling.ts` + `signaling.test.ts`, `packages/settings` (schéma 3) |
+| Adresse du relais : un seul endroit décide, un réglage la change | ✅ Implémenté et **testé** | `apps/web/src/platform/signaling.ts` + `signaling.test.ts`, `packages/settings` (schéma 4) |
 | Application web progressive installable | ✅ Implémentée et **testée** | installation, hors ligne, refus ; **pas encore essayée sur un téléphone réel** |
 | Serveur de signalisation / relais aveugle | ✅ Implémenté et **testé** (Node) | salles, quotas, relais après accord des deux pairs |
-| Application Windows (Tauri + Rust) | ⚠️ **Compilée et empaquetée** à chaque envoi, recompilée par la tâche `windows` de l'intégration continue | **jamais ouverte sur un vrai Windows** : c'est la seule chose que la chaîne ne peut pas faire |
-| Installateur et désinstallateur Windows | ⚠️ **Corrigé en 0.1.2, pas encore essayé sur un poste réel** | 0.1.1 avait deux défauts (écran de démarrage bloqué, désinstallation refusée) ; correctifs : contrôle de secours dans la page + `DROPFORGE_RELEASE_MAIN_BINARY` — `tests/desktop-splash.test.ts`, `tests/nsis.test.ts` |
 | Tests dans un vrai navigateur (E2E) | ✅ **Exécutés à chaque envoi** | Chromium, Firefox, WebKit (iPhone) ; octets reçus hachés et comparés |
 | Tests sur appareils mobiles réels | ❌ Non exécutés | l'émulation de téléphone est couverte, un vrai iPhone/Android ne l'est pas |
 | Liens de partage hébergés | ⚠️ Code client implémenté et testé ; **nécessite un hébergement** | désactivé proprement plutôt que facturé |
 
-**Protocoles d'essai manuel** (ce que la chaîne ne peut pas faire, à faire une fois) :
+**Protocole d'essai manuel** (ce que la chaîne ne peut pas faire, à faire une fois) :
 
-- **Windows** : installer la dernière version → l'application s'ouvre sans écran bloqué →
-  transférer un fichier vers un autre appareil → fermer la fenêtre (doit rester en zone de
-  notification) → désinstaller depuis « Applications installées » (doit se lancer sans
-  message d'« application en cours d'exécution ») → réinstaller.
 - **Téléphone** : ouvrir l'adresse publiée en HTTPS → « Installer l'application » →
   rouvrir hors ligne → recevoir un fichier depuis un ordinateur.
+- **Deux appareils réels sur le même Wi‑Fi** : `npm run lan` → ouvrir l'adresse affichée
+  sur les deux → envoyer un fichier, et comparer la somme de contrôle affichée.
 
 Le pas-à-pas détaillé, avec ce qu'il faut observer à chaque étape, est dans
-`npm run test:e2e` (bancs automatisés) et dans le § 7 du [`GUIDE.md`](GUIDE.md) pour la
-réparation d'une installation Windows.
+`npm run test:e2e` (bancs automatisés), et dans le [`GUIDE.md`](GUIDE.md) § 6
+(l'installer sur vos appareils) et § 7 (dépannage).
 
 ## 9. Tests
 
 ```bash
 npm run verify           # tout ce que la chaîne exécute : types, contrôles, tests
-npm test                 # 47 fichiers, 504 tests
+npm test                 # 42 fichiers, 445 tests
 npm run test:unit        # paquets métier, sans DOM
 npm run test:integration # transferts réels en mémoire, sécurité, reprise
-npm run check:desktop    # configuration Windows, icônes, hooks NSIS
 npm run check:site       # la page publiée correspond à ses sources
+npm run icons            # régénère les icônes (leur exactitude est testée)
 npm run test:e2e         # navigateurs réels (jamais lancé par verify)
 npm run test:e2e:install # installe Chromium, Firefox, WebKit
 
@@ -462,10 +440,9 @@ npm i --no-save werift   # facultatif : une pile WebRTC en TypeScript, sans bina
 npm run check:direct     # vérifie le chemin direct avec du vrai WebRTC (hors verify)
 ```
 
-Total vérifié le 16 octobre 2026 : **504 tests, 47 fichiers**, tous au vert sur Linux ; la
-même suite tourne sur **Windows** à chaque envoi (tâche `windows` de `ci.yml`), ce qui a
-déjà fait apparaître deux défauts propres à Windows (scripts `.cmd` lancés sans shell,
-chemins de test non portables).
+Total vérifié le 16 octobre 2026 : **445 tests, 42 fichiers**, tous au vert.) La chaîne
+d'intégration rejoue exactement cette suite (`npm run verify`), plus la compilation des
+deux cibles et la vérification des icônes ; les navigateurs réels ont leur propre tâche.
 
 ### Ce qui est couvert, et par quoi
 
@@ -477,20 +454,16 @@ chemins de test non portables).
 | File d'attente | `packages/transfer-engine/src/*.test.ts` | Pause, reprise, annulation, réessai (jamais un refus), réordonnancement |
 | Relais | `apps/signaling/src/server.test.ts` | Salles, quotas, relais aveugle, expiration, accord à deux |
 | Adresse du relais | `apps/web/src/platform/signaling.test.ts` | Rien n'est inventé sur un site publié ; `Aucun relais` ne contacte rien ; une adresse écrite est respectée |
-| Réglages | `packages/settings/src/settings.test.ts` | Défauts privés, bornes, **migration 2 → 3** (l'adresse du relais arrive avec `Automatique`), adresse invalide refusée à l'écriture |
+| Réglages | `packages/settings/src/settings.test.ts` | Défauts privés, bornes, **migrations** (2 → 3 : l'adresse du relais arrive avec `Automatique` ; 3 → 4 : les deux réglages de l'application Windows disparaissent), adresse invalide refusée à l'écriture |
 | Repli par relais, bout en bout | `tests/relay-fallback.test.ts` | Une tentative en mode relais **aboutit**, dans les deux sens |
 | Chemin **direct** (WebRTC) | `scripts/check-direct-path.mts` (`npm run check:direct`) | Avec une vraie pile WebRTC (`werift`) et le **vrai** service de signalisation du dépôt : un code met les deux pairs en relation, la négociation aboutit, **les deux côtés obtiennent `webrtc`** (aucun repli), et 64 Kio traversent le canal intact dans les deux sens. Hors `verify` : la pile s'installe à la demande (`npm i --no-save werift`), pour ne pas alourdir la chaîne |
 | Modèle de données | `packages/*/src/*.test.ts` | Migrations, invariants (`completed` sans `completedAt` = refus), révocation |
 | Contrôleur d'application | `apps/web/src/app/controller.test.ts` | Chaque commande, chaque état publié, sans React |
 | Entrée réelle de l'application | `apps/web/src/entry.test.tsx` | L'application démarre pour de vrai ; privée de WebCrypto, elle **dit ce qui manque** au lieu de rester blanche |
 | Mode « même Wi‑Fi » et son certificat | `tests/lan-mode.test.ts` | Commande unique, deux processus arrêtés ensemble, proxy `/ws` des deux côtés, et le certificat jugé par une **vraie poignée de main TLS** (signature, dates, noms, usage serveur) ; réutilisation du certificat, renouvellement quand les adresses changent, clé en 0600, dossier non versionné |
-| Écran de démarrage Windows | `tests/desktop-splash.test.ts` | Le contrôle de secours n'importe rien, écoute les erreurs, affiche la cause à 15 s, consigne via `report_problem` |
-| Hooks de l'installateur | `tests/nsis.test.ts` | Macros insérées/définies, hooks que Tauri appelle réellement, exécutable écarté du chemin interrogé |
-| Récupération Windows | `tests/windows-recovery.test.ts` | Le script de déblocage ne modifie rien sans `-Apply`, ne touche jamais aux fichiers reçus |
-| Logo et icônes | `tests/icons.test.ts` | `.ico` du `.exe` (7 tailles), SVG identique à la description partagée, icône de la zone de notification |
+| Logo et icônes | `tests/icons.test.ts` | Le SVG livré est exactement celui de la description partagée ; les tailles déclarées par le manifeste existent et sont des PNG valides ; l'icône masquable n'a pas de transparence |
 | Publication | `tests/netlify.test.ts`, `tests/pages-site.test.ts` | Le dossier publié est celui de Vite, le service worker n'est jamais servi depuis un cache, la page publiée est autonome et correspond à ses sources |
 | Paquets de publication | `tests/packaging.test.ts` | Écriture **et relecture** des ZIP (CRC, structure, refus d'une archive corrompue) |
-| Configuration Windows | `tests/*.test.ts` + `scripts/check-desktop-config.mjs` | Permissions, plugins, cibles, icônes aux dimensions exactes |
 
 ### De bout en bout, dans de vrais navigateurs
 
@@ -504,23 +477,21 @@ l'écran.
 
 ### Ce qui n'est PAS couvert (à ne pas confondre avec « testé »)
 
-- **Un vrai Windows** : la chaîne compile, empaquette, vérifie la configuration ; elle
-  n'ouvre pas la fenêtre à votre place.
 - **Un vrai téléphone** : l'émulation est couverte, pas un appareil physique.
 - **Un déploiement réel** : pas d'essai d'intrusion sur un relais exposé à Internet.
-- **Les mises à jour signées** : le chemin est écrit et documenté, il n'est pas exercé
-  faute de clés configurées.
+- **Les transferts sur un réseau d'entreprise** : les réseaux qui bloquent tout ne sont
+  pas testés, ils sont seulement annoncés comme non garantis.
 - **La charge** : aucun test de dizaines de Go ni de milliers de fichiers simultanés.
 
 ## 10. État réel du projet
 
 **DropForge n'est pas encore une 1.0, et ce document ne prétend pas le contraire.**
-Version actuelle : **0.1.2** — application web, installateur Windows corrigé, serveur de
-signalisation optionnel, 504 tests automatiques et une suite navigateur réelle.
+Version actuelle : **0.1.3** — application web installable, serveur de signalisation
+optionnel, 445 tests automatiques et une suite navigateur réelle.
 
 | Exigence du cahier des charges | État | Où le vérifier |
 | --- | --- | --- |
-| Deux plateformes partageant une interface, PWA installable | ✅ | `apps/web`, `apps/desktop`, `e2e/` |
+| Une application installable sur ordinateur et sur téléphone | ✅ | `apps/web`, `e2e/` |
 | Interface premium sombre (charbon + violet/bleu électrique), clair disponible | ✅ | `packages/design-system`, `docs` de thème dans le code |
 | Transferts : chiffrement, reprise, vérification, file d'attente | ✅ | `packages/transfer-engine`, `tests/loopback-transfer.test.ts` |
 | Connexions : local → direct → relais, sans jamais mentir sur le chemin | ✅ | `packages/connection-manager`, `tests/relay-fallback.test.ts` |
@@ -531,10 +502,6 @@ signalisation optionnel, 504 tests automatiques et une suite navigateur réelle.
 | Architecture modulaire, ports, testabilité sans système | ✅ | § 1 |
 | Tests obligatoires, jamais un « fait » sur la seule foi d'un écran | ✅ | § 9 |
 | Infrastructure 100 % gratuite, aucune dépendance payante | ✅ | § 11 |
-| Application Windows compilée et publiée à chaque version | ✅ | `.github/workflows/release.yml` |
-| **Installateur/désinstallateur Windows essayés sur un poste réel** | ⚠️ | corrigé en 0.1.2, à confirmer sur un vrai Windows |
-| **Mises à jour signées** | 🔒 | attend deux secrets (`GUIDE.md` § 9) |
-| **Certificat d'éditeur (SmartScreen)** | 💰 | facultatif et payant |
 | **Licence du projet** | 🔒 | décision du propriétaire ; sans fichier `LICENSE`, le code n'est pas réutilisable |
 | **Hébergement des liens de partage** | ⚠️ | aucun service retenu : le mode hébergé est indisponible, le reste fonctionne |
 | **Deux appareils sur le même Wi‑Fi** | ✅ | c'est le mode pris en charge et éprouvé de bout en bout : `npm run lan` (`GUIDE.md` § 4), rendez-vous vérifié à travers l'application elle-même |
@@ -549,8 +516,7 @@ Ce qui est **hors périmètre pour l'instant**, et assumé comme tel :
 | --- | --- | --- |
 | Deux appareils sur des réseaux différents | 🗺️ | une adresse de relais publique (le code du relais existe et reste testé) |
 | Liens de partage hébergés (fichier stocké, expirable) | 🗺️ | un service de stockage retenu — aucun ne l'est |
-| Mises à jour signées de l'application Windows | 🔒 | deux secrets de signature (action propriétaire) |
-| Essais sur un vrai téléphone et un vrai Windows | ⚠️ | un essai humain, décrit pas à pas dans `TECHNIQUE.md` § 9 |
+| Essais sur un vrai téléphone | ⚠️ | un essai humain, décrit pas à pas dans `TECHNIQUE.md` § 9 |
 
 Ce que la feuille de route **change dans le produit aujourd'hui** : les écrans ne
 promettent plus que ce qui marche (deux appareils du même Wi‑Fi) et ne parlent plus des
@@ -575,12 +541,10 @@ L'écran d'entrée porte la seule entorse assumée, et elle est volontaire : **E
 et **Recevoir** y sont deux, parce que ce sont deux gestes différents — mais ils ne sont
 pas présentés au même poids (carte principale contre carte discrète).
 
-Ce qui manque pour une 1.0 honnête : **un essai humain sur un vrai Windows** (installation,
-lancement, transfert local, désinstallation), **les mises à jour signées** (deux secrets),
-**la licence**, **un service d'hébergement** si le partage par lien doit exister (ou
-l'acceptation explicite de son absence), **une adresse de relais joignable** pour que deux
-appareils de réseaux différents se trouvent sans réglage, et **des essais sur appareils
-mobiles réels**.
+Ce qui manque pour une 1.0 honnête : **la licence** (décision du propriétaire), **un
+service d'hébergement** si le partage par lien doit exister (ou l'acceptation explicite de
+son absence), **une adresse de relais joignable** pour que deux appareils de réseaux
+différents se trouvent sans réglage, et **des essais sur appareils mobiles réels**.
 
 ## 11. Infrastructure 100 % gratuite
 
@@ -602,8 +566,6 @@ chez soi.
 | Héberger la PWA | Cloudflare Pages (bande passante non mesurée), GitHub Pages, **Netlify** (`netlify.toml` fourni), Vercel | Netlify et Vercel : bande passante mensuelle bornée ; GitHub Pages : pas d'en-têtes personnalisés ni de WebSocket |
 | Liens hébergés (optionnel) | Cloudflare R2 : 10 Go/mois, egress gratuit | activation avec moyen de paiement → plafonds **côté application** (512 Mio, 50 téléchargements) pour refuser avant tout dépassement facturable |
 | Publication automatisée | GitHub Actions | gratuit pour un dépôt public, aucune carte bancaire |
-| Mises à jour signées | signature Tauri (paire Ed25519) | gratuite ; indépendante de la signature de code Windows |
-| Signature de code Windows | certificat OV/EV | **le seul poste de coût réel du projet**, facultatif (un exécutable non signé s'installe avec un avertissement) |
 | Certificat TLS pour le réseau local | certificat auto-signé fabriqué par `npm run lan` | gratuit et immédiat ; le navigateur affiche un avertissement à accepter une fois par appareil (voir ci-dessous) |
 | Certificat TLS sans avertissement | un **nom de domaine** que vous possédez, pointant vers l'adresse privée, et un certificat Let's Encrypt obtenu par validation DNS-01 | gratuit, mais demande de posséder un domaine et de créer un enregistrement DNS : ce n'est pas quelque chose qu'un script peut faire à votre place |
 
@@ -649,10 +611,10 @@ y a-t-il quelque chose de problématique dedans ?
 
 | Mesure | Valeur |
 | --- | --- |
-| Dépendances directes | 30 |
-| Dépendances transitives | 498 |
-| Total installé | 528 |
-| Licences distinctes | 11 |
+| Dépendances directes | 22 |
+| Dépendances transitives | 487 |
+| Total installé | 509 |
+| Licences distinctes | 9 |
 | Licences copyleft fortes détectées | aucune |
 
 Les paquets internes (`@dropforge/*`) ne figurent pas ici : ce sont des sources
@@ -664,14 +626,12 @@ TypeScript du dépôt, reliées par des alias, jamais publiées ni installées.
 | --- | --- |
 | (MIT OR CC0-1.0) | 1 |
 | Apache-2.0 | 32 |
-| Apache-2.0 OR MIT | 13 |
 | BlueOak-1.0.0 | 8 |
 | BSD-2-Clause | 5 |
 | BSD-3-Clause | 5 |
 | CC-BY-4.0 | 1 |
 | ISC | 21 |
 | MIT | 424 |
-| MIT OR Apache-2.0 | 6 |
 | MPL-2.0 | 12 |
 
 #### Licences qui demandent quelque chose
@@ -700,30 +660,22 @@ Paquets : `type-fest`
 | --- | --- | --- | --- |
 | `@noble/hashes` | 2.4.0 | MIT | packages/protocol/package.json (dependencies, ^2.4.0) |
 | `@playwright/test` | 1.64.0 | Apache-2.0 | package.json (devDependencies, ^1.64.0) |
-| `@tauri-apps/api` | 2.12.3 | Apache-2.0 OR MIT | apps/desktop/package.json (dependencies, ^2.12.3) |
-| `@tauri-apps/cli` | 2.12.2 | Apache-2.0 OR MIT | apps/desktop/package.json (devDependencies, ^2.12.2) |
-| `@tauri-apps/plugin-dialog` | 2.8.2 | MIT OR Apache-2.0 | apps/desktop/package.json (dependencies, ^2.8.2) |
-| `@tauri-apps/plugin-fs` | 2.7.0 | MIT OR Apache-2.0 | apps/desktop/package.json (dependencies, ^2.7.0) |
-| `@tauri-apps/plugin-notification` | 2.6.0 | MIT OR Apache-2.0 | apps/desktop/package.json (dependencies, ^2.6.0) |
-| `@tauri-apps/plugin-process` | 2.4.0 | MIT OR Apache-2.0 | apps/desktop/package.json (dependencies, ^2.4.0) |
-| `@tauri-apps/plugin-sql` | 2.5.0 | MIT OR Apache-2.0 | apps/desktop/package.json (dependencies, ^2.5.0) |
-| `@tauri-apps/plugin-updater` | 2.13.3 | MIT OR Apache-2.0 | apps/desktop/package.json (dependencies, ^2.13.3) |
 | `@types/node` | 26.6.5 | MIT | package.json (devDependencies, ^26.6.5) ; apps/signaling/package.json (devDependencies, ^26.6.5) |
 | `@types/qrcode` | 1.5.6 | MIT | apps/web/package.json (devDependencies, ^1.5.6) |
-| `@types/react` | 19.3.0 | MIT | apps/web/package.json (devDependencies, ^19.3.0) ; apps/desktop/package.json (devDependencies, ^19.3.0) ; packages/design-system/package.json (devDependencies, ^19.3.0) |
-| `@types/react-dom` | 19.3.0 | MIT | apps/web/package.json (devDependencies, ^19.3.0) ; apps/desktop/package.json (devDependencies, ^19.3.0) |
+| `@types/react` | 19.3.0 | MIT | apps/web/package.json (devDependencies, ^19.3.0) ; packages/design-system/package.json (devDependencies, ^19.3.0) |
+| `@types/react-dom` | 19.3.0 | MIT | apps/web/package.json (devDependencies, ^19.3.0) |
 | `@types/ws` | 8.18.2 | MIT | apps/signaling/package.json (devDependencies, ^8.18.2) |
-| `@vitejs/plugin-react` | 6.1.2 | MIT | apps/web/package.json (devDependencies, ^6.1.2) ; apps/desktop/package.json (devDependencies, ^6.1.2) |
+| `@vitejs/plugin-react` | 6.1.2 | MIT | apps/web/package.json (devDependencies, ^6.1.2) |
 | `fake-indexeddb` | 6.2.5 | Apache-2.0 | package.json (devDependencies, ^6.2.5) |
 | `happy-dom` | 21.0.1 | MIT | package.json (devDependencies, ^21.0.1) |
 | `i18next` | 26.4.4 | MIT | apps/web/package.json (dependencies, ^26.4.4) |
 | `qrcode` | 1.5.4 | MIT | apps/web/package.json (dependencies, ^1.5.4) |
-| `react` | 19.3.0 | MIT | apps/web/package.json (dependencies, ^19.3.0) ; apps/desktop/package.json (dependencies, ^19.3.0) ; packages/design-system/package.json (devDependencies, ^19.3.0) |
-| `react-dom` | 19.3.0 | MIT | apps/web/package.json (dependencies, ^19.3.0) ; apps/desktop/package.json (dependencies, ^19.3.0) |
+| `react` | 19.3.0 | MIT | apps/web/package.json (dependencies, ^19.3.0) ; packages/design-system/package.json (devDependencies, ^19.3.0) |
+| `react-dom` | 19.3.0 | MIT | apps/web/package.json (dependencies, ^19.3.0) |
 | `react-i18next` | 17.0.16 | MIT | apps/web/package.json (dependencies, ^17.0.16) |
 | `tsx` | 4.23.15 | MIT | package.json (devDependencies, ^4.23.15) ; apps/signaling/package.json (devDependencies, ^4.23.15) |
 | `typescript` | 7.0.2 | Apache-2.0 | package.json (devDependencies, ^7.0.2) |
-| `vite` | 8.3.4 | MIT | apps/web/package.json (devDependencies, ^8.3.4) ; apps/desktop/package.json (devDependencies, ^8.3.4) ; apps/signaling/package.json (devDependencies, ^8.3.4) |
+| `vite` | 8.3.4 | MIT | apps/web/package.json (devDependencies, ^8.3.4) ; apps/signaling/package.json (devDependencies, ^8.3.4) |
 | `vite-plugin-pwa` | 2.0.0 | MIT | apps/web/package.json (devDependencies, ^2.0.0) |
 | `vitest` | 5.0.4 | MIT | package.json (devDependencies, ^5.0.4) |
 | `ws` | 8.22.0 | MIT | apps/signaling/package.json (dependencies, ^8.22.0) |
@@ -909,17 +861,6 @@ listés parce qu'ils font partie de l'installation et que leur licence compte au
 | `@rollup/rollup-win32-ia32-msvc` | 4.64.5 | MIT | — |
 | `@rollup/rollup-win32-x64-gnu` | 4.64.5 | MIT | — |
 | `@rollup/rollup-win32-x64-msvc` | 4.64.5 | MIT | — |
-| `@tauri-apps/cli-darwin-arm64` | 2.12.2 | Apache-2.0 OR MIT | — |
-| `@tauri-apps/cli-darwin-x64` | 2.12.2 | Apache-2.0 OR MIT | — |
-| `@tauri-apps/cli-linux-arm-gnueabihf` | 2.12.2 | Apache-2.0 OR MIT | — |
-| `@tauri-apps/cli-linux-arm64-gnu` | 2.12.2 | Apache-2.0 OR MIT | — |
-| `@tauri-apps/cli-linux-arm64-musl` | 2.12.2 | Apache-2.0 OR MIT | — |
-| `@tauri-apps/cli-linux-riscv64-gnu` | 2.12.2 | Apache-2.0 OR MIT | — |
-| `@tauri-apps/cli-linux-x64-gnu` | 2.12.2 | Apache-2.0 OR MIT | — |
-| `@tauri-apps/cli-linux-x64-musl` | 2.12.2 | Apache-2.0 OR MIT | — |
-| `@tauri-apps/cli-win32-arm64-msvc` | 2.12.2 | Apache-2.0 OR MIT | — |
-| `@tauri-apps/cli-win32-ia32-msvc` | 2.12.2 | Apache-2.0 OR MIT | — |
-| `@tauri-apps/cli-win32-x64-msvc` | 2.12.2 | Apache-2.0 OR MIT | — |
 | `@trickfilm400/rollup-plugin-off-main-thread` | 3.0.0-pre1 | Apache-2.0 | — |
 | `@types/chai` | 5.2.3 | MIT | — |
 | `@types/deep-eql` | 4.0.2 | MIT | — |
@@ -1262,9 +1203,7 @@ une redistribution, y compris commerciale.
 | Licence | Paquets |
 | --- | --- |
 | Apache-2.0 | `@playwright/test` 1.64.0, `fake-indexeddb` 6.2.5, `typescript` 7.0.2 |
-| Apache-2.0 OR MIT | `@tauri-apps/api` 2.12.3, `@tauri-apps/cli` 2.12.2 |
 | MIT | `@noble/hashes` 2.4.0, `@types/node` 26.6.5, `@types/qrcode` 1.5.6, `@types/react` 19.3.0, `@types/react-dom` 19.3.0, `@types/ws` 8.18.2, `@vitejs/plugin-react` 6.1.2, `happy-dom` 21.0.1, `i18next` 26.4.4, `qrcode` 1.5.4, `react` 19.3.0, `react-dom` 19.3.0, `react-i18next` 17.0.16, `tsx` 4.23.15, `vite` 8.3.4, `vite-plugin-pwa` 2.0.0, `vitest` 5.0.4, `ws` 8.22.0, `zod` 4.6.6 |
-| MIT OR Apache-2.0 | `@tauri-apps/plugin-dialog` 2.8.2, `@tauri-apps/plugin-fs` 2.7.0, `@tauri-apps/plugin-notification` 2.6.0, `@tauri-apps/plugin-process` 2.4.0, `@tauri-apps/plugin-sql` 2.5.0, `@tauri-apps/plugin-updater` 2.13.3 |
 
 #### Remarques
 
@@ -1272,8 +1211,7 @@ une redistribution, y compris commerciale.
   leurs versions et leurs licences, est l’annexe A de ce même document
   (`node scripts/list-dependencies.mjs`).
   Elles sont toutes sous MIT, ISC, BSD, Apache-2.0, 0BSD ou MPL-2.0 : aucune copyleft forte.
-- `@tauri-apps/*` est distribué sous Apache-2.0 OR MIT ; Tauri lui-même est sous
-  Apache-2.0 OR MIT. Aucun composant n’impose de redevance ni de compte payant.
+- Aucun composant n’impose de redevance, de compte payant ni de service à installer.
 - Aucune bibliothèque de chiffrement « maison » : seules WebCrypto (plateforme) et
   `@noble/hashes` (MIT, auditée publiquement) est utilisée.
 <!-- LICENCES:END -->

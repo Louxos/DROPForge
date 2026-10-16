@@ -6,7 +6,7 @@
     <title>DropForge — transférez vos fichiers d'un appareil à l'autre</title>
     <meta
       name="description"
-      content="DropForge envoie vos fichiers entre Windows, Android, iOS et n'importe quel navigateur : sans compte obligatoire, chiffré de bout en bout, en direct quand c'est possible. Application web à ouvrir dans le navigateur, ou application Windows à installer."
+      content="DropForge envoie vos fichiers entre Windows, Android, iOS et n'importe quel navigateur : sans compte obligatoire, chiffré de bout en bout, en direct quand c'est possible. Application web : rien à télécharger, rien à installer."
     />
     <meta name="theme-color" content="#08080b" />
     <meta name="color-scheme" content="dark" />
@@ -15,7 +15,7 @@
     <meta property="og:title" content="DropForge — transférez vos fichiers d'un appareil à l'autre" />
     <meta
       property="og:description"
-      content="Sans compte obligatoire, chiffré de bout en bout, en direct quand c'est possible. Application web, ou application Windows."
+      content="Sans compte obligatoire, chiffré de bout en bout, en direct quand c'est possible. Application web."
     />
     <meta property="og:url" content="https://louxos.github.io/DROPForge/" />
     <meta property="og:image" content="https://louxos.github.io/DROPForge/favicon.svg" />
@@ -716,11 +716,11 @@ footer a:hover {
     <main id="top">
       <!-- ------------------------------------------------------------------ *
            Héros : d'abord où aller, ensuite pourquoi. Le bloc « application »
-           porte l'adresse de l'application web (ou son attente), et les deux
-           chemins possibles : l'application web, ou le logiciel Windows.
+           porte l'adresse de l'application web — le seul chemin, et il suffit :
+           l'application s'installe depuis le navigateur.
            ------------------------------------------------------------------ -->
       <div class="wrap hero">
-        <p class="pill"><span class="dot" aria-hidden="true"></span> Version 0.1.2 · aperçu public</p>
+        <p class="pill"><span class="dot" aria-hidden="true"></span> Version 0.1.3 · aperçu public</p>
         <h1>Vos fichiers, d'un appareil à l'autre. <span class="grad">Sans détour.</span></h1>
         <p class="lede">
           DropForge envoie vos fichiers entre Windows, Android, iOS et n'importe quel navigateur. Sans compte
@@ -746,16 +746,17 @@ footer a:hover {
                 <path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06L7.28 12.78a.75.75 0 0 1-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z" />
               </svg>
             </a>
-            <a class="btn btn-ghost" href="https://github.com/Louxos/DROPForge/releases/latest">Télécharger le logiciel</a>
+            <a class="btn btn-ghost" href="https://github.com/Louxos/DROPForge/releases/latest">Voir les versions publiées</a>
           </div>
           
 
           
 
           <p class="footnote">
-            <strong>Deux chemins, un seul logiciel :</strong> l'application web est le plus rapide à essayer ;
-            l'application Windows donne les transferts en arrière-plan, la zone de notification et le démarrage
-            automatique. Les deux se parlent entre elles.
+            <strong>Un seul chemin, et il suffit :</strong> l'application web. Ouvrez-la, puis installez-la
+            (menu du navigateur → « Installer l'application ») : elle s'ouvre ensuite comme un logiciel, sans
+            barre d'adresse, et fonctionne hors ligne. Sur Android et iOS, le menu propose « Ajouter à l'écran
+            d'accueil ».
           </p>
         </div>
       </div>
@@ -840,10 +841,10 @@ footer a:hover {
               </p>
             </div>
             <div class="card">
-              <h3>Deux coques, une interface</h3>
+              <h3>Installable partout</h3>
               <p>
-                Application Windows (Tauri 2 + Rust) et application web progressive partagent exactement la même
-                interface React/TypeScript : même comportement, mêmes écrans.
+                Une seule interface React/TypeScript, une seule application : elle s'installe depuis le
+                navigateur, sur ordinateur comme sur téléphone, et se lance ensuite comme un logiciel.
               </p>
             </div>
             <div class="card">
@@ -942,24 +943,15 @@ footer a:hover {
                 <td>Le bouton en haut de cette page : rien à installer, l'application s'ouvre dans le navigateur.</td>
               </tr>
               <tr>
-                <td>Windows</td>
-                <td><span class="badge warn">Application Windows</span></td>
-                <td>
-                  <a href="https://github.com/Louxos/DROPForge/releases/latest"><code>DropForge_0.1.2_x64-setup.exe</code></a>
-                  (par utilisateur, sans droits administrateur) ou le <code>.msi</code> — les deux défauts de la
-                  0.1.1 sont corrigés depuis la 0.1.2.
-                </td>
-              </tr>
-              <tr>
                 <td>Un réseau isolé</td>
                 <td><span class="badge">Archive hors ligne</span></td>
-                <td><code>dropforge-pwa-0.1.2.zip</code> de la dernière version, servi en HTTPS depuis n'importe quel dossier.</td>
+                <td><code>dropforge-pwa-0.1.3.zip</code> de la dernière version, servi en HTTPS depuis n'importe quel dossier.</td>
               </tr>
               <tr>
                 <td>Deux réseaux différents</td>
                 <td><span class="badge">Feuille de route</span></td>
                 <td>
-                  Le service de relais est dans le dépôt (<code>dropforge-signaling-0.1.2.zip</code>, puis
+                  Le service de relais est dans le dépôt (<code>dropforge-signaling-0.1.3.zip</code>, puis
                   <code>npm install --omit=dev &amp;&amp; npm start</code>) et son code est testé, mais le chemin
                   « deux réseaux » n'est pas encore annoncé comme prêt : il demande un relais joignable en permanence,
                   et une adresse à configurer à la compilation.
@@ -968,17 +960,17 @@ footer a:hover {
             </tbody>
           </table>
 
-          <!-- DROPFORGE-AVERTISSEMENT-WINDOWS : les deux défauts de l'installateur sont
-               corrigés depuis la 0.1.2 ; cet encadré reste tant qu'aucun essai sur un poste
-               réel n'a eu lieu. Voir CHANGELOG.md. -->
+          <!-- DROPFORGE-AVERTISSEMENT : DropForge est une application web installable.
+               Il n'y a plus d'installateur ; les fichiers des versions précédentes restent
+               téléchargeables et ne sont plus maintenus. Voir CHANGELOG.md. -->
           <p class="callout">
-            <strong>Application Windows : 0.1.2 corrige les deux défauts signalés.</strong> L'écran de démarrage
-            ne reste plus muet — il affiche la cause réelle au bout de 15 secondes et l'écrit dans le journal —
-            et l'installation comme la désinstallation ne s'arrêtent plus sur un faux « l'application est en
-            cours d'exécution ». Ces correctifs <strong>n'ont pas encore été essayés sur un poste réel</strong> :
-            c'est le premier essai qui compte. Si une installation reste coincée, le
-            <a href="https://github.com/Louxos/DROPForge/blob/main/docs/GUIDE.md#7-réparer-une-installation-windows-coincée">guide</a>
-            donne le script de déblocage et les commandes équivalentes.
+            <strong>Aucun installateur à télécharger.</strong> DropForge est une application web : elle
+            s'installe depuis le navigateur, et c'est la seule version maintenue. Les installateurs Windows
+            publiés avec les versions précédentes <strong>restent téléchargeables mais ne sont plus
+            maintenus</strong> — l'application Windows a été retirée du projet (
+            <a href="https://github.com/Louxos/DROPForge/blob/main/CHANGELOG.md">historique des versions</a>). Ce qui n'est pas
+            encore prouvé est écrit ici : l'application web est <strong>testée dans trois navigateurs réels</strong>,
+            mais elle n'a <strong>pas encore été essayée sur un téléphone réel</strong>.
           </p>
 
           <ul class="links">
@@ -1019,10 +1011,6 @@ footer a:hover {
                 <td><span class="badge ok">Implémenté et testé</span></td>
               </tr>
               <tr>
-                <td>Application Windows (Tauri + Rust)</td>
-                <td><span class="badge warn">Compilée et empaquetée à chaque envoi</span> <span class="badge no">pas encore ouverte sur un vrai Windows</span></td>
-              </tr>
-              <tr>
                 <td>Liens de partage hébergés</td>
                 <td><span class="badge warn">Code client prêt</span> <span class="badge no">nécessite un hébergement</span></td>
               </tr>
@@ -1042,8 +1030,8 @@ footer a:hover {
         <div class="wrap">
           <h2 class="section">Construire et contribuer</h2>
           <p class="sub">
-            Node 22 et npm suffisent pour l'application web ; Rust n'est nécessaire que pour l'application
-            Windows.
+            Node 22 et npm suffisent : l'application web, le serveur optionnel et les tests n'ont besoin de
+            rien d'autre.
           </p>
           <div class="grid">
             <div class="card">
@@ -1054,8 +1042,7 @@ footer a:hover {
               <h3>Vérifier avant de proposer</h3>
               <p class="codewrap">npm run verify</p>
               <p style="margin-top: 12px">
-                Typage, contrôle de la configuration Windows et tests : la même commande que la chaîne
-                d'intégration.
+                Typage, cohérence de la page publiée et tests : la même commande que la chaîne d'intégration.
               </p>
             </div>
           </div>
@@ -1082,7 +1069,7 @@ footer a:hover {
   <rect x="238" y="312" width="36" height="88" rx="10" fill="url(#df-footer)" />
 </svg>
 <span>DropForge</span></span>
-        <span>Version 0.1.2</span>
+        <span>Version 0.1.3</span>
         <span class="spacer"></span>
         <span>Aucun compte obligatoire · Aucune télémétrie par défaut</span>
         <a href="https://github.com/Louxos/DROPForge/blob/main/docs/TECHNIQUE.md">Licences</a>

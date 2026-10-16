@@ -1,4 +1,4 @@
-# Vérification de chaque changement : types, tests, compilation des trois cibles.
+# Vérification de chaque changement : types, tests, compilation des deux cibles.
 #
 # Rien n'est publié ici : c'est le rôle de `release.yml` (sur un tag). Ce workflow
 # existe pour qu'une branche ne puisse pas être fusionnée avec des tests rouges ou
@@ -27,9 +27,18 @@ jobs:
           cache: npm
       - name: Dépendances
         run: npm ci --no-audit --no-fund
-      - name: Types et tests (web + bureau)
+      - name: Types et tests
         run: npm run verify
-      - name: Compilation des trois cibles
+      - name: Visuels à jour
+        # Les icônes sont générées par du code (`node scripts/generate-icons.mjs`). Si
+        # les fichiers versionnés diffèrent de ce que le générateur produit, c'est qu'un
+        # visuel a été modifié à la main ou oublié : le contrôle le dit ici, au lieu de
+        # le laisser découvrir une fois l'application publiée.
+        run: |
+          npm run icons
+          git diff --exit-code -- apps/web/public/icons \
+            || { echo "::error::les icônes versionnées ne correspondent plus à leur générateur (npm run icons)"; exit 1; }
+      - name: Compilation des deux cibles
         # Base relative : l'archive publiée doit fonctionner depuis n'importe quel
         # dossier, pas seulement depuis la racine d'un domaine.
         run: DROPFORGE_BASE=./ npm run build
@@ -87,106 +96,3 @@ jobs:
           path: test-results/
           if-no-files-found: ignore
           retention-days: 7
-
-  windows:
-    # Compiler la coque Windows pour de vrai, sur Windows, à chaque envoi.
-    #
-    # C'est la leçon la plus chère de ce dépôt : la partie Rust ne peut pas être
-    # compilée hors de Windows, et les erreurs qu'elle contient — une API de tray
-    # inexistante, une permission mal nommée, une fenêtre qui ne s'affiche jamais — ne
-    # se voient que là. Les tests de ce dépôt ne les attrapent pas : ils ne compilent
-    # pas de Rust. Cette tâche le fait, et produit en plus un installateur réellement
-    # installable, téléchargeable ci-dessous, pour qu'une correction puisse être
-    # essayée sans attendre une publication.
-    name: Application Windows (compilation et installateur)
-    runs-on: windows-latest
-    timeout-minutes: 60
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22
-          cache: npm
-      - name: Chaîne d'outils Rust
-        shell: bash
-        run: |
-          rustc --version || rustup default stable
-          rustc --version
-          cargo --version
-      - run: npm ci --no-audit --no-fund
-
-      - name: Visuels et icônes à jour
-        shell: bash
-        # Les icônes et les images de l'installateur sont générées par du code. Si les
-        # fichiers versionnés diffèrent de ce que le générateur produit, c'est qu'un
-        # visuel a été modifié à la main ou oublié : le contrôle le dit ici, au lieu de
-        # le laisser découvrir une fois l'installateur publié.
-        run: |
-          npm run icons
-          # `apps/desktop/index.html` en fait partie : l'écran de démarrage y reçoit le
-          # logo, écrit par le même générateur.
-          git diff --exit-code -- apps/web/public/icons apps/desktop/src-tauri/icons apps/desktop/src-tauri/installer apps/desktop/index.html \
-            || { echo "::error::les visuels versionnés ne correspondent plus à leur générateur (node scripts/generate-icons.mjs)"; exit 1; }
-
-      # Quatre étapes plutôt qu'un seul `npm run verify` : un échec doit dire *laquelle*
-      # a échoué. C'est ce découpage qui a permis de localiser, en une lecture, le
-      # « spawn EINVAL » des scripts `.cmd` et les chemins de test non portables, deux
-      # défauts propres à Windows qu'un seul `verify` aurait noyés dans la sortie.
-      - name: Types (dépôt)
-        shell: bash
-        run: |
-          set -o pipefail
-          npm run typecheck 2>&1 | tee step.log || {
-            node scripts/ci-annotate.mjs step.log "Types (dépôt)" 40
-            exit 1
-          }
-      - name: Types (coque Windows)
-        shell: bash
-        run: |
-          set -o pipefail
-          npm run typecheck:desktop 2>&1 | tee step.log || {
-            node scripts/ci-annotate.mjs step.log "Types (coque Windows)" 40
-            exit 1
-          }
-      - name: Configuration Tauri, Rust et installateur
-        shell: bash
-        run: |
-          set -o pipefail
-          npm run check:desktop 2>&1 | tee step.log || {
-            node scripts/ci-annotate.mjs step.log "Configuration Tauri et Rust" 40
-            exit 1
-          }
-      - name: Tests
-        shell: bash
-        run: |
-          set -o pipefail
-          npm test 2>&1 | tee step.log || {
-            node scripts/ci-annotate.mjs step.log "Tests (Windows)" 40
-            exit 1
-          }
-
-      - name: Compilation de la coque et de l'installateur NSIS
-        shell: bash
-        # `--debug` : la compilation est bien plus rapide, et ce qui est vérifié ici est
-        # que le code compile et que l'installateur se construit avec ses hooks. La
-        # version publiée, elle, est compilée en mode release par `release.yml`.
-        #
-        # La sortie de cargo est la seule chose qui explique un échec de compilation
-        # Rust : elle est donc publiée en annotation, où elle reste lisible.
-        run: |
-          set -o pipefail
-          npm run build:windows:check 2>&1 | tee build.log || {
-            node scripts/ci-annotate.mjs build.log "Compilation Windows (cargo)" 60
-            exit 1
-          }
-
-      - name: Installateur produit
-        shell: bash
-        run: ls -la apps/desktop/src-tauri/target/debug/bundle/nsis/
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: dropforge-installateur-de-test
-          path: apps/desktop/src-tauri/target/debug/bundle/nsis/*.exe
-          if-no-files-found: error
-          retention-days: 14

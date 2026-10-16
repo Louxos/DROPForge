@@ -10,9 +10,9 @@ Ce qui se passe **dedans** (architecture, sécurité, tests, état réel) est da
 [3. Installer](#3-installer) ·
 [4. Deux appareils sur le même Wi‑Fi](#4-le-plus-simple-et-ce-qui-est-prêt-aujourdhui-deux-appareils-sur-le-même-wi-fi) ·
 [5. S'en servir](#5-sen-servir) ·
-[6. Application Windows](#6-application-windows) ·
+[6. L'installer sur vos appareils](#6-linstaller-sur-vos-appareils) ·
 [7. Dépannage](#7-dépannage) ·
-[8. Réparer une installation Windows coincée](#8-réparer-une-installation-windows-coincée) ·
+[8. Réparer l'application installée](#8-réparer-lapplication-installée) ·
 [9. Vos données, et comment tout enlever](#9-vos-données-et-comment-tout-enlever) ·
 [10. Propriétaire du dépôt](#10-propriétaire-du-dépôt) ·
 [11. Déployer soi-même](#11-déployer-soi-même)
@@ -26,9 +26,9 @@ n'importe quel navigateur — **sans compte obligatoire**, chiffré de bout en b
 direct de machine à machine dès que le réseau le permet. Quand un serveur s'en mêle, il
 ne voit jamais le contenu des fichiers.
 
-Un seul nom, deux coques : une **application Windows** (Tauri 2 + Rust) et une
-**application web progressive** (PWA) qui partagent exactement la même interface. Les
-deux se parlent entre elles.
+Une seule application : une **application web installable** (PWA). Elle s'ouvre dans le
+navigateur, s'installe depuis son menu, et se lance ensuite comme un logiciel — même
+hors ligne. Il n'y a **rien à télécharger**.
 
 Ce que DropForge ne fait pas, et le dit : voir
 [`TECHNIQUE.md`](TECHNIQUE.md), section 5. En résumé : pas de protection contre un appareil déjà infecté, pas de
@@ -56,35 +56,28 @@ Un nouvel appareil n'est jamais approuvé sans réponse explicite : le même nom
 
 ## 3. Installer
 
-Prérequis : rien pour l'application web ; Windows 10/11 pour l'application Windows
-(WebView2 est embarqué dans l'installateur, donc pas de téléchargement au premier
-lancement).
+Prérequis : **rien**. Ni compte, ni installation, ni droits administrateur. Un navigateur
+récent suffit (Chrome, Edge, Firefox, Safari), sur ordinateur comme sur téléphone.
 
 | Vous êtes sur | Prenez | Comment |
 | --- | --- | --- |
-| Ordinateur, téléphone, tablette | **l'application web** | l'adresse publiée (Netlify ou la vôtre, voir § 9 et § 10) ; puis « Installer l'application » (Android/Chrome) ou Partager → « Sur l'écran d'accueil » (iOS/Safari) |
-| Windows | **l'installateur** | `DropForge_<version>_x64-setup.exe` (par utilisateur, sans droits administrateur) ou le `.msi`, depuis la [dernière version](https://github.com/Louxos/DROPForge/releases/latest) |
-| Un réseau isolé, une clé USB | **l'archive hors ligne** | `dropforge-pwa-<version>.zip`, servie en HTTPS depuis n'importe quel dossier (`npx serve`, `python3 -m http.server`) |
+| Ordinateur, téléphone, tablette | **l'application web** | l'adresse publiée (Netlify ou la vôtre, voir § 10), puis « Installer l'application » (Chrome/Edge, Android) ou Partager → « Sur l'écran d'accueil » (iOS/Safari). Le détail est au § 6 |
+| Un réseau isolé, une clé USB | **l'archive hors ligne** | `dropforge-pwa-<version>.zip`, servie en **HTTPS** depuis n'importe quel dossier (`npx serve`, `python3 -m http.server`) : voir § 4 pour le cas « deux appareils sur le même Wi‑Fi » |
 | Deux réseaux différents | **le relais** | `dropforge-signaling-<version>.zip` : `npm install --omit=dev && npm start` |
 
 **Vérifier ce que vous téléchargez** — les sommes de contrôle sont publiées avec les
-fichiers, et rien n'est signé par un certificat d'éditeur (payant, optionnel) :
-
-```powershell
-# Windows (PowerShell)
-Get-FileHash -Algorithm SHA256 .\DropForge_0.1.2_x64-setup.exe
-Get-Content .\SHA256SUMS-windows.txt
-```
+fichiers :
 
 ```bash
-# Linux, macOS (application web et serveur)
 sha256sum -c SHA256SUMS
 ```
 
-> ⚠️ **La version 0.1.1 a deux défauts connus** (écran de démarrage qui peut rester
-> affiché, désinstallation qui refuse en disant que l'application tourne). Ils sont
-> corrigés en **0.1.2**. Si vous êtes sur la 0.1.1, lisez le § 6 avant d'installer quoi
-> que ce soit ; si vous êtes bloqué, allez directement au § 7.
+> **L'application Windows n'existe plus.** Jusqu'à la 0.1.2, DropForge publiait aussi un
+> installateur Windows. Il est **retiré du projet** depuis la 0.1.3 : les fichiers publiés
+> auparavant restent téléchargeables sur la page des versions, mais ils ne sont **plus
+> maintenus**, et l'application web rend le même service — sans installation, et sans
+> pouvoir empêcher l'interface de démarrer. Si vous l'avez installée, le § 7 dit comment
+> l'arrêter et s'en débarrasser.
 
 ## 4. Le plus simple, et ce qui est prêt aujourd'hui : deux appareils sur le même Wi‑Fi
 
@@ -145,9 +138,9 @@ deux appareils. Si vous ne voulez pas de cet avertissement, la solution propre e
 de domaine qui pointe vers l'adresse locale et un vrai certificat — hors de portée d'un
 script, et décrit dans `TECHNIQUE.md` § 11.
 
-**Et l'application Windows ?** Elle affiche la même interface, et se connecte au même
-service : lancez `npm run lan` sur une machine du réseau, puis indiquez son adresse dans
-Réglages → Avancé → Adresse du relais (`wss://192.168.1.24:4173/ws`).
+**Et un appareil qui ne peut pas installer ?** Tout ce qui a un navigateur fait
+l'affaire : ouvrez l'adresse affichée, et le transfert se fait sans rien installer du
+tout.
 
 **Et pour travailler sur le code ?** `npm run dev` sert en clair sur
 `http://localhost:5173` (un contexte sécurisé, donc tout fonctionne) ; `npm run dev
@@ -179,9 +172,8 @@ réellement utilisé et le code à comparer — le même code des deux côtés.
 **Réglages qui comptent** : dossier de réception, politique de conflit (`demander`,
 `renommer`, `ignorer`, `remplacer`), concurrence, taille maximale, appareils de
 confiance uniquement, langue (français/anglais), thème (système/sombre/clair),
-**adresse du relais** (voir « Le relais », ci-dessous), démarrage automatique (Windows),
-comportement à la fermeture, conservation de l'historique, journaux de diagnostic
-(désactivés par défaut).
+**adresse du relais** (voir « Le relais », ci-dessous), comportement à la fermeture,
+conservation de l'historique, diagnostic (désactivé par défaut).
 
 **Le relais** (Réglages → Adresse du relais) — trois possibilités, et l'écran dit
 toujours laquelle est utilisée :
@@ -208,155 +200,148 @@ déposée sur le service configuré, la clé reste dans le fragment du lien. San
 configuré, l'option n'est pas affichée — DropForge ne promet pas une fonction qu'il ne
 peut pas tenir.
 
-## 6. Application Windows
+## 6. L'installer sur vos appareils
 
-- **Premier lancement** : la fenêtre est demandée **avant tout le reste** ; deux
-  contrôles de secours côté Rust l'affichent après 700 ms puis 12 s si personne ne l'a
-  demandée. Si l'interface ne démarre pas, l'écran de démarrage **est remplacé par la
-  cause réelle** au bout de 15 s (voir § 6).
-- **Fermer la fenêtre** ne quitte pas forcément : le réglage « continuer en
-  arrière-plan » (par défaut) garde l'application dans la zone de notification, et un
-  transfert en cours continue. Pour quitter : menu de l'icône de la zone de
-  notification, ou Réglages → « À la fermeture de la fenêtre » → « quitter ».
-- **Démarrage automatique** : Réglages → démarrage automatique. Sans argument : au
-  démarrage, l'application va dans la zone de notification sans ouvrir de fenêtre.
-- **Mises à jour** : vérification à la demande, jamais d'installation silencieuse ;
-  une mise à jour n'est appliquée que si sa signature correspond à la clé publique
-  embarquée (voir § 9).
-- **Journal de diagnostic** : `%APPDATA%\org.dropforge.app\diagnostics.log`, borné,
-  sans secret ni contenu de fichier. Il se transmet tel quel pour signaler un problème.
+**Rien à télécharger : l'application s'installe depuis le navigateur.** Elle se lance
+ensuite comme un logiciel — sa propre fenêtre, sa propre icône, pas de barre d'adresse —
+et elle **fonctionne hors ligne** une fois ouverte au moins une fois.
+
+| Où | Comment | Ce que ça donne |
+| --- | --- | --- |
+| Chrome, Edge (ordinateur) | icône « Installer » dans la barre d'adresse, ou menu → « Installer DropForge » | une fenêtre dédiée, une icône dans le menu Démarrer / le Launchpad |
+| Android (Chrome) | menu ⋮ → « Installer l'application » | une icône sur l'écran d'accueil, sans magasin d'applications |
+| iOS, iPadOS (Safari) | Partager → « Sur l'écran d'accueil » | une icône sur l'écran d'accueil |
+| Firefox, Safari (ordinateur) | pas d'installation : l'onglet reste l'application | tout fonctionne, sauf l'icône |
+
+**Mises à jour** : Réglages → **Mises à jour** → « Rechercher une mise à jour ». La
+nouvelle version est *proposée*, jamais imposée : elle n'est appliquée que si vous
+l'acceptez, et jamais au milieu d'un transfert. Une page ouverte dans un simple onglet
+n'a rien à mettre à jour — l'application le dit (`PLATFORM_UNSUPPORTED`) au lieu
+d'inventer un numéro de version.
+
+**Ce qu'un navigateur ne permet pas, et que DropForge ne promet donc pas** :
+
+- **Recevoir quand l'application est fermée** : aucun navigateur ne garde une page
+  vivante sans onglet ouvert. Le téléphone doit être ouvert sur l'application pour
+  recevoir. Le transfert en cours, lui, résiste à une mise en veille de l'écran.
+- **Écrire dans un dossier sans le choisir** : seuls Chrome et Edge savent mémoriser un
+  dossier d'arrivée ; ailleurs, chaque fichier arrive par téléchargement, et c'est
+  annoncé dans Réglages.
+
+**Où sont les journaux** : dans le navigateur, pas dans un fichier. Réglages →
+**Diagnostic** donne la version affichée, la plateforme détectée et ce qui manque ; la
+console du navigateur (F12) reste la source complète en cas de problème.
 
 ## 7. Dépannage
 
 | Symptôme | Cause | Action |
 | --- | --- | --- |
-| La fenêtre ne s'ouvre pas | instance invisible, écran secondaire, zone de notification | Gestionnaire des tâches → **Détails** → `DropForge.exe` présent ? cliquez l'icône près de l'horloge. Relancer l'application ramène la fenêtre existante au premier plan |
-| **L'écran reste sur « DropForge — démarrage… »** | le paquet de l'interface n'a pas démarré | attendez 15 s : l'écran affiche maintenant **la cause** et le chemin du journal. Cause fréquente : dossier de données inaccessible (antivirus) ou paquet endommagé → réinstaller la dernière version, ou utiliser l'application web |
-| **« L'application est en cours d'exécution » à l'installation ou à la désinstallation** | le contrôle de Windows (Restart Manager) voit un fichier `.exe` utilisé — souvent par autre chose que l'application | § 7 |
-| Plus rien de DropForge dans « Applications installées » mais l'installation refuse quand même | entrée de registre orpheline | § 7 |
+| Rien ne s'ouvre après avoir cliqué sur l'adresse | page pas encore chargée, ou service worker d'une ancienne version | rechargez (Ctrl+F5, ou ⌘⇧R) ; § 8 pour repartir d'un état propre |
+| « Aucun appareil joignable pour le moment » | les deux appareils ne sont pas sur le même réseau, ou le relais n'est pas configuré | vérifiez le Wi‑Fi, puis Réglages → **Adresse du relais**. Sur le même réseau, aucun serveur n'est nécessaire : voir § 4 |
 | « Aucun chemin commun disponible » | aucune méthode ne passe | vérifiez que les deux appareils sont sur le même réseau, ou utilisez le relais (le message dit lequel) |
 | « Le relais est injoignable » | le service de signalisation est éteint, ou son adresse n'est plus bonne | Réglages → **Adresse du relais** : vérifiez l'adresse utilisée (elle est affichée), ou passez à « Aucun relais » et travaillez sur le même réseau. Rien n'est contacté en dehors de ce réglage |
-| « Aucun relais n'est configuré » | le déploiement n'en déclare aucun, et l'adresse est en « Automatique » | normal sur l'application web publiée sans relais : les appareils du même réseau fonctionnent ; sinon indiquez votre adresse de relais dans les réglages, ou déclarez `VITE_SIGNALING_URL` à la compilation (§ 8) |
+| « Aucun relais n'est configuré » | le déploiement n'en déclare aucun, et l'adresse est en « Automatique » | normal sur l'application web publiée sans relais : les appareils du même réseau fonctionnent ; sinon indiquez votre adresse de relais dans les réglages, ou déclarez `VITE_SIGNALING_URL` à la compilation (§ 10) |
 | « L'appareil est injoignable » | chemin bloqué (pare-feu, NAT) | relancez depuis le même réseau, ou passez par le relais |
 | « Les codes ne correspondent pas » | le code de comparaison diffère → signal d'attaque, pas incident réseau | **refusez** et recommencez l'appairage sur un réseau de confiance |
 | « Cet appareil a changé » | identifiant connu, empreinte de clé différente | refusez et supprimez l'appareil ; s'il est légitime, réappairez-le |
 | « Un fichier existe déjà » | politique de conflit sur « demander » | choisissez renommer / ignorer / remplacer |
 | « Le disque est plein » | espace insuffisant | libérez de l'espace ; la reprise repart des plages déjà écrites |
 | Un transfert reste à « vérification » | hachage en cours (gros fichier) ou disque lent | attendez la fin ; au-delà du délai, l'état devient `interrupted` avec un code explicite |
-| Un transfert s'arrête quand Windows se met en veille | attendu | au retour, relancez : la reprise continue si le fichier partiel est intact |
+| Un transfert s'arrête quand l'appareil se met en veille | attendu | au retour, relancez : la reprise continue si le fichier partiel est intact |
 | Le navigateur ne peut pas mémoriser un dossier | API absente (Firefox, Safari) | les fichiers arrivent par téléchargement ; c'est annoncé dans Réglages |
-| « Cette plateforme ne permet pas de rechercher une mise à jour » | application web non installée | installez-la depuis le navigateur, ou utilisez la version Windows |
-| « Rien n'est en attente » | aucune clé de mise à jour configurée côté dépôt | voir § 9 (clés de signature) |
+| « Cette plateforme ne permet pas de rechercher une mise à jour » | application ouverte en onglet, pas installée | installez-la depuis le navigateur (§ 6) : c'est le service worker de la version installée qui apporte les mises à jour |
+| « Rien n'est en attente » | aucune nouvelle version n'est prête à activer | normal : le navigateur livre la nouvelle version quand elle existe (§ 6) |
+| « Le stockage est plein » / l'application ne garde plus rien | quota du navigateur atteint (historique, appareils, points de reprise) | Réglages → **Vider l'historique**, ou autorisez plus de stockage pour ce site (§ 9) |
 
-**Le réflexe utile, dans tous les cas** : ouvrez
-`%APPDATA%\org.dropforge.app\diagnostics.log` et lisez la dernière ligne. Elle nomme
-l'étape qui a échoué (`data`, `identity`, `settings`, `updates`, `tray`, `window`,
-`interface`, `render`, `startup`, `panic`). C'est plus rapide que réinstaller en boucle.
+**Vous avez encore l'application Windows (0.1.2 ou avant).** Elle n'est plus maintenue, et
+elle ne fait rien que l'application web ne fasse. **L'arrêter complètement**, sans rien
+désinstaller — c'est la commande à retenir :
 
-## 8. Réparer une installation Windows coincée
+```bat
+taskkill /IM DropForge.exe /F
+```
 
-**Ce qui se passe.** L'installateur et le désinstallateur (modèle NSIS de Tauri) ne
-cherchent pas de processus : ils demandent au **Windows Restart Manager** qui utilise
-`%LOCALAPPDATA%\DropForge\DropForge.exe`. Dès qu'une réponse arrive, ils affichent
-« l'application est en cours d'exécution » et s'arrêtent — **même quand DropForge ne
-tourne pas**. Tiennent ce fichier, tour à tour : une instance restée en arrière-plan (le
-réglage « continuer en arrière-plan » la garde vivante), le démarrage automatique, un
-antivirus qui l'analyse, l'Explorateur, ou une version précédente jamais refermée.
+(PowerShell : `Get-Process DropForge | Stop-Process -Force`. Vérification :
+`tasklist | findstr DropForge` ne doit plus rien afficher.)
 
-**Pourquoi supprimer les fichiers à la main ne suffit pas.** L'entrée de
-désinstallation reste dans le registre
-(`HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\DropForge`). Windows continue
-de proposer une désinstallation qui vise un fichier absent, et la page de réinstallation
-de l'installateur, qui ne consulte **que le registre**, propose de désinstaller d'abord
-une installation qui n'existe plus.
+**S'en débarrasser** : Paramètres → Applications → Applications installées → DropForge →
+**Désinstaller** (ou `%LOCALAPPDATA%\DropForge\uninstall.exe`). Si la désinstallation
+refuse en disant que l'application tourne — le défaut de la 0.1.1, corrigé en 0.1.2 —
+arrêtez-la d'abord avec la commande ci-dessus, puis réessayez. Les mêmes gestes à la main,
+si elle est déjà à moitié partie :
 
-**Corrigé en 0.1.2** (et c'est le cas de la version que vous installez maintenant) : le
-hook `apps/desktop/src-tauri/installer/hooks.nsh` ferme l'application, puis **écarte
-l'exécutable du chemin exact que le contrôle interroge** (`DropForge.exe` →
-`DropForge.exe.df-ecarte`) : un fichier renommé n'a plus d'utilisateurs, donc le
-contrôle passe. Le fichier écarté est supprimé juste après, et si le renommage échoue
-parce qu'un autre programme tient réellement le fichier, le journal d'installation le
-dit au lieu de laisser croire à une application fantôme.
+```bat
+taskkill /F /IM DropForge.exe
+reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\DropForge" /f
+reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v DropForge /f
+rmdir /s /q "%LOCALAPPDATA%\DropForge"
+del "%APPDATA%\Microsoft\Windows\Start Menu\Programs\DropForge.lnk"
+del "%USERPROFILE%\Desktop\DropForge.lnk"
+```
 
-### Si vous êtes bloqué maintenant — par ordre d'effort
+Les fichiers que vous avez reçus ne sont jamais touchés — ils sont dans le dossier de
+réception que vous aviez choisi.
 
-1. **Cliquez « OK »** (pas « Annuler ») dans la boîte « fermer l'application » : OK
-   demande à Windows de fermer les programmes qui tiennent le fichier.
-2. **Fermez l'application et recommencez** : `taskkill /F /IM DropForge.exe` dans une
-   invite de commandes, puis relancez la désinstallation.
-3. **Écartez le fichier à la main** :
-   `ren "%LOCALAPPDATA%\DropForge\DropForge.exe" DropForge.exe.ecarte`, puis relancez.
-4. **Le script du dépôt** — il **constate d'abord**, ne modifie rien sans `-Apply`, et
-   demande confirmation à chaque étape :
+**Le réflexe utile, dans tous les cas** : notez le **code d'erreur** affiché à l'écran
+(par exemple `RELAY_UNAVAILABLE`, `INTEGRITY_FAILED`) et regardez l'onglet **Console**
+(F12) ; le message de l'application dit toujours *quelle* étape a échoué.
 
-   ```powershell
-   # 1) constat : ne modifie rien
-   powershell -ExecutionPolicy Bypass -File scripts\unblock-windows.ps1
-   # 2) nettoyage, confirmé étape par étape
-   powershell -ExecutionPolicy Bypass -File scripts\unblock-windows.ps1 -Apply
-   # 3) et, si vous voulez aussi effacer l'historique et les appareils de confiance
-   powershell -ExecutionPolicy Bypass -File scripts\unblock-windows.ps1 -Apply -RemoveData
-   ```
+## 8. Réparer l'application installée
 
-   Il traite, dans l'ordre : processus, entrées de désinstallation, démarrage
-   automatique, dossiers du programme, raccourcis, données locales (sur demande). Il ne
-   touche **jamais** aux fichiers que vous avez reçus (Téléchargements, Documents,
-   Bureau). Téléchargement direct :
-   <https://raw.githubusercontent.com/Louxos/DROPForge/main/scripts/unblock-windows.ps1>
-   — clic droit → **Propriétés** → cochez **Débloquer** avant de l'exécuter.
+**Une version ancienne qui reste affichée.** Le navigateur sert la version en cache
+jusqu'à ce que le service worker reçoive la nouvelle. Réglages → **Mises à jour** →
+« Rechercher une mise à jour », puis acceptez : la page se recharge sur la nouvelle
+version.
 
-5. **Les mêmes gestes à la main** (invite de commandes, sans droits administrateur :
-   l'installation est « par utilisateur »). Les messages « introuvable » sont normaux :
-   l'élément était déjà parti.
+**Repartir d'un état propre, sans rien perdre d'autre** — dans l'ordre, et pas plus loin
+que nécessaire :
 
-   ```bat
-   taskkill /F /IM DropForge.exe
-   taskkill /F /IM dropforge.exe
-   reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\DropForge" /f
-   reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v DropForge /f
-   rmdir /s /q "%LOCALAPPDATA%\DropForge"
-   rmdir /s /q "%ProgramFiles%\DropForge"
-   del "%APPDATA%\Microsoft\Windows\Start Menu\Programs\DropForge.lnk"
-   del "%USERPROFILE%\Desktop\DropForge.lnk"
-   ```
+1. **Rechargement forcé** : Ctrl+F5 (⌘⇧R sur Mac). Cela suffit neuf fois sur dix.
+2. **Mises à jour** → « Rechercher une mise à jour », puis acceptez celle proposée.
+3. **Désinstaller puis réinstaller l'application** : trois points du navigateur →
+   *Désinstaller DropForge*, puis rouvrez l'adresse et installez-la à nouveau (§ 6). Le
+   service worker repart de zéro ; vos réglages, votre historique et vos appareils de
+   confiance restent dans le stockage du site.
+4. **Effacer les données du site** (dernier recours, et cela efface **tout**) : Paramètres
+   du navigateur → Confidentialité → *Données des sites* → cherchez l'adresse de
+   l'application → **Supprimer**. Vous perdez l'historique, les appareils de confiance et
+   les points de reprise, mais **pas** les fichiers que vous avez reçus : ils sont dans
+   votre dossier de réception, pas dans le navigateur.
 
-   Et seulement si vous voulez aussi effacer les données locales :
-
-   ```bat
-   rmdir /s /q "%APPDATA%\org.dropforge.app"
-   rmdir /s /q "%LOCALAPPDATA%\org.dropforge.app"
-   ```
-
-6. **Ne réinstallez pas en boucle** : chaque tentative laisse une entrée de registre
-   supplémentaire. Terminez le nettoyage d'abord.
-
-Après le nettoyage, la page de réinstallation ne voit plus d'installation précédente :
-l'installation repart proprement.
+**Un transfert qui repart de zéro après une interruption.** La reprise compare le fichier
+partiel à celui qui a été promis ; si le fichier a changé (ou si le disque a été nettoyé
+entre-temps), la reprise est refusée et le transfert repart du début — c'est voulu, et le
+message le dit. Rien n'est jamais écrit à une place qui ne correspond pas à ce que
+l'expéditeur a envoyé.
 
 ## 9. Vos données, et comment tout enlever
 
+Tout vit dans le **stockage du navigateur**, pour l'adresse de l'application : rien
+n'est écrit ailleurs, et rien n'est envoyé où que ce soit.
+
 | Quoi | Où |
 | --- | --- |
-| Historique, appareils de confiance, réglages, points de reprise | `%APPDATA%\org.dropforge.app` (SQLite) — ou IndexedDB dans le navigateur |
-| Programme installé | `%LOCALAPPDATA%\DropForge` (ou `%ProgramFiles%\DropForge` si installé pour tout le monde) |
-| Journal de diagnostic | `%APPDATA%\org.dropforge.app\diagnostics.log` |
+| Historique, appareils de confiance, réglages, points de reprise | le stockage du site (IndexedDB), dans le navigateur qui ouvre l'application |
+| L'application elle-même (fichiers en cache, service worker) | le cache du navigateur — c'est ce qui permet de la lancer hors ligne |
 | **Fichiers que vous recevez** | le dossier de réception que **vous** avez choisi (Téléchargements par défaut) — **aucune désinstallation n'y touche** |
 
-La désinstallation propose (case **décochée**) de supprimer les données locales. Sans
-cette case, historique, appareils de confiance et réglages restent en place — ce qui
-sert à réinstaller sans tout reperdre. Rien de tout cela n'est envoyé où que ce soit :
-voir [`TECHNIQUE.md`](TECHNIQUE.md), section 6.
+**Tout enlever** : Réglages → les remises à zéro (historique, appareils, réglages, ou
+tout) ; pour effacer aussi le cache de l'application, désinstallez-la depuis le navigateur
+(§ 8), ou supprimez les données du site dans les paramètres du navigateur. Les fichiers
+déjà reçus restent où ils sont : ils ne sont pas à DropForge.
+
+Rien de tout cela n'est envoyé où que ce soit : voir
+[`TECHNIQUE.md`](TECHNIQUE.md), section 6.
 
 ## 10. Propriétaire du dépôt
 
-Trois choses seulement ne peuvent pas être faites par un agent : deux secrets et une
+Deux choses seulement ne peuvent pas être faites par un agent : une action et une
 décision.
 
 | # | Action | Nécessaire pour | Coût |
 | --- | --- | --- | --- |
 | 1 | **Brancher l'application web** (Netlify) | Une adresse publique pour la PWA | 0 € |
-| 2 | **Clés de mise à jour** (3 secrets GitHub) | Mises à jour Windows signées et vérifiées | 0 € |
-| 3 | **Licence du projet** | Dire ce que les autres ont le droit de faire | 0 € |
+| 2 | **Licence du projet** | Dire ce que les autres ont le droit de faire | 0 € |
 
 **1. L'application web.** `netlify.toml` est fourni : Add new site → Import from
 GitHub → `DROPForge` (branche `main`) ; réglages appliqués automatiquement
@@ -400,36 +385,20 @@ README seulement s'il est absent. `.nojekyll` évite que Jekyll réécrive la pa
 ses sources, et `npm run site:build` régénère `index.html`, `favicon.svg` et
 `.nojekyll`.
 
-**3. Les clés de mise à jour signées** (facultatives ; sans elles, aucune mise à jour
-automatique n'est proposée — l'écran « À propos » le dit) :
+**3. Publier une version** — c'est un acte définitif : `npm run verify` d'abord, la
+chaîne d'intégration verte sur le commit visé ensuite.
 
 ```bash
-npm run tauri signer generate -w ~/.dropforge/updater.key
+git tag v0.1.3 && git push origin v0.1.3
 ```
 
-Trois secrets dans *Settings → Secrets and variables → Actions* :
-`DROPFORGE_UPDATER_KEY` (clé **privée**, à garder hors du dépôt),
-`DROPFORGE_UPDATER_KEY_PASSWORD`, `DROPFORGE_UPDATER_PUBKEY` (clé publique). La chaîne
-écrit alors une configuration temporaire (`.gitignore` :
-`apps/desktop/src-tauri/tauri.updater.conf.json`) et publie `latest.json` avec les
-signatures réellement produites. Une signature qui ne correspond pas est **rejetée** :
-ne désactivez jamais cette vérification pour « faire passer » une version.
+`.github/workflows/release.yml` exécute alors : types et tests → paquets
+(`dropforge-pwa-<v>.zip`, `dropforge-signaling-<v>.zip`, `SHA256SUMS`) → publication de la
+Release, dont les notes sont extraites de [`CHANGELOG.md`](../CHANGELOG.md) pour ce tag.
+Une version dont l'archive ne se sert pas ne devient jamais « dernière version ».
 
-**4. Publier une version** — c'est un acte définitif : `npm run verify` et
-`npm run ci`… d'abord, la chaîne d'intégration verte sur le commit visé ensuite.
-
-```bash
-git tag v0.1.2 && git push origin v0.1.2
-```
-
-`.github/workflows/release.yml` exécute alors : types et tests → paquets web
-(`dropforge-pwa-<v>.zip`, `dropforge-signaling-<v>.zip`, `SHA256SUMS`) → installateur
-Windows (+ artefact de mise à jour si les secrets sont là) → publication de la Release,
-dont les notes sont extraites de [`CHANGELOG.md`](../CHANGELOG.md) pour ce tag.
-
-**5. Signer l'installateur** (facultatif, payant) : un certificat de signature de code
-supprime l'avertissement SmartScreen. C'est indépendant des clés de mise à jour, qui
-sont gratuites.
+Il n'y a **pas d'installateur à signer** : un certificat d'éditeur ne servait qu'à
+supprimer l'avertissement d'un exécutable, et il n'y en a plus.
 
 ## 11. Déployer soi-même
 
@@ -443,7 +412,8 @@ Le conteneur `web` sert l'interface **et** relaie `/ws` vers la signalisation : 
 origine, donc aucune règle CORS à assouplir. Le relais ne stocke aucun fichier : il
 transmet des octets chiffrés et rien n'est conservé après la session.
 
-**Coûts et quotas** : tout est utilisable sans payer. Le détail vérifié (limites
-Cloudflare, R2, TURN, hébergeurs statiques, le seul poste de coût réel — la signature de
-code Windows) est dans [`TECHNIQUE.md`](TECHNIQUE.md), section 11. Aucun service n'est requis pour que le produit fonctionne : le cœur
+**Coûts et quotas** : tout est utilisable sans payer, et le poste de coût qui existait
+(la signature de code Windows) a disparu avec l'installateur. Le détail vérifié (limites
+Cloudflare, R2, TURN, hébergeurs statiques) est dans [`TECHNIQUE.md`](TECHNIQUE.md),
+section 11. Aucun service n'est requis pour que le produit fonctionne : le cœur
 (transfert local et direct) ne dépend d'aucun serveur.

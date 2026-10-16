@@ -14,16 +14,11 @@ packages/*/src/**/*.js
 packages/*/src/**/*.js.map
 apps/*/src/**/*.js.map
 
-# Tauri / Rust
-apps/desktop/src-tauri/target/
-target/
-
 # Release artifacts produced by `npm run package` (never committed)
 release/
 out/
 deploy/.env
 dist/
-apps/desktop/src-tauri/tauri.updater.conf.json
 
 # Netlify (état local de `netlify dev`) : le site publié, lui, est décrit par
 # `netlify.toml`, qui est versionné.

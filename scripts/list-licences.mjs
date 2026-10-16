@@ -102,8 +102,7 @@ const lines = [
   '  leurs versions et leurs licences, est l’annexe A de ce même document',
   '  (`node scripts/list-dependencies.mjs`).',
   '  Elles sont toutes sous MIT, ISC, BSD, Apache-2.0, 0BSD ou MPL-2.0 : aucune copyleft forte.',
-  '- `@tauri-apps/*` est distribué sous Apache-2.0 OR MIT ; Tauri lui-même est sous',
-  '  Apache-2.0 OR MIT. Aucun composant n’impose de redevance ni de compte payant.',
+  '- Aucun composant n’impose de redevance, de compte payant ni de service à installer.',
   '- Aucune bibliothèque de chiffrement « maison » : seules WebCrypto (plateforme) et',
   '  `@noble/hashes` (MIT, auditée publiquement) est utilisée.',
 ];

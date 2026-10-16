@@ -3,8 +3,8 @@
 # Ce fichier ne concerne **que** l'interface web installable. Netlify ne peut pas
 # héberger le reste de DropForge, et c'est une limite de la plateforme, pas un choix :
 #
-#   • l'installateur Windows est produit par la tâche « Application Windows » et publié
-#     sur la page des versions GitHub (`v0.1.2`), pas ici ;
+#   • DropForge n'a plus d'installateur : l'application s'installe depuis le navigateur
+#     (menu → « Installer l'application »), et cette adresse suffit ;
 #   • le service de signalisation est un serveur WebSocket permanent. Les fonctions
 #     Netlify sont des requêtes HTTP courtes : elles ne peuvent pas garder une
 #     connexion ouverte. Le relais doit donc vivre ailleurs (voir `docs/GUIDE.md`).
