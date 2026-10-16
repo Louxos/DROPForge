@@ -46,15 +46,22 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # GitHub Pages demande une activation manuelle, une seule fois. Tant qu'elle
-          # n'a pas eu lieu, échouer à chaque envoi serait du bruit : on le dit, et on
-          # s'arrête là. Dès que Pages est activé, un nouvel envoi (ou « Re-run »)
-          # publie l'application — rien d'autre à changer.
-          if gh api "repos/${{ github.repository }}/pages" >/dev/null 2>&1; then
+          # GitHub Pages demande une activation manuelle, une seule fois — et **un choix
+          # de source** : « GitHub Actions » publie l'application elle-même, « Deploy
+          # from a branch » publie la page d'accueil. Les deux s'excluent, donc ce
+          # travail ne déploie que dans le premier cas. Dans le second, il le dit et
+          # s'arrête : échouer à chaque envoi alors que la page est publiée par ailleurs
+          # serait du bruit, et un travail rouge sur `main` ne se lit plus.
+          #
+          # Le test porte sur le **type de construction**, pas sur l'existence du site :
+          # un Pages réglé sur une branche répond lui aussi, et c'est exactement ce qui
+          # faisait échouer la publication.
+          build_type=$(gh api "repos/${{ github.repository }}/pages" --jq '.build_type' 2>/dev/null || echo 'absent')
+          if [ "$build_type" = 'workflow' ]; then
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           else
             echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::GitHub Pages n'est pas activé pour ce dépôt. Activez-le (Settings → Pages → Source : « GitHub Actions »), puis relancez ce travail : l'application web sera publiée et installable depuis son adresse."
+            echo "::notice::GitHub Pages publie depuis une branche (build_type=${build_type}) : il n'y a rien à déployer ici, c'est la branche enregistrée comme source qui publie la page d'accueil. Pour publier l'application web elle-même par cette chaîne, passez Settings → Pages → Source sur « GitHub Actions », puis relancez ce travail."
           fi
       - uses: actions/configure-pages@v6
         if: steps.pages.outputs.enabled == 'true'
