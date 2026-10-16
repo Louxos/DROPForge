@@ -14,7 +14,9 @@
  * locales seulement sur option.
  */
 
-import { readFileSync, existsSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -124,6 +126,74 @@ describe('procédure documentée : les deux chemins existent', () => {
     const workflow = read('.github/workflows/release.yml');
     expect(workflow).toContain('CHANGELOG.md');
     expect(workflow).not.toContain('docs/releases');
+  });
+
+  it('l’extraction des notes de version fonctionne vraiment', () => {
+    // Ce test existe à cause d'un vrai échec : la version 0.1.2 a été **entièrement
+    // construite** (installateurs Windows, application web, serveur) puis la publication
+    // a échoué sur un motif `awk` mal échappé — `awk: runaway regular expression`. Une
+    // barre oblique de trop dans un motif littéral, et la version n'a jamais été publiée
+    // alors que tous ses fichiers étaient prêts.
+    //
+    // La leçon vaut d'être **exécutée**, pas seulement relue : le test reprend le vrai
+    // script du workflow et le passe au vrai `awk`, sur le vrai `CHANGELOG.md`. Un
+    // échappement cassé échoue ici, en quelques millisecondes, au lieu d'échouer après
+    // dix minutes de compilation.
+    const workflow = read('.github/workflows/release.yml');
+    const lines = workflow.split('\n');
+    const start = lines.findIndex((line) => line.includes('awk -v v='));
+    expect(start).toBeGreaterThan(0);
+    const indentation = lines[start]!.match(/^\s*/)?.[0] ?? '';
+    const scriptLines: string[] = [];
+    for (const line of lines.slice(start)) {
+      // Le script awk s'arrête à la ligne qui le branche sur le CHANGELOG : le reste de
+      // l'étape parle à GitHub, et n'a rien à faire ici.
+      if (scriptLines.length > 0 && line.includes('CHANGELOG.md')) {
+        scriptLines.push(line.slice(indentation.length));
+        break;
+      }
+      scriptLines.push(line.slice(indentation.length));
+    }
+    const awkScript = scriptLines.join('\n');
+    expect(awkScript).toContain('CHANGELOG.md');
+
+    // Les deux formes, écrites exactement comme elles doivent l'être : deux barres
+    // obliques dans la chaîne (awk en retire une), une seule dans le motif littéral.
+    const chain = awkScript.split('\n').find((line) => line.includes('$0 ~ ')) ?? '';
+    const literal = awkScript.split('\n').find((line) => line.trim().startsWith('found && /')) ?? '';
+    expect(chain).toContain('"^## \\\\[" v "\\\\]"');
+    expect(literal.trim()).toBe('found && /^## \\[/ { exit }');
+    // Et la forme fautive, celle qui a bloqué la publication, n'est nulle part.
+    expect(awkScript).not.toContain('found && /^## \\\\[/');
+
+    // `awk` n'existe pas partout (un poste Windows sans outils Unix) : le test ne doit
+    // pas échouer pour un outil manquant. Là où il est, l'extraction doit être prouvée.
+    // `awk --version` ne dit rien : mawk (Ubuntu) refuse l'option et sort en erreur.
+    const available = spawnSync('awk', ['BEGIN { exit 0 }'], { encoding: 'utf8' }).status === 0;
+    if (!available) return;
+
+    const version = (JSON.parse(read('package.json')) as { version: string }).version;
+    const directory = mkdtempSync(join(tmpdir(), 'dropforge-notes-'));
+    const notesFile = join(directory, 'notes.md');
+    try {
+      // Le script du workflow, amputé de ses appels à `gh` : on ne teste ici que
+      // l'extraction, la publication elle-même étant le travail de GitHub.
+      const runnable = awkScript.replace('"$NOTES_FILE"', `"${notesFile}"`);
+      const result = spawnSync('bash', ['-c', `VERSION=${version}\n${runnable}`], { encoding: 'utf8' });
+      expect(result.stderr).not.toContain('runaway');
+      expect(result.stderr).not.toContain('unterminated');
+      expect(result.status).toBe(0);
+
+      const notes = readFileSync(notesFile, 'utf8');
+      // La section extraite est bien celle de la version : elle porte son contenu et
+      // s'arrête avant le titre suivant.
+      expect(notes.length).toBeGreaterThan(100);
+      expect(notes).not.toContain(`## [${version}]`);
+      expect(notes).not.toContain('## [Non publiée]');
+      expect(notes).toContain('### Corrigé');
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
   });
 
   it('la documentation tient en quatre fichiers, et rien n’est perdu', () => {

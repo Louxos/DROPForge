@@ -249,7 +249,7 @@ jobs:
           NOTES_FILE="release-notes.md"
           awk -v v="$VERSION" '
             $0 ~ "^## \\[" v "\\]" { found = 1; next }
-            found && /^## \\[/ { exit }
+            found && /^## \[/ { exit }
             found { print }
           ' CHANGELOG.md > "$NOTES_FILE"
           if [ -s "$NOTES_FILE" ]; then
