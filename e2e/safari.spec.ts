@@ -36,10 +36,13 @@ test.describe('iOS (WebKit) : ce qui est promis, ce qui ne l’est pas', () => {
     // The transfer screen opens on the two possible gestures, and nothing else: the
     // file form and the pairing panel only exist once one of them has been chosen.
     await expectEntryScreen(device.page);
-    await expect(device.page.getByRole('button', { name: L.selectFiles })).toHaveCount(0);
+    // `exact` : le nom accessible de la carte d'entrée est « Envoyer Choisir des
+    // fichiers, puis un appareil. » — la recherche par sous-chaîne y voyait un bouton de
+    // sélection qui n'existait pas. Le bouton visé est celui qui porte exactement ce nom.
+    await expect(device.page.getByRole('button', { name: L.selectFiles, exact: true })).toHaveCount(0);
 
     await openSendStep(device.page);
-    await expect(device.page.getByRole('button', { name: L.selectFiles })).toBeVisible();
+    await expect(device.page.getByRole('button', { name: L.selectFiles, exact: true })).toBeVisible();
 
     // iOS cannot pick a folder: the button must not exist, rather than fail on click.
     await expect(device.page.getByRole('button', { name: 'Choisir un dossier' })).toHaveCount(0);

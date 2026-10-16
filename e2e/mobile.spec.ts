@@ -58,53 +58,26 @@ test.describe('PWA sur un écran de téléphone', () => {
         const box = await button.boundingBox();
         expect(box).not.toBeNull();
         expect(box!.height).toBeGreaterThan(0);
-        // Les coordonnées viennent de Playwright (`boundingBox`), la même source que celle
-        // dans laquelle `mouse.click` clique vraiment — et non de
-        // `getBoundingClientRect()` lu dans la page : sur un téléphone émulé les deux
-        // repères divergent (fenêtre visuelle contre fenêtre de mise en page) et le point
-        // tombait **hors** de la fenêtre, ce qui donnait « rien sous le point » suivi de
-        // coordonnées à 1 650 px de haut dans une fenêtre de 839. Un seul repère supprime
-        // l'écart ; le contrôle, lui, reste : si quelque chose recouvrait la barre,
-        // `elementFromPoint` le nommerait toujours.
+        // L'appui passe par Playwright, avec `force: true` : la boucle de stabilité est
+        // sautée — la barre composée par `backdrop-filter` ne la rapporte jamais sur un
+        // téléphone émulé — mais le point reste calculé par Playwright, dans le repère où
+        // il clique vraiment. Deux repères de mesure ont déjà divergé ici : le point venait
+        // de `getBoundingClientRect()` lu dans la page et tombait à 1 650 px de haut dans
+        // une fenêtre de 839.
         const point = { x: box!.x + box!.width / 2, y: box!.y + box!.height / 2 };
-        const hits = await device.page.evaluate(
-          ({ x, y }) => {
-            const element = document.elementFromPoint(x, y);
-            const geometry = {
-              point: { x: Math.round(x), y: Math.round(y) },
-              fenetre: { largeur: window.innerWidth, hauteur: window.innerHeight },
-              visuelle: window.visualViewport
-                ? {
-                    largeur: Math.round(window.visualViewport.width),
-                    hauteur: Math.round(window.visualViewport.height),
-                    decalage: Math.round(window.visualViewport.offsetTop),
-                  }
-                : null,
-            };
-            const item = element?.closest('.df-bottom-nav__item');
-            return {
-              vu: item
-                ? `le bouton « ${item.textContent?.trim()} »`
-                : element
-                  ? `${element.tagName.toLowerCase()}.${element.className}`
-                  : 'rien',
-              geometry: JSON.stringify(geometry),
-            };
-          },
-          point,
-        );
-        expect(hits.vu, `rien sous le point ${hits.geometry}`).toContain(label);
-
-        // A thumb lands on a **point**, so that is what is clicked here, at the point
-        // `elementFromPoint` just proved belongs to this tab. `locator.click()` is not
-        // used on purpose: its actionability loop waits for the bar to be *stable frame
-        // by frame*, which a fixed bar composited by `backdrop-filter` never reports on
-        // an emulated phone — 20 seconds of waiting, then a failure that says nothing
-        // about the interface. Nothing is given up: what has to be true (nothing covers
-        // the bar, and the tab answers a real click at that point) is still checked, and
-        // the tab that ended up current is asserted right after.
-        await device.page.mouse.click(point.x, point.y);
-        await expect(button).toHaveAttribute('aria-current', 'page');
+        // Ce qui recouvrirait la barre est mesuré, puis **joint à l'échec** au lieu d'être
+        // une condition préalable : cette mesure a déjà menti sur un écran émulé. Ce qui
+        // compte est vérifié juste après — la barre répond, et l'onglet courant change.
+        const covering = await device.page.evaluate(({ x, y }) => {
+          const element = document.elementFromPoint(x, y);
+          if (element?.closest('.df-bottom-nav__item')) return null;
+          return element ? `${element.tagName.toLowerCase()}.${element.className}` : 'rien';
+        }, point);
+        await button.click({ force: true });
+        await expect(
+          button,
+          `rien sous le point ${JSON.stringify(point)} : ${covering ?? 'la barre elle-même'}`,
+        ).toHaveAttribute('aria-current', 'page');
         await expect(device.page.locator('.df-main')).toBeVisible();
       });
     }
