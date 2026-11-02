@@ -1,11 +1,22 @@
-# Publication de l'application web (PWA) sur GitHub Pages.
+# Le site DropForge, publié sur GitHub Pages — le seul hébergement du projet.
 #
-# C'est la façon la plus simple de « télécharger » DropForge sans installer quoi que
-# ce soit : l'adresse publiée s'installe comme une application.
+# Ce que ce site contient, et rien d'autre :
+#
+#   /                 la page publique (présentation, limites, liens)
+#   /app/             l'application web installable (PWA)
+#   404.html          la page servie pour toute adresse inconnue
+#
+# Tout est reconstruit ici, à chaque envoi sur `main`, à partir des sources du dépôt.
+# Rien n'est produit sur une machine : aucun fichier publié n'est versionné, donc le
+# site ne peut pas dériver de ce qu'il affiche.
 #
 # Prérequis, une seule fois : dépôt → Settings → Pages → Source = « GitHub Actions ».
-# Le chemin de base est celui du dépôt (`/NOM_DU_DEPOT/`), calculé automatiquement.
-name: Application web (GitHub Pages)
+# Sans ce réglage, la tâche de publication échoue avec un message explicite — plutôt
+# que de faire croire à un déploiement qui n'a pas eu lieu.
+#
+# Le chemin de base est celui du dépôt (`/NOM-DU-DEPOT/`), calculé ici : une fourche se
+# publie correctement sans modifier un seul fichier.
+name: Site (GitHub Pages)
 
 on:
   push:
@@ -17,67 +28,97 @@ permissions:
   pages: write
   id-token: write
 
+# Une seule publication à la fois. `cancel-in-progress: false` : une publication
+# interrompue au milieu laisse le site dans l'état précédent, ce qui est préférable à un
+# site à moitié remplacé.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
-    name: Construction
+    name: Construction du site
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    outputs:
-      pages: ${{ steps.pages.outputs.enabled }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
-      - run: npm ci --no-audit --no-fund
-      - run: npm run verify
-      - name: Compilation avec le chemin du dépôt
-        env:
-          DROPFORGE_BASE: /${{ github.event.repository.name }}/
-        run: npm run build:web
-      - name: Pages est-il activé ?
-        id: pages
+      - name: Dépendances
+        run: npm ci --no-audit --no-fund
+
+      - name: Types, contrôles et tests
+        # `verify` construit le site et le sert sous son chemin réel avant les tests :
+        # un chemin cassé est vu ici, pas en ligne.
+        run: npm run verify
+
+      - name: Chemin du site
+        id: base
         shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # GitHub Pages demande une activation manuelle, une seule fois — et **un choix
-          # de source** : « GitHub Actions » publie l'application elle-même, « Deploy
-          # from a branch » publie la page d'accueil. Les deux s'excluent, donc ce
-          # travail ne déploie que dans le premier cas. Dans le second, il le dit et
-          # s'arrête : échouer à chaque envoi alors que la page est publiée par ailleurs
-          # serait du bruit, et un travail rouge sur `main` ne se lit plus.
-          #
-          # Le test porte sur le **type de construction**, pas sur l'existence du site :
-          # un Pages réglé sur une branche répond lui aussi, et c'est exactement ce qui
-          # faisait échouer la publication.
-          build_type=$(gh api "repos/${{ github.repository }}/pages" --jq '.build_type' 2>/dev/null || echo 'absent')
-          if [ "$build_type" = 'workflow' ]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          # Un dépôt `<compte>.github.io` est servi à la racine du domaine ; tout autre
+          # dépôt est servi sous `/<dépôt>/`. Le site en dépend entièrement.
+          repository="${{ github.event.repository.name }}"
+          if [[ "$repository" == *.github.io ]]; then
+            base="/"
           else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::GitHub Pages publie depuis une branche (build_type=${build_type}) : il n'y a rien à déployer ici, c'est la branche enregistrée comme source qui publie la page d'accueil. Pour publier l'application web elle-même par cette chaîne, passez Settings → Pages → Source sur « GitHub Actions », puis relancez ce travail."
+            base="/$repository/"
           fi
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          echo "url=https://${{ github.repository_owner }}.github.io$base" >> "$GITHUB_OUTPUT"
+          echo "::notice::Site publié sous $base"
+
+      - name: Site complet (accueil, page 404 et application)
+        env:
+          # Les variables du dépôt l'emportent : domaine personnalisé (`/`) ou adresse
+          # particulière. Sans elles, le chemin du dépôt et l'adresse github.io.
+          DROPFORGE_PAGES_BASE: ${{ vars.DROPFORGE_PAGES_BASE || steps.base.outputs.base }}
+          DROPFORGE_SITE_URL: ${{ vars.DROPFORGE_SITE_URL || steps.base.outputs.url }}
+          # Facultatif, réglé une fois dans Settings → Variables : sans ces valeurs,
+          # l'application publiée n'a **aucun** relais et le dit (deux appareils du même
+          # Wi-Fi fonctionnent quand même). Voir docs/TECHNIQUE.md § 11.
+          VITE_SIGNALING_URL: ${{ vars.DROPFORGE_SIGNALING_URL }}
+          VITE_ICE_URLS: ${{ vars.DROPFORGE_ICE_URLS }}
+        run: npm run build:pages
+
+      - name: Contrôle du site, sous son adresse réelle
+        # Chaque fichier référencé est demandé à travers le chemin du dépôt : c'est la
+        # vérification qui attrape un préfixe oublié, un manifeste hors périmètre ou un
+        # service worker qui pointe ailleurs.
+        run: node scripts/check-pages.mjs
+
       - uses: actions/configure-pages@v6
-        if: steps.pages.outputs.enabled == 'true'
       - uses: actions/upload-pages-artifact@v5
-        if: steps.pages.outputs.enabled == 'true'
         with:
-          path: apps/web/dist
+          path: _site
 
   deploy:
     name: Publication
     needs: build
-    if: needs.build.outputs.pages == 'true'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
         uses: actions/deploy-pages@v5
+
+  smoke:
+    name: Vérification du site publié
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - name: Le site en ligne répond, se charge et dit la vérité sur ses 404
+        # Les mêmes contrôles que localement, sur l'adresse réellement publiée : une
+        # publication n'est annoncée réussie qu'après avoir été lue depuis Internet.
+        run: node scripts/check-pages.mjs --url "${{ needs.deploy.outputs.page_url }}"

@@ -651,3 +651,53 @@ footer a:hover {
     transition: none;
   }
 }
+
+/* ------------------------------------------------------------------ *
+ * Page 404
+ *
+ * Servie par GitHub Pages à la place de n'importe quelle adresse
+ * inconnue. Elle reprend la charte et les composants de la page
+ * d'accueil ; seules la largeur et les titres changent.
+ * ------------------------------------------------------------------ */
+
+.notfound main {
+  max-width: 780px;
+  padding: 80px 24px 40px;
+}
+
+.notfound h1 {
+  margin: 18px 0 0;
+  font-size: clamp(1.9rem, 4.6vw, 2.8rem);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+}
+
+.notfound .lede {
+  margin-left: 0;
+  margin-right: 0;
+  max-width: 56ch;
+}
+
+.notfound .gateway {
+  margin-top: 34px;
+}
+
+.notfound .footnote {
+  margin-top: 26px;
+  max-width: 62ch;
+}
+
+.notfound footer {
+  margin-top: 40px;
+  padding-top: 28px;
+}
+
+.notfound footer .wrap {
+  gap: 14px 22px;
+}
+
+@media (max-width: 560px) {
+  .notfound main {
+    padding-top: 52px;
+  }
+}

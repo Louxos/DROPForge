@@ -71,9 +71,8 @@
             s'installe sur votre écran d'accueil si vous le souhaitez.
           </p>
 
-          <!--GATEWAY:LIVE-->
           <div class="urlbox">
-            <code id="app-url">{{WEB_APP_URL}}</code>
+            <code id="app-url" data-path="{{WEB_APP_URL}}">{{WEB_APP_URL}}</code>
             <button class="copy" type="button" data-copy="{{WEB_APP_URL}}">Copier le lien</button>
           </div>
           <div class="actions">
@@ -85,23 +84,13 @@
             </a>
             <a class="btn btn-ghost" href="{{REPO_URL}}/releases/latest">Voir les versions publiées</a>
           </div>
-          <!--/GATEWAY:LIVE-->
-
-          <!--GATEWAY:SOON-->
-          <div class="urlbox">
-            <code>L'adresse de l'application web est en cours de mise en ligne.</code>
-          </div>
-          <div class="actions">
-            <span class="btn btn-primary" aria-disabled="true">Application web · bientôt</span>
-            <a class="btn btn-ghost" href="{{REPO_URL}}/releases/latest">Voir les versions publiées</a>
-          </div>
-          <!--/GATEWAY:SOON-->
 
           <p class="footnote">
             <strong>Un seul chemin, et il suffit :</strong> l'application web. Ouvrez-la, puis installez-la
             (menu du navigateur → « Installer l'application ») : elle s'ouvre ensuite comme un logiciel, sans
             barre d'adresse, et fonctionne hors ligne. Sur Android et iOS, le menu propose « Ajouter à l'écran
-            d'accueil ».
+            d'accueil ». Elle est servie par <strong>GitHub Pages</strong>, sur ce même site : aucune plateforme
+            tierce n'intervient entre votre navigateur et les fichiers.
           </p>
         </div>
       </div>
@@ -352,8 +341,12 @@
                 <td><span class="badge ok">Implémentée et testée</span> <span class="badge no">pas encore sur un téléphone réel</span></td>
               </tr>
               <tr>
+                <td>Site publié sur GitHub Pages (accueil, application, page 404)</td>
+                <td><span class="badge ok">Construit et vérifié à chaque publication</span></td>
+              </tr>
+              <tr>
                 <td>Serveur de signalisation / relais aveugle</td>
-                <td><span class="badge ok">Implémenté et testé</span></td>
+                <td><span class="badge ok">Implémenté et testé</span> <span class="badge no">pas d'adresse publique retenue</span></td>
               </tr>
               <tr>
                 <td>Liens de partage hébergés</td>
@@ -411,7 +404,27 @@
     </footer>
 
     <script>
-      // Un seul comportement interactif : copier l'adresse de l'application web.
+      // L'adresse de l'application est écrite **relative** (`app/`) : la page fonctionne
+      // donc à l'identique sur le domaine du projet, sur une fourche, dans un aperçu ou
+      // dans un dossier local. On l'affiche et on la copie en absolu, calculé à partir de
+      // l'adresse réellement ouverte — sans jamais inscrire un domaine dans le HTML.
+      (function () {
+        var code = document.getElementById('app-url');
+        if (!code) return;
+        var path = code.getAttribute('data-path') || '';
+        if (!path) return;
+        var absolute;
+        try {
+          absolute = new URL(path, window.location.href).href;
+        } catch (error) {
+          return;
+        }
+        code.textContent = absolute;
+        var copy = code.parentNode && code.parentNode.querySelector('.copy');
+        if (copy) copy.setAttribute('data-copy', absolute);
+      })();
+
+      // Un seul comportement interactif de plus : copier cette adresse.
       // Le bouton disparaît là où l'API n'existe pas, plutôt que d'échouer en silence.
       (function () {
         var buttons = document.querySelectorAll('.copy');

@@ -21,7 +21,7 @@ const page = (host: string, protocol = 'https:'): { protocol: string; hostname: 
 describe('résolution de l’adresse du relais', () => {
   it('n’invente rien sur un site publié', () => {
     // Exactly the case that was broken: a real host, no address configured anywhere.
-    expect(resolveSignalingUrl({ configured: SIGNALING_AUTO, location: page('dropforge-webapp.netlify.app') })).toBe(
+    expect(resolveSignalingUrl({ configured: SIGNALING_AUTO, location: page('dropforge-webapp.example.test') })).toBe(
       '',
     );
   });
@@ -31,7 +31,7 @@ describe('résolution de l’adresse du relais', () => {
       resolveSignalingUrl({
         configured: SIGNALING_AUTO,
         fromBuild: 'wss://relais.dropforge.example/ws',
-        location: page('dropforge-webapp.netlify.app'),
+        location: page('dropforge-webapp.example.test'),
       }),
     ).toBe('wss://relais.dropforge.example/ws');
   });
@@ -63,7 +63,7 @@ describe('résolution de l’adresse du relais', () => {
     for (const host of ['localhost', '127.0.0.1', '10.0.0.4', '192.168.1.20', '172.16.5.9', '172.31.9.9', 'mac.local']) {
       expect(isLocalHostname(host), host).toBe(true);
     }
-    for (const host of ['172.32.0.1', '8.8.8.8', 'dropforge-webapp.netlify.app', 'example.com']) {
+    for (const host of ['172.32.0.1', '8.8.8.8', 'dropforge-webapp.example.test', 'example.com']) {
       expect(isLocalHostname(host), host).toBe(false);
     }
   });

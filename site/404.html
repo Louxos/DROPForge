@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Page introuvable — DropForge</title>
+    <meta name="robots" content="noindex" />
+    <meta
+      name="description"
+      content="Cette adresse ne correspond à aucun fichier du site DropForge. L'application est juste à côté."
+    />
+    <meta name="theme-color" content="#08080b" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="icon" href="{{BASE_URL}}favicon.svg" type="image/svg+xml" />
+    <style>
+{{INLINE_CSS}}
+    </style>
+  </head>
+  <body class="notfound">
+    <header class="topbar">
+      <div class="wrap">
+        <a class="brand" href="{{BASE_URL}}" aria-label="DropForge — page d'accueil">
+          {{MARK_SVG}}
+          <span>DropForge</span>
+        </a>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <p class="pill"><span class="dot" aria-hidden="true"></span> Erreur 404</p>
+      <h1>Cette adresse ne mène nulle part.</h1>
+      <p class="lede">
+        Le site DropForge est entièrement statique : il n'existe que les fichiers publiés.
+        L'adresse demandée n'en fait pas partie — un lien tronqué, une page d'une ancienne
+        version, ou une faute de frappe.
+      </p>
+
+      <div class="gateway">
+        <h2>L'application est juste à côté</h2>
+        <p class="hint">
+          Elle n'utilise aucune adresse de page : ses écrans vivent après le
+          <code>#</code> (par exemple <code>{{BASE_URL}}app/#route=transfer</code>). Rien
+          de ce que vous faisiez n'est perdu pour autant : DropForge ne stocke rien sur ce
+          site.
+        </p>
+        <div class="actions">
+          <a class="btn btn-primary" href="{{APP_URL}}" data-app>Ouvrir l'application</a>
+          <a class="btn btn-ghost" href="{{BASE_URL}}">Page d'accueil</a>
+        </div>
+      </div>
+
+      <p class="footnote">
+        Si vous suiviez un lien d'appairage ou de partage, il est peut-être incomplet :
+        demandez-le à nouveau. Un code d'appairage voyage uniquement après le
+        <code>#</code>, donc il n'apparaît dans aucun journal de serveur.
+      </p>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <span class="brand">{{MARK_SVG}}<span>DropForge</span></span>
+        <span class="spacer"></span>
+        <a href="{{REPO_URL}}">Code source</a>
+        <a href="{{REPO_URL}}/blob/main/docs/GUIDE.md">Guide</a>
+        <a href="{{REPO_URL}}/blob/main/docs/TECHNIQUE.md">Documentation technique</a>
+      </div>
+    </footer>
+
+    <script>
+      // Une adresse fautive qui porte quand même un fragment de l'application — un code
+      // d'appairage (`#c=…`) ou un lien de partage (`#df=share…`) — est envoyée à
+      // l'application avec son fragment intact. C'est le seul cas où l'on redirige :
+      // ailleurs, la page dit la vérité au lieu de faire semblant d'avoir trouvé.
+      (function () {
+        var hash = window.location.hash || '';
+        if (!/^#(c=|df=)/.test(hash)) return;
+        var link = document.querySelector('a[data-app]');
+        if (!link) return;
+        window.location.replace(link.getAttribute('href') + hash);
+      })();
+    </script>
+  </body>
+</html>

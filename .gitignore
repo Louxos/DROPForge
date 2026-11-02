@@ -20,9 +20,13 @@ out/
 deploy/.env
 dist/
 
-# Netlify (état local de `netlify dev`) : le site publié, lui, est décrit par
-# `netlify.toml`, qui est versionné.
-.netlify/
+# Site GitHub Pages assemblé par `npm run build:pages` : accueil, page 404 et
+# application compilée. Rien de tout cela n'est versionné — le site publié est toujours
+# reconstruit à partir des sources, il ne peut donc pas dériver de ce qu'il affiche.
+_site/
+# Ce que la construction a réellement produit (chemin de base, taille, version) : lu par
+# les contrôles, jamais publié.
+.pages-build.json
 
 # Test & coverage artifacts
 coverage/

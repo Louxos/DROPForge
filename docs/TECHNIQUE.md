@@ -19,7 +19,8 @@ Historique des versions : [`../CHANGELOG.md`](../CHANGELOG.md).
 [9. Tests](#9-tests) ·
 [10. État réel du projet](#10-état-réel-du-projet) ·
 [11. Infrastructure 100 % gratuite](#11-infrastructure-100--gratuite) ·
-[12. Annexes générées](#12-annexes-générées)
+[12. Publication du site (GitHub Pages)](#12-publication-du-site-github-pages) ·
+[13. Annexes générées](#13-annexes-générées)
 
 ---
 
@@ -42,6 +43,10 @@ Historique des versions : [`../CHANGELOG.md`](../CHANGELOG.md).
                                ▼
                     signaling / relais aveugle (apps/signaling)
 ```
+
+Le site publié est **un seul artefact** (`_site/`, § 12) : l'accueil à la racine,
+l'application installable sous `app/`, et une page 404 pour tout le reste — servi par
+GitHub Pages, sans autre hébergeur.
 
 Deux règles structurent tout le reste :
 
@@ -83,6 +88,8 @@ Deux règles structurent tout le reste :
 | `apps/web/src/platform/signaling.ts` | Où vit le relais : réglage, adresse du déploiement, ou **rien** — décidé en un seul endroit |
 | `apps/web/src/platform/indexed-db-store.ts` | `MetaStore` sur IndexedDB (schéma versionné, migration) |
 | `apps/signaling` | Serveur WebSocket : salles, mise en relation, relais aveugle |
+| `scripts/build-pages.mjs` | Assemble le **site publié** dans `_site/` : accueil, page 404, application compilée sous `app/` |
+| `site/` | Gabarits de la page publique et de la page 404, avec leur feuille de style (insérée à la construction) |
 
 `apps/signaling` : 2 pairs par salle, TTL 10 min (prolongé à chaque message), 32 signaux
 en attente, 20 messages/s par pair, 64 Kio par message de contrôle. Les trames binaires
@@ -100,6 +107,8 @@ ne sont relayées qu'après accord des **deux** pairs (`relay-ready`).
 | Le relais est un serveur Node autonome | Il peut être hébergé n'importe où sans dépendre d'une API payante |
 | Alias `@dropforge/*` vers les sources TypeScript | Un seul `tsc` vérifie tout le dépôt, aucune étape de construction intermédiaire |
 | Aucune ressource externe (police, CDN, script) | L'application doit fonctionner hors ligne, installée, sans requête vers un tiers |
+| Un seul site GitHub Pages, l'application sous `/app/` | GitHub Pages ne sert qu'une chose par dépôt, à une adresse : la page publique garde la racine (c'est l'adresse qu'on partage), l'application est une adresse plus bas, sur la **même origine** — condition du service worker, du manifeste et de l'installation |
+| Les écrans vivent dans le fragment (`#route=…`) | Un hébergement statique ne réécrit pas les chemins : `/reglages` renverrait sa 404. Le fragment n'est jamais envoyé au serveur, il survit au rechargement et il est ce que les raccourcis de l'application installée utilisent |
 | Aucune coque native (plus de Tauri, plus de Rust) | Une coque ne pouvait être compilée et essayée que sur une machine Windows, et tout ce qu'elle apportait en plus se payait en défauts qu'aucun test de ce dépôt ne pouvait attraper (voir `CHANGELOG.md`, 0.1.3). L'application web installable couvre le même usage, et se vérifie partout |
 
 ## 2. Flux d'un transfert
@@ -202,6 +211,19 @@ traduction du code, jamais le message brut d'une exception.
 - Limite documentée : dans un navigateur, la reprise après fermeture de l'onglet suppose
   l'écriture dans un dossier choisi (File System Access) ; sinon le fichier est renvoyé
   du début, et l'interface le dit.
+
+### Adresses et 404
+
+- **L'écran vit dans le fragment** : `#route=transfer`, `#route=devices`,
+  `#route=activity`, `#route=settings`. Il est lu au démarrage et à chaque
+  `hashchange`, et écrit par `history.replaceState` — changer d'onglet n'ajoute donc pas
+  d'entrée au bouton retour, qui continue de quitter l'application.
+- **Un fragment d'une autre fonction n'est jamais pris pour un écran** : `#c=CODE`
+  (appairage) est consommé une fois au démarrage, puis retiré de l'adresse ; un lien de
+  partage garde son propre fragment.
+- **Une adresse inconnue répond 404**, avec la page du site — jamais avec l'application
+  qui ferait semblant d'avoir trouvé. La page renvoie à l'accueil et à l'application par
+  des chemins absolus, et ne redirige que si le fragment appartient à l'application.
 
 ### Notifications
 
@@ -403,7 +425,7 @@ sans lui.
 
 | Domaine | État | Précision |
 | --- | --- | --- |
-| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** | 445 tests automatisés, 42 fichiers (§ 9) |
+| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** | 469 tests automatisés, 43 fichiers (§ 9) |
 | Interface React/TypeScript partagée (FR/EN, thèmes) | ✅ Implémentée et **testée** au niveau du contrôleur et du rendu | `apps/web/src/entry.test.tsx`, `ui.test.tsx` |
 | Écran d'entrée « Envoyer / Recevoir », moins d'options visibles | ✅ Implémenté et **testé** | `apps/web/src/screens/transfer.tsx`, cas « ouvre sur le choix » dans `ui.test.tsx` |
 | Adresse du relais : un seul endroit décide, un réglage la change | ✅ Implémenté et **testé** | `apps/web/src/platform/signaling.ts` + `signaling.test.ts`, `packages/settings` (schéma 4) |
@@ -427,11 +449,14 @@ Le pas-à-pas détaillé, avec ce qu'il faut observer à chaque étape, est dans
 ## 9. Tests
 
 ```bash
-npm run verify           # tout ce que la chaîne exécute : types, contrôles, tests
-npm test                 # 42 fichiers, 445 tests
+npm run verify           # tout ce que la chaîne exécute : types, contrôle du site, tests
+npm test                 # 43 fichiers, 469 tests
 npm run test:unit        # paquets métier, sans DOM
 npm run test:integration # transferts réels en mémoire, sécurité, reprise
-npm run check:site       # la page publiée correspond à ses sources
+npm run build:pages      # assemble le site publié dans _site/ (accueil + 404 + app)
+npm run check:pages      # construit puis vérifie le site sous son vrai chemin
+npm run preview:pages    # sert _site/ comme GitHub Pages, pour cliquer dedans
+npm run check:deployed -- --url https://…   # les mêmes contrôles, sur le site en ligne
 npm run icons            # régénère les icônes (leur exactitude est testée)
 npm run test:e2e         # navigateurs réels (jamais lancé par verify)
 npm run test:e2e:install # installe Chromium, Firefox, WebKit
@@ -440,7 +465,7 @@ npm i --no-save werift   # facultatif : une pile WebRTC en TypeScript, sans bina
 npm run check:direct     # vérifie le chemin direct avec du vrai WebRTC (hors verify)
 ```
 
-Total vérifié le 16 octobre 2026 : **445 tests, 42 fichiers**, tous au vert.) La chaîne
+Total vérifié le 2 novembre 2026 : **469 tests, 43 fichiers**, tous au vert. La chaîne
 d'intégration rejoue exactement cette suite (`npm run verify`), plus la compilation des
 deux cibles et la vérification des icônes ; les navigateurs réels ont leur propre tâche.
 
@@ -462,7 +487,9 @@ deux cibles et la vérification des icônes ; les navigateurs réels ont leur pr
 | Entrée réelle de l'application | `apps/web/src/entry.test.tsx` | L'application démarre pour de vrai ; privée de WebCrypto, elle **dit ce qui manque** au lieu de rester blanche |
 | Mode « même Wi‑Fi » et son certificat | `tests/lan-mode.test.ts` | Commande unique, deux processus arrêtés ensemble, proxy `/ws` des deux côtés, et le certificat jugé par une **vraie poignée de main TLS** (signature, dates, noms, usage serveur) ; réutilisation du certificat, renouvellement quand les adresses changent, clé en 0600, dossier non versionné |
 | Logo et icônes | `tests/icons.test.ts` | Le SVG livré est exactement celui de la description partagée ; les tailles déclarées par le manifeste existent et sont des PNG valides ; l'icône masquable n'a pas de transparence |
-| Publication | `tests/netlify.test.ts`, `tests/pages-site.test.ts` | Le dossier publié est celui de Vite, le service worker n'est jamais servi depuis un cache, la page publiée est autonome et correspond à ses sources |
+| Pages du site | `tests/pages-site.test.ts` | L'accueil et la page 404 sont autonomes (aucune ressource distante), l'application est un chemin relatif, la 404 renvoie à l'application par un chemin absolu et ne redirige que pour un fragment de l'application |
+| Publication | `tests/pages-deploy.test.ts` | La chaîne construit `_site/`, le préfixe est celui du dépôt, la publication est vérifiée **après** déploiement, aucun reste de l'ancien hébergeur, et le site construit ne contient ni `.map` ni référence hors préfixe |
+| Site publié | `scripts/check-pages.mjs` (`npm run check:pages`) | Chaque fichier référencé est demandé **à travers le chemin du dépôt**, le manifeste (`start_url`, `scope`, icônes, raccourcis) et le service worker (inscription, fichiers précachés) sont lus, une adresse inconnue répond 404 avec la page du site, et aucun `.map` n'est publié |
 | Paquets de publication | `tests/packaging.test.ts` | Écriture **et relecture** des ZIP (CRC, structure, refus d'une archive corrompue) |
 
 ### De bout en bout, dans de vrais navigateurs
@@ -486,12 +513,14 @@ l'écran.
 ## 10. État réel du projet
 
 **DropForge n'est pas encore une 1.0, et ce document ne prétend pas le contraire.**
-Version actuelle : **0.1.3** — application web installable, serveur de signalisation
-optionnel, 445 tests automatiques et une suite navigateur réelle.
+Version actuelle : **0.2.0** — application web installable **publiée sur GitHub Pages**,
+serveur de signalisation optionnel, 469 tests automatiques et une suite navigateur réelle.
 
 | Exigence du cahier des charges | État | Où le vérifier |
 | --- | --- | --- |
 | Une application installable sur ordinateur et sur téléphone | ✅ | `apps/web`, `e2e/` |
+| Publier le site (accueil + application) depuis le dépôt, sans hébergeur tiers | ✅ | `scripts/build-pages.mjs`, `.github/workflows/pages.yml`, `tests/pages-deploy.test.ts` |
+| Chemins corrects sous l'adresse GitHub Pages, routage et page 404 | ✅ | `apps/web/src/app/routes.ts`, `site/404.html`, `scripts/check-pages.mjs` |
 | Interface premium sombre (charbon + violet/bleu électrique), clair disponible | ✅ | `packages/design-system`, `docs` de thème dans le code |
 | Transferts : chiffrement, reprise, vérification, file d'attente | ✅ | `packages/transfer-engine`, `tests/loopback-transfer.test.ts` |
 | Connexions : local → direct → relais, sans jamais mentir sur le chemin | ✅ | `packages/connection-manager`, `tests/relay-fallback.test.ts` |
@@ -563,7 +592,7 @@ chez soi.
 | --- | --- | --- |
 | Relais / signalisation | le serveur du dépôt sur une machine à vous, ou Cloudflare Workers + Durable Objects | quota journalier ; un rapport communautaire d'octobre 2026 signale une application du quota WebSocket plus stricte qu'annoncée — d'où la conception : le relais est un **accessoire**, sa disparition ne casse ni le local ni le direct |
 | Traverser un NAT strict (TURN) | Cloudflare Realtime TURN : 1 000 Go/mois, puis 0,05 $/Go | palier **partagé** avec le service SFU et **carte bancaire requise** à l'activation → TURN n'est ni requis ni activé par défaut |
-| Héberger la PWA | Cloudflare Pages (bande passante non mesurée), GitHub Pages, **Netlify** (`netlify.toml` fourni), Vercel | Netlify et Vercel : bande passante mensuelle bornée ; GitHub Pages : pas d'en-têtes personnalisés ni de WebSocket |
+| Héberger le site (accueil + PWA) | **GitHub Pages** — le seul hébergement retenu, publié par `.github/workflows/pages.yml` | site ≤ 1 Go, ~100 Go de bande passante par mois (souple), 10 publications par heure ; **pas d'en-têtes personnalisés, pas de WebSocket, pas de stockage** — voir § 12 |
 | Liens hébergés (optionnel) | Cloudflare R2 : 10 Go/mois, egress gratuit | activation avec moyen de paiement → plafonds **côté application** (512 Mio, 50 téléchargements) pour refuser avant tout dépassement facturable |
 | Publication automatisée | GitHub Actions | gratuit pour un dépôt public, aucune carte bancaire |
 | Certificat TLS pour le réseau local | certificat auto-signé fabriqué par `npm run lan` | gratuit et immédiat ; le navigateur affiche un avertissement à accepter une fois par appareil (voir ci-dessous) |
@@ -588,7 +617,90 @@ local, les deux appareils se trouvent directement, sans aucun serveur. Un déplo
 qui doit traverser des NAT en configure un explicitement (`VITE_ICE_URLS`), et le dit
 alors à ses utilisateurs.
 
-## 12. Annexes générées
+## 12. Publication du site (GitHub Pages)
+
+**Un dépôt, un site, un artefact.** `npm run build:pages` assemble `_site/` :
+
+```
+_site/
+  index.html     la page publique (générée depuis site/index.html + site/site.css)
+  404.html       la page que GitHub Pages sert pour toute adresse inconnue
+  favicon.svg    l'icône de l'application, copiée telle quelle
+  app/           l'application compilée par Vite : index.html, assets/, icons/,
+                 manifest.webmanifest, sw.js, registerSW.js, workbox-*.js
+```
+
+Le site vit à `https://<compte>.github.io/<dépôt>/`, l'application à `…/app/`, sur la
+**même origine** : c'est ce qui rend le service worker, le manifeste et l'invite
+d'installation possibles sans second hébergement. Rien de `_site/` n'est versionné : le
+site est reconstruit à chaque envoi sur `main`, il ne peut donc pas dériver de ses
+sources.
+
+### Chemins
+
+| Élément | Chemin | Qui l'écrit |
+| --- | --- | --- |
+| Base du site | `/<dépôt>/`, ou `/` pour un dépôt `<compte>.github.io` | la chaîne (`DROPFORGE_PAGES_BASE` pour la surcharger) |
+| Références de l'application | `/<dépôt>/app/…` (scripts, styles, icônes, manifeste, service worker, `start_url`, `scope`) | Vite (`base`), depuis la même variable |
+| Liens des pages statiques | relatifs (`app/`) | `scripts/build-site.mjs` |
+| Liens de la page 404 | absolus (`/<dépôt>/app/`) | `scripts/build-site.mjs` — la page est servie à l'adresse fautive |
+
+C'est cette séparation qui fait qu'une fourche ou un dépôt renommé se publie sans
+modifier un seul fichier : rien n'est écrit en dur, et la page d'accueil ne connaît pas
+son propre domaine.
+
+### Routage
+
+Un hébergement statique ne réécrit pas les chemins : il n'existe aucun processus pour
+répondre à `/reglages` par la page de l'application. Les écrans vivent donc dans le
+**fragment** (`#route=transfer`, `#route=devices`, `#route=activity`,
+`#route=settings`), que le serveur ne voit jamais :
+
+- lu au démarrage et à chaque `hashchange` (`apps/web/src/app/routes.ts`) ;
+- écrit par `history.replaceState`, donc sans empiler une entrée d'historique par onglet ;
+- jamais confondu avec un fragment d'une autre fonction : `#c=CODE` (appairage) et les
+  liens de partage gardent leur propre sens. Le code d'appairage est consommé **une
+  fois** au démarrage (c'est ce qui fait fonctionner le QR code), puis retiré de
+  l'adresse.
+
+### 404
+
+GitHub Pages sert `404.html` pour toute adresse inconnue, **avec le statut 404** : la page
+ne fait pas semblant d'avoir trouvé. Elle explique, renvoie à l'accueil et à
+l'application, et redirige uniquement lorsque le fragment appartient à l'application
+(`#c=…` ou `#df=…`) — dans ce cas le lien d'appairage ou de partage est conservé, sinon
+il serait perdu pour une faute de frappe dans le chemin.
+
+### Ce que GitHub Pages ne fournit pas — et la conséquence
+
+| Manque | Conséquence | Ce qui est fait |
+| --- | --- | --- |
+| En-têtes personnalisés | pas de `Cache-Control` choisi, pas de CSP | les fichiers de l'application portent une empreinte de contenu dans leur nom ; le navigateur revalide le service worker ; `index.html` peut rester en cache jusqu'à ~10 min après une publication |
+| Réécriture d'URL | pas de route par chemin | les écrans vivent dans le fragment ; la 404 est une vraie 404 |
+| WebSocket | pas de relais sur le site | le relais vit ailleurs, compilé par `VITE_SIGNALING_URL` ; sans lui l'application l'annonce, et le mode « même Wi‑Fi » (`npm run lan`) reste entier |
+| Stockage de fichiers | pas de liens hébergés | la fonction reste désactivée (code client présent et testé, aucun service retenu) ; elle n'est pas proposée à l'écran |
+| Quotas | 1 Go par site, ~100 Go/mois, 10 publications/heure, HTTPS imposé | site publié : **15 fichiers, ~702 Kio**, aucune carte de sources |
+
+### Vérification, avant et après la publication
+
+```bash
+npm run check:pages        # construit _site/, le sert sous /<dépôt>/ comme Pages, vérifie
+npm run preview:pages      # sert le même _site/ pour cliquer dedans
+npm run check:deployed -- --url https://louxos.github.io/DROPForge/
+```
+
+Les contrôles sont les mêmes dans les deux cas, parce que ce sont les mêmes questions :
+chaque fichier référencé répond-il **à travers le chemin du dépôt** ? Le manifeste
+déclare-t-il `start_url` et `scope` sur le dossier de l'application ? Le service worker
+s'enregistre-t-il au bon endroit, et **tous** les fichiers qu'il précache sont-ils
+joignables ? Une adresse inconnue répond-elle 404 avec la page du site ? Aucune carte de
+sources n'est-elle publiée ?
+
+La chaîne de publication (`.github/workflows/pages.yml`) exécute ces contrôles **avant**
+d'envoyer l'artefact, puis à nouveau **après** la publication, sur l'adresse publique :
+un envoi n'est annoncé réussi qu'après avoir été lu depuis Internet.
+
+## 13. Annexes générées
 
 Ces deux annexes sont **écrites par des scripts**, jamais à la main : elles décrivent ce
 qui sera réellement installé par `npm ci`, lu depuis `package-lock.json`. Une liste

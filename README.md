@@ -25,13 +25,13 @@ des fichiers.
 | **[docs/GUIDE.md](docs/GUIDE.md)** | Installer, s'en servir, mode « même Wi‑Fi », **dépannage**, publier, déployer |
 | **[docs/TECHNIQUE.md](docs/TECHNIQUE.md)** | Architecture, comportement, données, sécurité, plateformes, tests, **état réel du projet**, annexes générées (dépendances, licences) |
 | **[CHANGELOG.md](CHANGELOG.md)** | Ce qui a changé, version par version — c'est aussi le texte des notes de version publiées |
-| **[Page d'accueil](https://louxos.github.io/DROPForge/)** | La vitrine publique : où aller, ce que DropForge fait, ses limites |
+| **[Site public](https://louxos.github.io/DROPForge/)** | La vitrine, et **[l'application](https://louxos.github.io/DROPForge/app/)** — les deux servies par GitHub Pages |
 
 ## Télécharger
 
 | Vous êtes sur | Prenez | Comment |
 | --- | --- | --- |
-| **Ordinateur, téléphone, tablette** | l'application web | l'adresse publiée (Netlify, ou la vôtre : [docs/GUIDE.md](docs/GUIDE.md) § 9-10), puis « Installer l'application » / « Sur l'écran d'accueil » |
+| **Ordinateur, téléphone, tablette** | l'application web | <https://louxos.github.io/DROPForge/app/> — puis « Installer l'application » / « Sur l'écran d'accueil ». Hébergée par GitHub Pages, sur le même site que cette page (voir [docs/GUIDE.md](docs/GUIDE.md) § 10) |
 | **Un réseau isolé** | l'archive hors ligne | `dropforge-pwa-<version>.zip` de la dernière version, servi en **HTTPS** depuis n'importe quel dossier |
 | **Deux réseaux différents** | le serveur optionnel | `dropforge-signaling-<version>.zip` : `npm install --omit=dev && npm start` |
 | **Un serveur à vous** | les conteneurs | `cd deploy && docker compose up -d --build` → `http://localhost:8080` |
@@ -41,13 +41,14 @@ Installation depuis le navigateur, sommes de contrôle et dépannage :
 
 ## État réel du projet
 
-DropForge n'est **pas** encore une 1.0, et il le dit. Version actuelle : **0.1.3**.
+DropForge n'est **pas** encore une 1.0, et il le dit. Version actuelle : **0.2.0**.
 
 | Partie | Statut |
 | --- | --- |
-| Moteur de transfert (chiffrement de bout en bout, reprise, vérification SHA-256, file d'attente) | ✅ Implémenté et **testé** (445 tests automatisés, 42 fichiers) |
+| Moteur de transfert (chiffrement de bout en bout, reprise, vérification SHA-256, file d'attente) | ✅ Implémenté et **testé** (469 tests automatisés, 43 fichiers) |
 | Interface partagée React/TypeScript (FR/EN, thèmes sombre et clair) | ✅ Implémentée et **testée** au niveau du contrôleur et du rendu |
 | Application web progressive (PWA) installable | ✅ Implémentée et **testée** — pas encore essayée sur un téléphone réel |
+| Site publié sur GitHub Pages (accueil, application sous `/app/`, page 404) | ✅ Construit, vérifié **avant et après** chaque publication, sans hébergeur tiers |
 | Serveur de signalisation / relais aveugle (Node) | ✅ Implémenté et **testé** |
 | Tests dans un vrai navigateur (E2E) | ✅ **Exécutés à chaque envoi** : Chromium, Firefox, WebKit (iPhone), transfert réel avec octets reçus hachés et comparés |
 | Tests sur appareils mobiles réels | ❌ Non exécutés — l'émulation est couverte, pas un vrai iPhone/Android |
@@ -81,13 +82,17 @@ npm run dev            # application web + signalisation (une seule commande)
 npm run dev:web        # application web seule → http://localhost:5173
 npm run dev:signaling  # signalisation seule → http://localhost:8787
 
-npm run verify         # ce que la chaîne d'intégration exige : types, contrôles, 445 tests
-npm test               # 42 fichiers, 445 tests
+npm run verify         # ce que la chaîne exige : types, contrôle du site, 469 tests
+npm test               # 43 fichiers, 469 tests
 npm run test:e2e       # navigateurs réels (Chromium, Firefox, WebKit) — à installer une fois :
 npm run test:e2e:install
 
 npm run build          # application web + serveur
 npm run package        # archives web + serveur et sommes de contrôle dans release/
+
+npm run build:pages    # le site publié : accueil + application + page 404, dans _site/
+npm run preview:pages  # ce site, servi sous /DROPForge/ comme sur GitHub Pages
+npm run check:pages    # construit et vérifie le site sous son vrai chemin
 ```
 
 Pour utiliser DropForge entre deux appareils, ouvrez l'application sur les deux. Le serveur
@@ -102,7 +107,8 @@ local, l'application fonctionne sans lui.
 | `apps/web` | Application web progressive (React + Vite) — l'interface partagée |
 | `apps/signaling` | Serveur de signalisation / relais aveugle (Node, WebSocket) |
 | `deploy/` | nginx, Dockerfiles et `docker-compose.yml` : tout sur une seule origine |
-| `site/` | Sources de la page d'accueil publiée (générée par `npm run site:build`) |
+| `site/` | Gabarits de la page publique et de la page 404, avec leur feuille de style |
+| `_site/` | Le site assemblé par `npm run build:pages` (jamais versionné) : accueil, 404, application sous `app/` |
 | `e2e/` | Tests de bout en bout dans de vrais navigateurs |
 | `scripts/` | Outils : icônes, paquets, page publiée, inventaire des dépendances, fichiers d'aide du navigateur |
 
@@ -125,7 +131,7 @@ marquée « partiel » ou « non testé » ne doit pas être présentée comme t
 La licence du projet reste **à définir**. Tant qu'aucun fichier `LICENSE` n'est présent, le
 code n'est pas automatiquement réutilisable, modifiable ni redistribuable. Les licences des
 dépendances (toutes permissives) sont dans
-[docs/TECHNIQUE.md](docs/TECHNIQUE.md) § 12.
+[docs/TECHNIQUE.md](docs/TECHNIQUE.md) § 13.
 
 ## Soutenir le projet
 

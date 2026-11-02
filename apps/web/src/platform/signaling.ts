@@ -2,9 +2,10 @@
  * Where the relay (the signaling service) is, decided in exactly one place.
  *
  * Why this file exists at all: the published web application used to build its relay
- * address from its own host (`wss://dropforge-webapp.netlify.app/ws`). Nothing answers
- * there, so « Recevoir » and « joindre par code » failed on the live site, and the
- * console filled with connection errors for someone who had done nothing wrong.
+ * address from its own host (`wss://<its own domain>/ws`). Nothing answers there — a
+ * static host such as GitHub Pages cannot keep a WebSocket open — so « Recevoir » and
+ * « joindre par code » failed on the live site, and the console filled with connection
+ * errors for someone who had done nothing wrong.
  *
  * The rule now:
  *   - the address written in the settings wins, verbatim;
@@ -12,7 +13,8 @@
  *   - `auto` means the deployment's own address when the build carries one
  *     (`VITE_SIGNALING_URL`), the page's own origin when that page is served locally
  *     (development and the browser bench, where the dev server proxies `/ws`), and
- *     nothing otherwise.
+ *     nothing otherwise — which is the honest answer on GitHub Pages, where no WebSocket
+ *     server exists.
  *
  * An empty result is a real answer, not a failure: it says « there is no relay here »,
  * and the interface has to say the same thing instead of letting people wait.

@@ -22,7 +22,7 @@ import { ServiceWorkerUpdateSource, noUpdateSource, type UpdateSource } from './
 import { createInstallWatch } from './platform/install.js';
 import { describeError, fromPlatformError } from '@dropforge/app-core';
 import { signalingUrlFor } from './platform/signaling.js';
-import { AppController } from './app/controller.js';
+import { AppController, pairingCodeFromHash } from './app/controller.js';
 import { FatalScreen, Shell } from './app/shell.js';
 import { useAppState } from './app/use-app-state.js';
 import { BrandMark } from './components/atoms.js';
@@ -90,6 +90,17 @@ async function boot(): Promise<void> {
 
   await controller.start();
   exposeForDiagnostics(controller);
+
+  // A pairing link (the QR code the other device shows, or a pasted address) opens
+  // **this** page with `#c=CODE`. Until now the fragment was read nowhere: scanning
+  // the code opened DropForge and did nothing, which made the QR code decorative.
+  // The code is consumed once — the fragment is removed first, so a reload does not
+  // dial the room a second time — and the connection is attempted like any other.
+  const pairingCode = pairingCodeFromHash(globalThis.location?.hash ?? '');
+  if (pairingCode !== undefined && !controller.state.fatalError) {
+    globalThis.history?.replaceState(null, '', `${globalThis.location.pathname}${globalThis.location.search}`);
+    await controller.connectWithCode(pairingCode);
+  }
 }
 
 /**
