@@ -58,6 +58,16 @@ describe('chaîne de publication GitHub Pages', () => {
     expect(workflow).toContain('DROPFORGE_PAGES_BASE');
   });
 
+  it('dit quoi cliquer quand Pages n’est pas réglé sur GitHub Actions', () => {
+    // La seule panne que la chaîne ne peut pas réparer elle-même. Un échec silencieux,
+    // ou une erreur de l'action de publication en fin de course, laisserait le site
+    // figé sans que personne ne sache quel réglage changer.
+    expect(workflow).toContain("build_type=$(gh api");
+    expect(workflow).toContain("!= 'workflow'");
+    expect(workflow).toContain('Settings → Pages');
+    expect(workflow).toContain('Run workflow');
+  });
+
   it('vérifie le site **après** la publication, depuis son adresse publique', () => {
     const smoke = workflow.slice(workflow.indexOf('Vérification du site publié'));
     expect(smoke).toContain('needs: deploy');

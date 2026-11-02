@@ -42,6 +42,22 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
+
+      - name: GitHub Pages est-il réglé sur « GitHub Actions » ?
+        # Le seul réglage qu'une Action ne peut pas faire à la place du propriétaire
+        # (le jeton par défaut n'a pas le droit d'activer Pages). Sans ce contrôle, la
+        # panne arrive à la fin, sous la forme d'une erreur de l'action de publication,
+        # et personne ne sait quoi cliquer. Ici, elle est dite au début, avec le geste.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          build_type=$(gh api "repos/${{ github.repository }}/pages" --jq '.build_type' 2>/dev/null || echo 'absent')
+          if [ "$build_type" != 'workflow' ]; then
+            echo "::error::GitHub Pages ne publie pas depuis GitHub Actions (build_type=${build_type}). Ouvrez Settings → Pages → Build and deployment → Source, choisissez « GitHub Actions », puis relancez ce travail (Actions → Site (GitHub Pages) → Run workflow)."
+            exit 1
+          fi
+          echo "::notice::GitHub Pages publie depuis GitHub Actions."
+
       - uses: actions/setup-node@v7
         with:
           node-version: 22

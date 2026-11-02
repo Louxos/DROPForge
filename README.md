@@ -45,7 +45,7 @@ DropForge n'est **pas** encore une 1.0, et il le dit. Version actuelle : **0.2.0
 
 | Partie | Statut |
 | --- | --- |
-| Moteur de transfert (chiffrement de bout en bout, reprise, vérification SHA-256, file d'attente) | ✅ Implémenté et **testé** (469 tests automatisés, 43 fichiers) |
+| Moteur de transfert (chiffrement de bout en bout, reprise, vérification SHA-256, file d'attente) | ✅ Implémenté et **testé** (470 tests automatisés, 43 fichiers) |
 | Interface partagée React/TypeScript (FR/EN, thèmes sombre et clair) | ✅ Implémentée et **testée** au niveau du contrôleur et du rendu |
 | Application web progressive (PWA) installable | ✅ Implémentée et **testée** — pas encore essayée sur un téléphone réel |
 | Site publié sur GitHub Pages (accueil, application sous `/app/`, page 404) | ✅ Construit, vérifié **avant et après** chaque publication, sans hébergeur tiers |
@@ -82,8 +82,8 @@ npm run dev            # application web + signalisation (une seule commande)
 npm run dev:web        # application web seule → http://localhost:5173
 npm run dev:signaling  # signalisation seule → http://localhost:8787
 
-npm run verify         # ce que la chaîne exige : types, contrôle du site, 469 tests
-npm test               # 43 fichiers, 469 tests
+npm run verify         # ce que la chaîne exige : types, contrôle du site, 470 tests
+npm test               # 43 fichiers, 470 tests
 npm run test:e2e       # navigateurs réels (Chromium, Firefox, WebKit) — à installer une fois :
 npm run test:e2e:install
 

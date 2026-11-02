@@ -361,10 +361,14 @@ qu'après cette lecture.
 
 > **Pourquoi ce réglage est manuel :** GitHub demande au propriétaire de choisir la
 > source de publication, et une Action ne peut pas le faire à sa place avec le jeton
-> par défaut. Tant qu'il n'est pas fait, la tâche de publication **échoue avec un
-> message explicite** — elle ne fait pas semblant d'avoir publié. Un site de branche
-> (« Deploy from a branch ») ne servirait que des fichiers figés, pas l'application
-> construite : c'est pour cela qu'il n'est plus utilisé.
+> par défaut. Tant qu'il n'est pas fait, la tâche de publication **échoue dès la
+> première étape, avec le geste exact à faire** — elle ne fait pas semblant d'avoir
+> publié. Un site de branche (« Deploy from a branch ») ne servirait que des fichiers
+> figés, pas l'application construite : c'est pour cela qu'il n'est plus utilisé.
+>
+> Le réglage fait, relancez une fois le travail — **Actions → Site (GitHub Pages) →
+> Run workflow** — ou envoyez un commit sur `main` : la publication suivante construit
+> et vérifie le site.
 
 **Ce que la publication fait, dans l'ordre :**
 
