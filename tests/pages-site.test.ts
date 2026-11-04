@@ -1,218 +1,273 @@
 /**
- * La page d'accueil publiée par GitHub Pages (`index.html` à la racine).
+ * La page publique du site GitHub Pages : la page d'archive et la page 404.
  *
- * Ces tests protègent trois choses qui, sans surveillance, se cassent en
- * silence :
- *  1. la page est **autonome** — aucune police, aucun script, aucune image
- *     distante : elle doit s'afficher même sans réseau, et une page qui
- *     télécharge un fichier externe ne le ferait pas ;
- *  2. l'adresse de l'application web n'existe qu'une fois, dans
- *     `docs/site/app-url.txt`, et la page publiée ne peut pas contenir un lien
- *     mort : elle affiche soit le bouton, soit l'état « bientôt » ;
- *  3. le fichier publié est **régénéré** depuis ses sources (sinon il dérive,
- *     et plus personne ne sait ce qui est en ligne).
+ * Ces tests protègent trois choses qui, sans surveillance, se cassent en silence :
  *
- * Tout est vérifié sur le contenu réellement présent dans le dépôt : ce qui
- * passe ici est ce que GitHub Pages sert.
+ *  1. les pages sont **autonomes** — aucune police, aucun script, aucune image
+ *     distante : elles s'affichent sans réseau, et une page qui télécharge un fichier
+ *     externe ne le ferait pas ;
+ *  2. l'application est un **chemin relatif** (`app/`), et rien d'autre : le même site
+ *     fonctionne sur `https://louxos.github.io/DROPForge/`, sur une fourche et dans un
+ *     dossier local, sans qu'aucune adresse absolue n'ait à être tenue à jour ;
+ *  3. la page d'archive annonce l'archivage, sa date, l'arrêt définitif, et donne accès
+ *     au code, à l'historique et aux versions — sans jamais se lire comme une page
+ *     temporaire ni comme une promesse de reprise ;
+ *  4. la page 404 parle de l'adresse demandée, renvoie à l'application, et ne redirige
+ *     que lorsqu'un fragment de l'application est présent.
+ *
+ * Tout est vérifié sur le contenu **réellement rendu** par le générateur : ce qui passe
+ * ici est ce que GitHub Pages sert.
  */
-
-import { readFile } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
-import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import {
+  APP_PATH,
+  ARCHIVED_ON,
   OUTPUTS,
   REPO_URL,
   SOURCES,
-  buildOutputs,
+  buildSiteFiles,
   checkAppUrl,
-  parseAppUrl,
+  renderNotFound,
   renderSite,
-  selectGateway,
 } from '../scripts/build-site.mjs';
 
-const root = process.cwd();
-const read = (relative: string) => readFile(path.join(root, relative), 'utf8');
-const pkg = JSON.parse(await read('package.json')) as { version: string };
+const root = fileURLToPath(new URL('..', import.meta.url));
+const read = (relative: string): string => readFileSync(join(root, relative), 'utf8');
+const pkg = JSON.parse(read('package.json')) as { version: string };
 const version = pkg.version;
 
-let cachedSources: {
-  template: string;
-  styles: string;
-  mark: string;
-  appUrl: string;
-} | undefined;
+const template = read(SOURCES.template);
+const notFound = read(SOURCES.notFound);
+const styles = read(SOURCES.styles);
+const mark = read(SOURCES.mark);
 
-async function sources() {
-  if (cachedSources === undefined) {
-    cachedSources = {
-      template: await read(SOURCES.template),
-      styles: await read(SOURCES.styles),
-      mark: await read(SOURCES.mark),
-      appUrl: parseAppUrl(await read(SOURCES.appUrl)),
-    };
-  }
-  return cachedSources;
-}
+const home = (): string => renderSite({ template, styles, mark, version }) as string;
 
-async function rendered(appUrl?: string) {
-  const { template, styles, mark } = await sources();
-  return renderSite({ template, styles, mark, version, appUrl: appUrl ?? '' }) as string;
-}
+const notFoundPage = (base = '/DROPForge/'): string =>
+  renderNotFound({ template: notFound, styles, mark, base, appUrl: `${base}app/` }) as string;
 
-describe('page publiée : fichiers servis par GitHub Pages', () => {
-  it('publie un index.html à la racine, un favicon et .nojekyll', async () => {
-    // GitHub Pages en mode « branche » sert `index.html` s'il existe, et
-    // seulement sinon le README. `.nojekyll` évite que Jekyll réécrive le
-    // contenu ou refuse un dossier commençant par `_`.
-    for (const file of Object.values(OUTPUTS)) {
-      expect(existsSync(path.join(root, file)), `${file} doit exister à la racine`).toBe(true);
-    }
-    expect(await read(OUTPUTS.noJekyll)).toBe('');
-  });
-
-  it('reprend l’icône de l’application : un seul logo dans tout le projet', async () => {
-    expect(await read(OUTPUTS.favicon)).toBe(await read(SOURCES.mark));
-  });
-
-  it('est autonome : aucune ressource distante à charger', async () => {
-    const page = await read(OUTPUTS.page);
-    // Pas de feuille de style externe, pas de script externe, pas de police
-    // distante, pas de data-URI géante : tout est dans le fichier.
+describe('page d’archive publiée', () => {
+  it('est autonome : aucune ressource distante à charger', () => {
+    const page = home();
+    // Pas de feuille de style externe, pas de script externe, pas de police distante.
     expect(page).not.toMatch(/<link[^>]+rel=["']stylesheet/i);
     expect(page).not.toMatch(/<script[^>]+src=/i);
     expect(page).not.toMatch(/@import\s+url/i);
     expect(page).not.toMatch(/(src|srcset)=["']https?:/i);
     expect(page).not.toMatch(/fonts\.googleapis|cdn\./i);
-    // Aucune adresse en clair (http://) hors espaces de noms SVG/XML, qui ne
-    // déclenchent aucun chargement : la page, elle, n'envoie aucune requête.
-    const sansEspacesDeNoms = page.replace(/xmlns(:[a-z]+)?="http:\/\/[^"]*"/gi, '');
-    expect(sansEspacesDeNoms).not.toMatch(/["'=]http:\/\//i);
-    expect(page).not.toMatch(/https?:\/\/(fonts|cdn|unpkg|jsdelivr)/i);
-    // Le CSS est bien inséré, et pas seulement référencé.
+    // Aucune adresse en clair (http://) hors espaces de noms SVG/XML, qui ne déclenchent
+    // aucun chargement.
+    const withoutNamespaces = page.replace(/xmlns(:[a-z]+)?="http:\/\/[^"]*"/gi, '');
+    expect(withoutNamespaces).not.toMatch(/["'=]http:\/\//i);
+    // Le CSS est inséré, et pas seulement référencé.
     expect(page).toMatch(/--violet:/);
     expect(page.length).toBeGreaterThan(20_000);
   });
 
-  it('ne publie aucun gabarit non remplacé, ni marqueur interne', async () => {
-    const page = await read(OUTPUTS.page);
+  it('ne publie aucun gabarit non remplacé', () => {
+    const page = home();
     expect(page).not.toMatch(/{{[A-Z_]+}}/);
-    expect(page).not.toMatch(/GATEWAY:(LIVE|SOON)/);
-    expect(page).toContain(`Version ${version}`);
-    // Ce qui est réellement publié pour cette version : l'archive de l'application web.
-    expect(page).toContain(`dropforge-pwa-${version}.zip`);
-  });
-});
-
-describe('page publiée : où aller, et dans quel ordre', () => {
-  it('place le bloc de l’application web avant tout le reste du contenu', async () => {
-    const page = await read(OUTPUTS.page);
-    const app = page.indexOf('id="application"');
-    const features = page.indexOf('id="transfers"');
-    const security = page.indexOf('id="security"');
-    const download = page.indexOf('id="download"');
-    expect(app).toBeGreaterThan(-1);
-    expect(app).toBeLessThan(features);
-    expect(app).toBeLessThan(security);
-    expect(app).toBeLessThan(download);
-    // Le bloc lui-même annonce « L'application web », dès le premier écran.
-    expect(page.slice(app, app + 1500)).toMatch(/L'application web/);
-    // Avant la première section de contenu : c'est le premier écran de la page.
-    expect(app).toBeLessThan(page.indexOf('<section'));
+    // La date d'archivage vient du générateur, pas d'une phrase recopiée à la main.
+    expect(page).toContain(ARCHIVED_ON);
+    expect(page).not.toContain('{{ARCHIVED_ON}}');
   });
 
-  it('ne propose qu’un chemin : l’application web', async () => {
-    const page = await read(OUTPUTS.page);
-    expect(page).toMatch(/Ouvrir l.application web|Application web · bientôt/);
-    // Plus d'installateur : la page des versions reste accessible, mais elle n'est plus
-    // présentée comme le chemin à suivre.
-    expect(page).not.toMatch(/Télécharger le logiciel/);
-    expect(page).toContain(`${REPO_URL}/releases/latest`);
-    // Sans adresse enregistrée, le bouton primaire n'est jamais un lien mort.
+  it('annonce l’archivage avant tout le reste, et nulle part ailleurs', () => {
+    const page = home();
+    const announcement = page.indexOf('Ce projet est désormais archivé.');
+    expect(announcement).toBeGreaterThan(-1);
+    // Le titre arrive avant le rappel de l'objectif, avant les raisons, avant le code.
+    for (const later of ['id="objectif"', 'id="raisons"', 'id="acces"']) {
+      expect(announcement, `${later} doit venir après le titre`).toBeLessThan(page.indexOf(later));
+    }
+    // La date officielle est annoncée dans la page elle-même.
+    expect(page).toContain(ARCHIVED_ON);
+  });
+
+  it('dit clairement que le développement est arrêté et qu’il n’y aura rien', () => {
+    const page = home();
+    expect(page).toMatch(/Développement arrêté/i);
+    expect(page).toMatch(/aucune nouvelle fonctionnalité/i);
+    expect(page).toMatch(/aucun correctif/i);
+    // Aucune formulation de page temporaire : ce n'est ni une maintenance ni un « bientôt ».
+    expect(page).not.toMatch(/bientôt|maintenance en cours|reviens|de retour prochainement/i);
+    // Aucune invitation à revenir suivre un développement qui n'existe plus.
+    expect(page).not.toMatch(/rejoignez|newsletter|abonnez-vous/i);
+  });
+
+  it('donne accès au code source, à l’historique et aux versions', () => {
+    const page = home();
+    expect(page).toContain(`href="${REPO_URL}"`);
+    expect(page).toContain(`${REPO_URL}/commits/main`);
+    expect(page).toContain(`${REPO_URL}/releases`);
+    // Et l'état du dépôt, écrit noir sur blanc : public, en lecture seule.
+    expect(page).toMatch(/public/i);
+    expect(page).toMatch(/lecture seule/i);
+  });
+
+  it('rappelle l’objectif initial et les raisons de l’arrêt', () => {
+    const page = home();
+    expect(page).toMatch(/Ce que DropForge devait être/);
+    expect(page).toMatch(/chiffré de bout en bout/i);
+    expect(page).toMatch(/sans compte/i);
+    expect(page).toMatch(/Pourquoi le développement s.arrête/);
+  });
+
+  it('ne prétend pas qu’une version stable a été publiée', () => {
+    const page = home();
+    // La dernière version publiée est 0.1.3, et la page le dit ; la 0.2.0 n'a jamais été
+    // publiée comme version, et la page ne la présente pas comme telle.
+    expect(page).toContain('0.1.3');
+    expect(page).not.toMatch(/\bDropForge 1\.0\b|version 1\.0\b/i);
+    expect(page).not.toMatch(/version stable/i);
+    // Aucun bouton de téléchargement : il n'y a rien à installer, rien à promettre.
+    expect(page).not.toMatch(/Télécharger/i);
+    expect(page).not.toMatch(/class="btn/);
+  });
+
+  it('dit ce qui n’a jamais été couvert, au lieu de le laisser croire', () => {
+    const page = home();
+    // Le relais public n'a jamais existé : la page le dit, au lieu de promettre deux
+    // réseaux différents.
+    expect(page).toMatch(/faute de relais public/i);
+    // La licence n'a jamais été choisie : la page le dit, pour que personne ne réutilise
+    // le code en croyant qu'il est libre.
+    expect(page).toMatch(/n’a jamais reçu de licence|n'a jamais reçu de licence/);
+  });
+
+  it('pointe vers l’application par un chemin relatif, sans jamais écrire de domaine', () => {
+    const page = home();
+    expect(page).toContain(`href="${APP_PATH}"`);
+    expect(page).not.toMatch(/href="https?:\/\/louxos\.github\.io/);
+    // Aucun lien mort : l'adresse n'est jamais vide.
     expect(page).not.toMatch(/href="\s*"/);
   });
 
-  it('affiche l’adresse enregistrée, et un état d’attente sinon', async () => {
-    const absent = await rendered('');
-    expect(absent).toContain("Application web · bientôt");
-    expect(absent).not.toMatch(/Ouvrir l.application web/);
-
-    const present = await rendered('https://dropforge.netlify.app');
-    expect(present).toContain("Ouvrir l'application web");
-    // L'adresse cliquable et l'adresse copiée sont la même, au caractère près.
-    expect(present).toContain('href="https://dropforge.netlify.app"');
-    expect(present).toContain('data-copy="https://dropforge.netlify.app"');
-    expect(present).toContain('<code id="app-url">https://dropforge.netlify.app</code>');
-    expect(present).not.toContain("Application web · bientôt");
+  it('reste une page soignée sur téléphone, et discrète en animation', () => {
+    const page = home();
+    // Mise en page adaptative : au moins un point de rupture explicite.
+    expect(page).toMatch(/@media \(max-width: 620px\)/);
+    expect(page).toMatch(/@media \(max-width: 860px\)/);
+    // Les animations existent, mais elles respectent le réglage système.
+    expect(page).toMatch(/prefers-reduced-motion: reduce/);
+    // Rien de clignotant, rien de clignotant simulé en JavaScript.
+    expect(page).not.toMatch(/<marquee|animation-iteration-count:\s*infinite/i);
   });
 
-  it('ne laisse jamais passer deux blocs « où aller » à la fois', () => {
-    const template = `<a>LIVE</a><!--GATEWAY:LIVE--><b>live</b><!--/GATEWAY:LIVE-->` +
-      `<!--GATEWAY:SOON--><c>soon</c><!--/GATEWAY:SOON-->`;
-    expect(selectGateway(template, 'https://x.example')).toBe('<a>LIVE</a><b>live</b>');
-    expect(selectGateway(template, '')).toBe('<a>LIVE</a><c>soon</c>');
+  it('ne renvoie plus à Netlify, et dit qui sert la page', () => {
+    const page = home();
+    expect(page.toLowerCase()).not.toContain('netlify');
+    expect(page).toMatch(/GitHub Pages/);
   });
 });
 
-describe('adresse de l’application web : une seule constante', () => {
-  it('ignore les commentaires du fichier de configuration', () => {
-    expect(parseAppUrl('# commentaire\n\n   \n')).toBe('');
-    expect(parseAppUrl('# à faire\nhttps://dropforge.netlify.app\n')).toBe('https://dropforge.netlify.app');
-    expect(parseAppUrl('https://dropforge.netlify.app\nhttps://autre.example')).toBe(
-      'https://dropforge.netlify.app',
-    );
+describe('page 404', () => {
+  it('est autonome, comme l’accueil', () => {
+    const page = notFoundPage();
+    expect(page).not.toMatch(/<link[^>]+rel=["']stylesheet/i);
+    expect(page).not.toMatch(/<script[^>]+src=/i);
+    expect(page).not.toMatch(/(src|srcset)=["']https?:/i);
+    expect(page).toMatch(/--violet:/);
+  });
+
+  it('dit ce qui s’est passé, et où aller', () => {
+    const page = notFoundPage();
+    expect(page).toContain('Erreur 404');
+    expect(page).toMatch(/adresse ne mène nulle part/);
+    // Les liens sont **absolus et préfixés** : la page est servie à l'adresse fautive
+    // (`/DROPForge/une/autre/page`), où un `app/` relatif pointerait dans le vide.
+    expect(page).toContain('href="/DROPForge/app/"');
+    expect(page).toContain('href="/DROPForge/"');
+    expect(page).toContain(`Archivé le ${ARCHIVED_ON}`);
+    expect(page).not.toMatch(/{{[A-Z_]+}}/);
+  });
+
+  it('suit le chemin du site, quel qu’il soit', () => {
+    const forked = notFoundPage('/autre-depot/');
+    expect(forked).toContain('href="/autre-depot/app/"');
+    expect(forked).toContain('href="/autre-depot/"');
+    const rootSite = notFoundPage('/');
+    expect(rootSite).toContain('href="/app/"');
+  });
+
+  it('ne redirige que pour un fragment qui appartient à l’application', () => {
+    const page = notFoundPage();
+    // Le script est écrit pour `#c=…` (appairage) et `#df=…` (lien de partage)
+    // uniquement — pas pour n'importe quelle adresse, qui doit rester une 404 honnête.
+    expect(page).toMatch(/\^#\(c=\|df=\)/);
+    expect(page).toContain('window.location.replace');
+  });
+});
+
+describe('adresse de l’application', () => {
+  it('accepte un chemin relatif dans le site', () => {
+    expect(checkAppUrl('app/').ok).toBe(true);
+    expect(checkAppUrl('app/').relative).toBe(true);
+    expect(checkAppUrl('./app/').ok).toBe(true);
   });
 
   it('refuse ce qui mènerait à une page cassée', () => {
-    expect(checkAppUrl('').ok).toBe(true);
-    expect(checkAppUrl('https://dropforge.netlify.app').ok).toBe(true);
-    expect(checkAppUrl('dropforge.netlify.app').ok).toBe(false);
-    expect(checkAppUrl('http://dropforge.netlify.app').ok).toBe(false);
-    expect(checkAppUrl('ftp://dropforge.example').ok).toBe(false);
-    // Pointer vers cette page elle-même serait une boucle, pas une application.
+    // Rien : un lien mort ne part pas en ligne.
+    expect(checkAppUrl('').ok).toBe(false);
+    // Un chemin absolu ignorerait le préfixe du dépôt sur GitHub Pages.
+    expect(checkAppUrl('/app/').ok).toBe(false);
+    // Sortir du dossier publié.
+    expect(checkAppUrl('../app/').ok).toBe(false);
+    // Une page HTTPS ne peut pas ouvrir une adresse non sécurisée.
+    expect(checkAppUrl('http://exemple.test/app/').ok).toBe(false);
+    // Renvoyer à cette page elle-même serait une boucle, pas une application.
     expect(checkAppUrl('https://louxos.github.io/DROPForge/').ok).toBe(false);
   });
 
-  it('échoue bruyamment plutôt que de publier un lien cassé', async () => {
-    const { template, styles, mark } = await sources();
-    expect(() =>
-      renderSite({ template, styles, mark, version, appUrl: 'dropforge.netlify.app' }),
-    ).toThrow(/adresse absolue/);
+  it('échoue bruyamment plutôt que de publier un lien cassé', () => {
+    expect(() => renderSite({ template, styles, mark, version, appUrl: '' })).toThrow(/aucune adresse/);
+    expect(() => renderSite({ template, styles, mark, version, appUrl: '/app/' })).toThrow(/absolu/);
+  });
+
+  it('accepte une application hébergée ailleurs, si elle est en HTTPS', () => {
+    const external = renderSite({ template, styles, mark, version, appUrl: 'https://dropforge.example/app/' });
+    expect(external).toContain('href="https://dropforge.example/app/"');
   });
 });
 
-describe('page publiée : garde de dérive', () => {
-  it('correspond exactement à ce que produisent ses sources', async () => {
-    // C'est la version « test » de `npm run check:site` : si quelqu'un modifie
-    // le modèle ou le CSS sans régénérer, la page en ligne ne serait plus celle
-    // du dépôt.
-    const outputs = (await buildOutputs(root)) as Map<string, string>;
-    const drifted: string[] = [];
-    for (const [relative, content] of outputs) {
-      const current = existsSync(path.join(root, relative)) ? await read(relative) : undefined;
-      if (current !== content) drifted.push(relative);
-    }
-    expect(drifted).toEqual([]);
+describe('fichiers produits pour la publication', () => {
+  it('produit l’accueil, la page 404 et le favicon', async () => {
+    const files = (await buildSiteFiles({ root })) as Map<string, string>;
+    expect([...files.keys()].sort()).toEqual([OUTPUTS.notFound, OUTPUTS.page, OUTPUTS.favicon].sort());
+    expect(files.get(OUTPUTS.page)).toContain('href="app/"');
+    expect(files.get(OUTPUTS.notFound)).toContain('Erreur 404');
   });
 
-  it('rappelle les limites réelles du projet, sans les embellir', async () => {
-    const page = await read(OUTPUTS.page);
-    // Ce qui n'est *pas* prouvé est écrit noir sur blanc : c'est la règle de cette page.
-    expect(page).toMatch(/pas encore été essayée sur un téléphone réel/);
-    expect(page).toMatch(/nécessite un hébergement/);
-    // DropForge est une application web installable : aucun installateur n'est proposé,
-    // et la page dit ce qu'il est advenu de ceux des versions précédentes.
-    expect(page).not.toMatch(/setup\.exe/);
-    expect(page).not.toContain('.msi');
-    expect(page).not.toContain('Tauri');
-    expect(page).toMatch(/restent téléchargeables mais ne sont plus\s+maintenus/);
-    // La documentation tient en quatre fichiers : la page ne renvoie qu'à ceux-là.
-    expect(page).toContain(`${REPO_URL}/blob/main/docs/TECHNIQUE.md`);
-    expect(page).toContain(`${REPO_URL}/blob/main/docs/GUIDE.md`);
-    expect(page).toContain(`${REPO_URL}/blob/main/CHANGELOG.md`);
-    for (const disparu of ['SPEC-AUDIT', 'PLATFORM-MATRIX', 'TROUBLESHOOTING', 'THREAT-MODEL', 'ARCHITECTURE.md']) {
-      expect(page, `${disparu} ne doit plus être référencé`).not.toContain(disparu);
+  it('reprend l’icône de l’application : un seul logo dans tout le projet', async () => {
+    const files = (await buildSiteFiles({ root })) as Map<string, string>;
+    expect(files.get(OUTPUTS.favicon)).toBe(mark);
+  });
+
+  it('est publié depuis la branche, donc versionné à la racine — et identique au générateur', async () => {
+    // Le dépôt est archivé : ses workflows ne s'exécutent plus. Un site qui ne vivrait que
+    // comme artefact de workflow ne serait plus reconstructible. GitHub Pages sert donc
+    // les fichiers de la branche, et cette copie doit être exactement ce que le générateur
+    // produit — sinon elle dérive en silence.
+    // `index.html` et le favicon ne dépendent pas du chemin du dépôt : leur comparaison
+    // est exacte. La page 404, elle, écrit des liens absolus préfixés ; son identité
+    // octet par octet est vérifiée par `npm run check:pages`, qui connaît ce préfixe.
+    const files = (await buildSiteFiles({ root })) as Map<string, string>;
+    for (const name of [OUTPUTS.page, OUTPUTS.favicon]) {
+      expect(read(name), `${name} a dérivé : lancez « npm run publish:site »`).toBe(files.get(name));
+    }
+    expect(read(OUTPUTS.notFound)).not.toMatch(/{{[A-Z_]+}}/);
+    expect(existsSync(join(root, '.nojekyll')), '.nojekyll manquant : Jekyll servirait autre chose').toBe(true);
+  });
+
+  it('publie l’application à côté de la page d’archive, dans le dépôt', () => {
+    // Sans les workflows, c'est ce dossier `app/` que GitHub Pages sert : s'il manque,
+    // le lien « l'application telle qu'elle a été laissée » mène à une 404.
+    for (const file of ['app/index.html', 'app/manifest.webmanifest', 'app/sw.js', 'favicon.svg']) {
+      expect(existsSync(join(root, file)), `${file} manquant : lancez « npm run publish:site »`).toBe(true);
     }
   });
 });

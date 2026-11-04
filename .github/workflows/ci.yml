@@ -38,6 +38,14 @@ jobs:
           npm run icons
           git diff --exit-code -- apps/web/public/icons \
             || { echo "::error::les icônes versionnées ne correspondent plus à leur générateur (npm run icons)"; exit 1; }
+      - name: Site sous un autre chemin que celui du dépôt
+        # Le site est publié sous `/<dépôt>/` ; une fourche, un dépôt renommé ou un
+        # domaine à la racine changent ce préfixe. Le construire ici sous un autre
+        # chemin, et le vérifier, prouve que rien n'est écrit en dur.
+        run: |
+          DROPFORGE_PAGES_BASE=/autre-nom/ npm run build:pages
+          node scripts/check-pages.mjs
+
       - name: Compilation des deux cibles
         # Base relative : l'archive publiée doit fonctionner depuis n'importe quel
         # dossier, pas seulement depuis la racine d'un domaine.

@@ -10,6 +10,7 @@ import { UPDATE_IDLE, type UpdateSource } from '../platform/updater.js';
 import {
   AppController,
   newRoomCode,
+  pairingCodeFromHash,
   pairingLinkFor,
   type LinkPeerInfo,
 } from './controller.js';
@@ -641,5 +642,31 @@ describe('controller helpers', () => {
     expect(pairingLinkFor('abc123', { origin: 'https://dropforge.example' } as Location)).toBe(
       'https://dropforge.example/#c=abc123',
     );
+  });
+
+  it('links to the page that is running, not to the origin root', () => {
+    // A project site lives under a path (`/DROPForge/app/` on GitHub Pages). A link
+    // built from the origin alone would send the other device to a page that is not
+    // DropForge — the code would never be read.
+    const loc = { origin: 'https://louxos.github.io', pathname: '/DROPForge/app/' } as Location;
+    expect(pairingLinkFor('abc123', loc)).toBe('https://louxos.github.io/DROPForge/app/#c=abc123');
+    // A page opened from a folder keeps its trailing slash; a bare directory address
+    // gains one, so the fragment does not land on a redirect.
+    const folder = { origin: 'https://example.test', pathname: '/telechargements/dropforge' } as Location;
+    expect(pairingLinkFor('abc123', folder)).toBe('https://example.test/telechargements/dropforge/#c=abc123');
+    const file = { origin: 'https://example.test', pathname: '/dropforge/index.html' } as Location;
+    expect(pairingLinkFor('abc123', file)).toBe('https://example.test/dropforge/index.html#c=abc123');
+  });
+
+  it('reads the pairing code back from a fragment, and nothing else', () => {
+    expect(pairingCodeFromHash('#c=abc123')).toBe('abc123');
+    // The fragment can carry the screen too, in any order.
+    expect(pairingCodeFromHash('#route=transfer&c=abc123')).toBe('abc123');
+    expect(pairingCodeFromHash('#route=settings')).toBeUndefined();
+    expect(pairingCodeFromHash('')).toBeUndefined();
+    // A code is a room name, not free text: anything else is refused instead of
+    // being attempted against the signaling service.
+    expect(pairingCodeFromHash('#c=deux mots')).toBeUndefined();
+    expect(pairingCodeFromHash('#c=' + 'A'.repeat(33))).toBeUndefined();
   });
 });

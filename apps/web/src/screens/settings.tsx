@@ -264,6 +264,9 @@ export function SettingsScreen({ controller, state }: { controller: AppControlle
 
       <Card titleKey="settings.about">
         <p className="df-faint">{t('settings.aboutText', { version: state.appVersion })}</p>
+        <p className="df-faint" role="note">
+          <strong>{t('settings.archived')}</strong>
+        </p>
         <p className="df-faint">{t('settings.license')}</p>
 
         {state.updateState && state.updateState.kind !== 'idle' ? (

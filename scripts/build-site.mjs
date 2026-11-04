@@ -1,26 +1,26 @@
 #!/usr/bin/env node
 /**
- * Génère la page d'accueil publiée par GitHub Pages (racine du dépôt).
+ * Génère les pages **statiques** du site GitHub Pages : la page d'archive et la page
+ * 404. L'application elle-même est construite par Vite (voir `scripts/build-pages.mjs`,
+ * qui assemble les deux dans `_site/`).
  *
- * Pourquoi un générateur, et pas un fichier écrit à la main :
- *  - GitHub Pages publie la racine du dépôt en mode « legacy » : sans
- *    `index.html`, c'est le README qui est servi, et sans `.nojekyll` les
- *    fichiers passent par Jekyll. Les deux sont donc produits ici, jamais
- *    bricolés à la main ;
- *  - la page doit être **autonome** : une page publiée sur un dépôt peut aussi
- *    être ouverte depuis un dossier local ou un aperçu sans réseau. Le CSS est
- *    donc inséré dans le fichier, le logo est un SVG dans le document, et il
- *    n'existe aucune ressource distante ;
- *  - l'adresse de l'application web est un **unique** point d'entrée,
- *    `site/app-url.txt` : la page affiche soit le bouton « Ouvrir
- *    l'application web », soit l'état « bientôt », jamais un lien mort.
+ * Pourquoi un générateur, et pas des fichiers écrits à la main :
+ *  - les pages doivent être **autonomes** : le CSS est inséré dans le fichier, le logo
+ *    est un SVG dans le document, et il n'existe aucune ressource distante. Une page
+ *    publiée sur un dépôt doit aussi s'ouvrir depuis un dossier local, sans réseau ;
+ *  - l'adresse de l'application est un **chemin relatif** (`app/`), décidé ici et nulle
+ *    part ailleurs : le site fonctionne donc aussi bien sur
+ *    `https://louxos.github.io/DROPForge/` que sur une fourche, un aperçu ou un dossier
+ *    local, sans qu'aucune adresse absolue n'ait à être tenue à jour ;
+ *  - la page 404 est produite de la même façon, avec les mêmes jetons : elle doit
+ *    ressembler au site, pas à une page blanche du serveur.
  *
  * Usage :
- *   node scripts/build-site.mjs           # régénère index.html, favicon.svg et .nojekyll
- *   node scripts/build-site.mjs --check   # ne modifie rien, échoue si les fichiers ont dérivé
+ *   node scripts/build-site.mjs --out _site        # écrit index.html, 404.html, favicon.svg
+ *   node scripts/build-site.mjs --check            # ne modifie rien, échoue si un rendu est invalide
  */
 
-import { readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import path from 'node:path';
@@ -28,60 +28,76 @@ import path from 'node:path';
 /** Dépôt public : toutes les pages de documentation y renvoient. */
 export const REPO_URL = 'https://github.com/Louxos/DROPForge';
 
-/** Adresse de la page elle-même (Pages), utilisée pour les métadonnées de partage. */
+/**
+ * Adresse publique du site, utilisée pour les métadonnées de partage (`og:url`).
+ * Surchargée par `DROPFORGE_SITE_URL` à la construction : une fourche publie la sienne.
+ */
 export const SITE_URL = 'https://louxos.github.io/DROPForge/';
+
+/**
+ * Date officielle de l'archivage du projet, en toutes lettres.
+ *
+ * Une seule source de vérité : la page publiée, la page 404, le README et les notes de
+ * version annoncent la même date. La changer ici oblige à la changer partout ailleurs,
+ * ce qui est exactement le but.
+ */
+export const ARCHIVED_ON = '4 novembre 2026';
+
+/** Où vit l'application à l'intérieur du site. Relatif, et jamais absolu. */
+export const APP_PATH = 'app/';
 
 export const SOURCES = {
   template: 'site/index.html',
+  notFound: 'site/404.html',
   styles: 'site/site.css',
-  appUrl: 'site/app-url.txt',
   mark: 'apps/web/public/icons/icon.svg',
 };
 
 export const OUTPUTS = {
   page: 'index.html',
+  notFound: '404.html',
   favicon: 'favicon.svg',
-  noJekyll: '.nojekyll',
-};
-
-const MARKERS = {
-  live: ['<!--GATEWAY:LIVE-->', '<!--/GATEWAY:LIVE-->'],
-  soon: ['<!--GATEWAY:SOON-->', '<!--/GATEWAY:SOON-->'],
 };
 
 /**
- * Lit le contenu de `site/app-url.txt` : les lignes vides et les
- * commentaires commençant par `#` sont ignorés, le reste doit être une adresse
- * absolue en http(s). Une adresse absente est un état normal (« bientôt »).
+ * Vérifie l'adresse de l'application avant de la publier.
+ *
+ * Une adresse relative (`app/`) est le cas normal. Une adresse absolue reste acceptée
+ * pour un déploiement séparé (l'application ailleurs, la page ici) : elle doit être en
+ * HTTPS, et ne pas renvoyer à cette page elle-même — un lien vers soi n'est pas une
+ * application.
  */
-export function parseAppUrl(text) {
-  for (const rawLine of text.split(/\r?\n/)) {
-    const line = rawLine.trim();
-    if (line.length === 0 || line.startsWith('#')) continue;
-    return line;
-  }
-  return '';
-}
+export function checkAppUrl(appUrl, siteUrl = SITE_URL) {
+  if (appUrl === '') return { ok: false, reason: 'aucune adresse : la page d’accueil ne peut pas pointer dans le vide' };
 
-/** Vérifie qu'une adresse peut réellement être publiée, avant qu'elle ne parte en ligne. */
-export function checkAppUrl(appUrl) {
-  if (appUrl === '') return { ok: true, reason: 'aucune adresse : la page affiche « bientôt »' };
+  const absolute = /^[a-z][a-z0-9+.-]*:/i.test(appUrl);
+  if (!absolute) {
+    if (appUrl.startsWith('/')) {
+      return {
+        ok: false,
+        reason: `« ${appUrl} » est absolu : sur GitHub Pages le site vit sous un chemin (/DROPForge/), et un « / » renverrait à la racine du domaine`,
+      };
+    }
+    if (appUrl.split('/').includes('..')) {
+      return { ok: false, reason: `« ${appUrl} » sort du dossier publié (« .. »)` };
+    }
+    return { ok: true, relative: true, reason: 'chemin relatif accepté' };
+  }
+
   let url;
   try {
     url = new URL(appUrl);
   } catch {
-    return { ok: false, reason: `« ${appUrl} » n'est pas une adresse absolue (attendu : https://…)` };
+    return { ok: false, reason: `« ${appUrl} » n'est pas une adresse absolue lisible` };
   }
-  if (url.protocol !== 'https:' && url.protocol !== 'http:') {
-    return { ok: false, reason: `le schéma « ${url.protocol} » n'est pas ouvrable dans un navigateur` };
+  if (url.protocol !== 'https:') {
+    return { ok: false, reason: `le schéma « ${url.protocol} » ne convient pas : une page publiée en HTTPS n'ouvre pas une adresse non sécurisée` };
   }
-  if (url.protocol === 'http:') {
-    return { ok: false, reason: 'une page publiée en HTTPS ne peut pas pointer vers une adresse http://' };
+  const site = new URL(siteUrl);
+  if (url.href === site.href) {
+    return { ok: false, reason: `« ${appUrl} » est cette page elle-même, pas l'application` };
   }
-  if (url.hostname.endsWith('github.io') && url.pathname.startsWith('/DROPForge')) {
-    return { ok: false, reason: `« ${appUrl} » est cette page elle-même, pas l'application web` };
-  }
-  return { ok: true, reason: 'adresse acceptée' };
+  return { ok: true, relative: false, reason: 'adresse absolue acceptée' };
 }
 
 function replaceOnce(haystack, needle, replacement) {
@@ -94,20 +110,6 @@ function replaceAll(haystack, needle, replacement) {
   return haystack.split(needle).join(replacement);
 }
 
-/** Retire le bloc de héros inutilisé et les marqueurs de choix (jamais publiés). */
-export function selectGateway(html, appUrl) {
-  const keep = appUrl === '' ? 'soon' : 'live';
-  const drop = keep === 'live' ? 'soon' : 'live';
-  const [dropStart, dropEnd] = MARKERS[drop];
-  let out = html;
-  const from = out.indexOf(dropStart);
-  const to = out.indexOf(dropEnd);
-  if (from === -1 || to === -1) throw new Error('les blocs « gateway » du modèle sont incomplets');
-  out = out.slice(0, from) + out.slice(to + dropEnd.length);
-  for (const [start, end] of Object.values(MARKERS)) out = replaceAll(out, start, '').split(end).join('');
-  return out;
-}
-
 /**
  * Le logo est le même que celui de l'application : une seule source, `icon.svg`.
  * L'icône est insérée plusieurs fois (barre, pied de page) : chaque copie reçoit
@@ -116,7 +118,7 @@ export function selectGateway(html, appUrl) {
  */
 export function inlineMark(iconSvg, suffix = '') {
   return iconSvg
-    .replace(/<\?xml[^>]*\?>\s*/g, '')
+    .replace(/<\?xml[^>]*?>\s*/g, '')
     .replace(/\swidth="[^"]*"/, '')
     .replace(/\sheight="[^"]*"/, '')
     .replace(/<svg /, '<svg aria-hidden="true" ')
@@ -124,79 +126,138 @@ export function inlineMark(iconSvg, suffix = '') {
     .replace(/url\(#df\)/g, `url(#df${suffix})`);
 }
 
-/** Assemble la page publiée. Aucune ressource distante, aucun script externe. */
-export function renderSite({ template, styles, mark, version, appUrl, repoUrl = REPO_URL, siteUrl = SITE_URL }) {
-  const verdict = checkAppUrl(appUrl);
-  if (!verdict.ok) throw new Error(verdict.reason);
-
-  let page = selectGateway(template, appUrl);
-  page = replaceOnce(page, '{{INLINE_CSS}}', styles.trimEnd());
-  page = replaceOnce(page, '{{MARK_SVG}}', inlineMark(mark));
-  page = replaceAll(page, '{{MARK_SVG}}', inlineMark(mark, '-footer'));
-  page = replaceAll(page, '{{VERSION}}', version);
-  page = replaceAll(page, '{{REPO_URL}}', repoUrl);
-  page = replaceAll(page, '{{SITE_URL}}', siteUrl);
-  // L'URL est aussi bien le texte affiché que l'attribut de copie : une seule
-  // substitution, donc aucun risque d'afficher une adresse et d'en ouvrir une autre.
-  page = replaceAll(page, '{{WEB_APP_URL}}', appUrl === '' ? repoUrl + '/releases/latest' : appUrl);
-  if (/{{[A-Z_]+}}/.test(page)) {
-    throw new Error(`substitution incomplète : ${page.match(/{{[A-Z_]+}}/)[0]}`);
-  }
+/** Remplace les jetons d'un gabarit et refuse tout jeton oublié. */
+function fill(template, tokens) {
+  let page = template;
+  for (const [token, value] of Object.entries(tokens)) page = replaceAll(page, token, value);
+  const leftover = /{{[A-Z_]+}}/.exec(page);
+  if (leftover) throw new Error(`substitution incomplète : ${leftover[0]}`);
   return page;
 }
 
-async function readIfPresent(root, relative) {
-  const full = path.join(root, relative);
-  return existsSync(full) ? readFile(full, 'utf8') : undefined;
+/** Assemble la page d'accueil. Aucune ressource distante, aucun script externe. */
+export function renderSite({
+  template,
+  styles,
+  mark,
+  version,
+  appUrl = APP_PATH,
+  repoUrl = REPO_URL,
+  siteUrl = SITE_URL,
+}) {
+  const verdict = checkAppUrl(appUrl, siteUrl);
+  if (!verdict.ok) throw new Error(verdict.reason);
+
+  // La première copie du logo (en-tête) et les suivantes (pied de page) n'ont pas le
+  // même identifiant de dégradé : sans cela, toutes les copies désigneraient la
+  // première définition.
+  const withHeaderMark = replaceOnce(template, '{{MARK_SVG}}', inlineMark(mark));
+  const withFooterMarks = replaceAll(withHeaderMark, '{{MARK_SVG}}', inlineMark(mark, '-footer'));
+  return fill(withFooterMarks, {
+    '{{INLINE_CSS}}': styles.trimEnd(),
+    '{{VERSION}}': version,
+    '{{ARCHIVED_ON}}': ARCHIVED_ON,
+    '{{REPO_URL}}': repoUrl,
+    '{{SITE_URL}}': siteUrl,
+    '{{WEB_APP_URL}}': appUrl,
+  });
 }
 
-/** Produit l'ensemble des fichiers à publier (chemins relatifs → contenu). */
-export async function buildOutputs(root) {
-  const template = await readFile(path.join(root, SOURCES.template), 'utf8');
-  const styles = await readFile(path.join(root, SOURCES.styles), 'utf8');
-  const mark = await readFile(path.join(root, SOURCES.mark), 'utf8');
-  const appUrl = parseAppUrl(await readIfPresent(root, SOURCES.appUrl).then((text) => text ?? ''));
-  const { version } = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
+/**
+ * Assemble la page 404.
+ *
+ * GitHub Pages sert le fichier `404.html` de la racine pour toute adresse inconnue. Il
+ * est servi **à l'adresse demandée** (par exemple `/DROPForge/une/autre/page`), donc
+ * ses liens doivent être absolus et préfixés par le chemin du site : un `app/` relatif
+ * pointerait sous l'adresse fautive.
+ */
+export function renderNotFound({
+  template,
+  styles,
+  mark,
+  base = '/',
+  appUrl,
+  repoUrl = REPO_URL,
+  siteUrl = SITE_URL,
+}) {
+  const effectiveApp = appUrl ?? `${base}${APP_PATH}`;
+  // Deux copies du logo (en-tête, pied de page) : chacune reçoit son propre identifiant
+  // de dégradé, pour qu'aucun `url(#…)` ne désigne la mauvaise définition.
+  const withHeaderMark = replaceOnce(template, '{{MARK_SVG}}', inlineMark(mark));
+  const withFooterMarks = replaceAll(withHeaderMark, '{{MARK_SVG}}', inlineMark(mark, '-footer'));
+  return fill(withFooterMarks, {
+    '{{INLINE_CSS}}': styles.trimEnd(),
+    '{{ARCHIVED_ON}}': ARCHIVED_ON,
+    '{{BASE_URL}}': base,
+    '{{APP_URL}}': effectiveApp,
+    '{{REPO_URL}}': repoUrl,
+    '{{SITE_URL}}': siteUrl,
+    '{{VERSION}}': '',
+  });
+}
 
-  const outputs = new Map();
-  outputs.set(OUTPUTS.page, renderSite({ template, styles, mark, version, appUrl }));
-  // Le favicon est l'icône de l'application, copiée telle quelle : ce qui
-  // apparaît dans l'onglet est exactement ce qui apparaît dans la barre des tâches.
-  outputs.set(OUTPUTS.favicon, mark);
-  // `.nojekyll` : sans lui, GitHub Pages fait passer les fichiers par Jekyll,
-  // qui peut réécrire le contenu (et refuse certains dossiers commençant par `_`).
-  outputs.set(OUTPUTS.noJekyll, '');
-  return outputs;
+/** Le manifeste du dépôt, lu à la source : la version affichée n'est jamais recopiée. */
+async function readVersion(root) {
+  return JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8')).version;
+}
+
+/**
+ * Produit les fichiers statiques du site (chemins relatifs → contenu), sans rien écrire.
+ * `appUrl` est le chemin de l'application **tel qu'il sera écrit dans la page**.
+ */
+export async function buildSiteFiles({
+  root = process.cwd(),
+  appUrl = APP_PATH,
+  base = '/',
+  siteUrl = SITE_URL,
+  repoUrl = REPO_URL,
+} = {}) {
+  const [template, notFound, styles, mark, version] = await Promise.all([
+    readFile(path.join(root, SOURCES.template), 'utf8'),
+    readFile(path.join(root, SOURCES.notFound), 'utf8'),
+    readFile(path.join(root, SOURCES.styles), 'utf8'),
+    readFile(path.join(root, SOURCES.mark), 'utf8'),
+    readVersion(root),
+  ]);
+
+  const files = new Map();
+  files.set(OUTPUTS.page, renderSite({ template, styles, mark, version, appUrl, repoUrl, siteUrl }));
+  files.set(
+    OUTPUTS.notFound,
+    renderNotFound({ template: notFound, styles, mark, base, appUrl: `${base}${APP_PATH}`, repoUrl, siteUrl }),
+  );
+  // Le favicon est l'icône de l'application, copiée telle quelle : ce qui apparaît dans
+  // l'onglet est exactement ce qui apparaît dans la barre des tâches.
+  files.set(OUTPUTS.favicon, mark);
+  return files;
 }
 
 export async function main(argv = process.argv.slice(2), root = process.cwd()) {
+  const outIndex = argv.indexOf('--out');
+  const out = outIndex === -1 ? '' : (argv[outIndex + 1] ?? '');
   const check = argv.includes('--check');
-  const outputs = await buildOutputs(root);
-  const drifted = [];
-
-  for (const [relative, content] of outputs) {
-    const current = await readIfPresent(root, relative);
-    if (current === content) continue;
-    if (check) {
-      drifted.push(relative);
-      continue;
-    }
-    await writeFile(path.join(root, relative), content, 'utf8');
-    console.log(`écrit : ${relative} (${Buffer.byteLength(content, 'utf8')} octets)`);
+  if (!check && out === '') {
+    console.error('usage : node scripts/build-site.mjs --out <dossier> | --check');
+    return 2;
   }
 
-  if (check && drifted.length > 0) {
-    console.error(`page publiée désynchronisée : ${drifted.join(', ')} — lancez « npm run site:build ».`);
-    return 1;
+  const base = process.env['DROPFORGE_PAGES_BASE'] ?? '/DROPForge/';
+  const siteUrl = process.env['DROPFORGE_SITE_URL'] ?? SITE_URL;
+  const files = await buildSiteFiles({ root, appUrl: APP_PATH, base, siteUrl });
+
+  if (check) {
+    // Rendues sans erreur : les jetons sont tous remplacés et l'adresse de
+    // l'application est utilisable. C'est ce que la chaîne vérifie.
+    for (const [name, content] of files) console.log(`ok : ${name} (${Buffer.byteLength(content, 'utf8')} octets)`);
+    return 0;
   }
-  if (check) console.log('page publiée synchronisée avec ses sources.');
-  if (!check) {
-    const appUrl = parseAppUrl((await readIfPresent(root, SOURCES.appUrl)) ?? '');
-    console.log(
-      appUrl === ''
-        ? 'adresse de l’application web : absente — la page affiche « bientôt » (site/app-url.txt).'
-        : `adresse de l’application web : ${appUrl}`,
-    );
+
+  const directory = path.isAbsolute(out) ? out : path.join(root, out);
+  await mkdir(directory, { recursive: true });
+  for (const [name, content] of files) {
+    const target = path.join(directory, name);
+    await writeFile(target, content, 'utf8');
+    console.log(`écrit : ${path.join(out, name)} (${Buffer.byteLength(content, 'utf8')} octets)`);
   }
   return 0;
 }
@@ -212,7 +273,12 @@ if (invokedDirectly) {
       process.exitCode = code;
     })
     .catch((error) => {
-      console.error(`page publiée non générée : ${error.message}`);
+      console.error(`pages statiques non générées : ${error.message}`);
       process.exitCode = 1;
     });
+}
+
+/** Vrai lorsque le site contient réellement l'application (utilisé par les contrôles). */
+export async function appIsPresent(directory) {
+  return existsSync(path.join(directory, APP_PATH, 'index.html'));
 }

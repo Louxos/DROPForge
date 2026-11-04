@@ -87,6 +87,17 @@ describe('icônes de l’application web', () => {
   });
 
   it('le README montre le logo', () => {
-    expect(read('README.md')).toMatch(/icons\/icon-\d+\.png|icons\/icon\.svg/);
+    const readme = read('README.md');
+    // Le README d'archive s'ouvre sur une bannière : elle doit reprendre le logo de
+    // l'application, et pas en dessiner un autre.
+    const banner = /docs\/assets\/[\w-]+\.svg/.exec(readme)?.[0];
+    if (banner === undefined) {
+      expect(readme).toMatch(/icons\/icon-\d+\.png|icons\/icon\.svg/);
+      return;
+    }
+    const svg = read(banner);
+    expect(svg).toContain('M256 112 L368 272 L144 272 Z');
+    expect(svg).toContain('#7c5cff');
+    expect(svg).toContain('#389cff');
   });
 });

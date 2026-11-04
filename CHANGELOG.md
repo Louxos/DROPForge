@@ -13,6 +13,159 @@ suivent le [versionnage sémantique](https://semver.org/lang/fr/) une fois la 1.
 > `.msi` décrivent un produit qui n'existe plus dans ce dépôt. La suite du projet est
 > l'application web installable, et rien d'autre.
 
+## [Archivé] — 4 novembre 2026
+
+**Le développement de DropForge s'arrête ici.** Cette entrée n'est pas une version : rien
+n'est ajouté, rien n'est corrigé. Elle date la fin du projet et dit ce qui reste en ligne.
+
+### Ce qui s'arrête
+
+- plus de fonctionnalités, plus de correctifs, plus de réponses de support ;
+- plus de versions publiées : la dernière reste la **0.1.3** du 16 octobre 2026. Le code
+  contenait une évolution `0.2.0` (publication sur GitHub Pages) qui n'a jamais reçu
+  d'étiquette ni de version publiée ;
+- le dépôt GitHub passe en **lecture seule**, avec l'étiquette `archived-2026-11-04`.
+
+### Changé
+
+- **Le site publié est désormais dans le dépôt.** GitHub Pages sert les fichiers de la
+  branche (`index.html`, `404.html`, `favicon.svg`, `app/`, `.nojekyll`) au lieu d'un
+  artefact de workflow : un dépôt archivé n'exécute plus ses workflows, un site qui
+  n'existerait que là ne serait plus reconstructible. `npm run publish:site` écrit cette
+  copie, et `npm run check:pages` la compare **octet par octet** au site construit — une
+  dérive échoue la chaîne.
+- La page publiée devient une page d'archive ; la page 404 et l'écran « À propos »
+  rappellent la date et l'arrêt du développement.
+
+### Ce qui reste en ligne
+
+- le code source et l'historique complet des commits, inchangés ;
+- les versions `v0.1.0` à `v0.1.3` et leurs archives, avec leurs sommes de contrôle ;
+- l'application, toujours servie à `https://louxos.github.io/DROPForge/app/`, **sans
+  maintenance** ;
+- la page du site, devenue une page d'archive, et cette documentation telle qu'elle était.
+
+### Pourquoi
+
+Un seul développeur, bénévole, pour un produit qui touche au réseau pair-à-pair, à la
+cryptographie, au stockage local et à trois moteurs de navigateurs : la maintenance est
+devenue disproportionnée. Le besoin est couvert par des outils installés et suivis par des
+équipes entières. Et rester gratuit était un plafond — relais public, serveurs TURN,
+hébergement des liens de partage et essais sur de vrais téléphones ne pouvaient pas être
+tenus sérieusement sans financement. **Plutôt que de promettre ce qui ne pouvait pas être
+tenu, le projet s'arrête.**
+
+### Non couvert, et assumé jusqu'au bout
+
+Aucune version stable (1.0) n'a jamais été publiée. Les transferts entre appareils de
+**réseaux différents**, les **liens de partage hébergés** et les **essais sur téléphones
+réels** n'ont jamais été livrés. Le dépôt n'a jamais reçu de licence : le code est
+consultable, pas librement réutilisable.
+
+## [0.2.0]
+
+> **Version jamais publiée.** L'évolution ci-dessous a été écrite, testée et publiée sur
+> GitHub Pages, mais le projet s'est arrêté avant qu'elle ne reçoive une étiquette et des
+> notes de version. Elle est le dernier état du code, pas une release.
+
+**DropForge est publié par GitHub Pages, et par rien d'autre.** Un dépôt, un site, un
+artefact : `npm run build:pages` assemble l'accueil, la page 404 et l'application dans
+`_site/`, et `.github/workflows/pages.yml` le publie à chaque envoi sur `main`. Il n'y a
+plus de `netlify.toml`, plus de variable d'environnement à recopier à la main, plus de
+second hébergement à tenir à jour — et donc plus de risque que le site publié ne soit pas
+celui du dépôt.
+
+```
+https://<compte>.github.io/<dépôt>/        l'accueil
+https://<compte>.github.io/<dépôt>/app/    l'application installable
+…/une-adresse-inconnue                     la page 404 du site
+```
+
+Rétrocompatibilité : l'ancienne adresse de l'application (racine du site, ailleurs) ouvre
+désormais la page d'accueil, d'où un bouton mène à l'application. Les liens d'appairage
+changent de forme (`…/app/#c=CODE`) — ceux qui ont été partagés avant ne fonctionnent plus.
+
+### Ajouté
+
+- **Le site complet, construit en une commande** : `npm run build:pages` assemble
+  `_site/` — accueil, page 404, application compilée sous `app/`. Le chemin de base est
+  calculé à partir du nom du dépôt (`/DROPForge/`, ou `/` pour un dépôt
+  `<compte>.github.io`) : une fourche se publie sans modifier un fichier.
+- **Une vraie page 404**, servie par GitHub Pages pour toute adresse inconnue, avec le
+  statut 404. Elle explique, renvoie à l'accueil et à l'application par des chemins
+  absolus, et ne redirige que si le fragment appartient à l'application (`#c=…`,
+  `#df=…`) — pour qu'un lien d'appairage mal collé ne soit pas perdu.
+- **Le routage dans le fragment** : `#route=transfer|devices|activity|settings` est lu au
+  démarrage et à chaque `hashchange`, et écrit par `history.replaceState`. Un
+  rechargement garde l'écran, le bouton retour quitte l'application, et les raccourcis
+  de l'application installée (« Transfert », « Historique ») ouvrent enfin le bon écran —
+  ils pointaient sur `#route=…` depuis la 0.1.0 sans que rien ne les lise.
+- **Le QR code fait ce qu'il annonce** : un lien d'appairage ouvre la page avec
+  `#c=CODE`, et l'application consomme ce code **une fois** au démarrage, puis retire le
+  fragment pour qu'un rechargement ne rappelle pas la salle. Le lien pointe désormais sur
+  la page réellement ouverte (`…/app/#c=…`) et non sur la racine de l'origine, où il
+  n'y avait pas d'application sur un site de projet.
+- **`npm run check:pages`** : sert `_site/` sur un serveur qui applique les règles de
+  GitHub Pages (chemin de base, pas de réécriture, `404.html`), puis demande chaque
+  fichier référencé à travers ce chemin, lit le manifeste (`start_url`, `scope`, icônes,
+  raccourcis), l'enregistrement du service worker et **tous** les fichiers qu'il précache,
+  vérifie qu'une adresse inconnue répond 404 avec la page du site, qu'aucune carte de
+  sources n'est publiée et que le site reste sous son budget. `--url https://…` rejoue
+  les mêmes contrôles sur le site en ligne.
+- **`npm run preview:pages`** : le même site, servi sous `/DROPForge/` pour cliquer
+  dedans avant de publier.
+- **Vérification après publication** : la chaîne de Pages vérifie le site **avant** de
+  l'envoyer, puis le relit **après** déploiement depuis son adresse publique. Un envoi
+  n'est annoncé réussi qu'après cette lecture.
+- **Deux variables de dépôt** pour un domaine personnalisé ou une adresse particulière :
+  `DROPFORGE_PAGES_BASE`, `DROPFORGE_SITE_URL` ; et deux pour un déploiement distant :
+  `DROPFORGE_SIGNALING_URL`, `DROPFORGE_ICE_URLS`. Sans elles, rien n'est deviné.
+
+### Modifié
+
+- **La page d'accueil ne connaît plus son adresse** : elle renvoie à l'application par un
+  chemin relatif (`app/`) et n'affiche l'adresse absolue qu'à l'ouverture, calculée depuis
+  l'URL du navigateur. Le fichier `site/app-url.txt`, qu'il fallait penser à mettre à jour
+  après chaque déploiement, a disparu avec le problème qu'il créait.
+- **Le site publié ne contient plus de cartes de sources** : 3,5 Mio → **702 Kio** pour
+  15 fichiers (une carte de 2,8 Mio accompagnait un script de 600 Kio). Elles restent
+  disponibles à la demande (`DROPFORGE_SOURCEMAP=1`).
+- **Aucun fichier généré n'est plus versionné** : `index.html`, `favicon.svg` et
+  `.nojekyll` à la racine du dépôt ont disparu ; le site est reconstruit à chaque
+  publication, il ne peut donc pas dériver de ses sources.
+- **`npm run verify` construit et vérifie le site** (au lieu de comparer la page publiée à
+  ses sources) : le contrôle porte sur les fichiers qui seront réellement envoyés.
+- **La chaîne d'intégration construit aussi le site sous un autre chemin**
+  (`/autre-nom/`), pour prouver qu'aucun préfixe n'est écrit en dur.
+
+### Retiré
+
+- `netlify.toml` — configuration, en-têtes de cache, redirection SPA et réglages de
+  développement. GitHub Pages ne lit pas d'en-têtes personnalisés : les règles de cache
+  qu'il posait ne sont plus applicables (voir « Limites assumées »).
+- `tests/netlify.test.ts` — remplacé par `tests/pages-deploy.test.ts`, qui vérifie la
+  chaîne GitHub Pages, le site construit, le préfixe de chaque référence et l'absence de
+  reste de l'ancien hébergeur.
+- `.netlify/` et sa mention dans `.gitignore`.
+
+### Limites assumées, écrites ici pour ne pas les découvrir plus tard
+
+- **GitHub Pages n'accepte aucun en-tête personnalisé** : pas de `Cache-Control` choisi,
+  pas de CSP. Les fichiers de l'application portent une empreinte de contenu dans leur
+  nom, le navigateur revalide le service worker, et `index.html` peut rester en cache
+  jusqu'à une dizaine de minutes après une publication. C'est une limite de l'hôte, pas
+  un réglage oublié (`docs/TECHNIQUE.md` § 12).
+- **Aucune WebSocket** : le relais (transferts entre deux réseaux différents) ne peut pas
+  vivre sur le site. Il reste optionnel, ailleurs, annoncé par `DROPFORGE_SIGNALING_URL` ;
+  sans lui, l'application le dit et le mode « deux appareils sur le même Wi‑Fi » reste
+  entier.
+- **Aucun stockage de fichiers** : les liens de partage hébergés restent indisponibles.
+  Le code client existe et reste testé ; aucun service n'est branché, et l'écran ne
+  propose pas une fonction qui ne marcherait pas.
+- **Le site vit sous `/app/`** : une PWA installée depuis une version antérieure garde son
+  ancienne portée. Il faut la désinstaller puis la réinstaller depuis la nouvelle adresse
+  pour bénéficier des mises à jour.
+
 ## [0.1.3]
 
 **Le projet se concentre sur une seule chose : l'application web installable.** L'application

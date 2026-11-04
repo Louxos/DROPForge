@@ -1763,17 +1763,35 @@ function defaultRandomFill(bytes: Uint8Array<ArrayBuffer>): void {
   crypto.getRandomValues(bytes);
 }
 
-/** The link the other device opens: the code travels in the fragment only. */
+/**
+ * The link the other device opens: the code travels in the fragment only, so the
+ * signaling service never receives it and it never lands in a server log.
+ *
+ * The link points at **the page that is running**, not at the origin's root. When
+ * DropForge is published on a project site (`https://user.github.io/DROPForge/app/`),
+ * `origin` alone would send the other device to `https://user.github.io/#c=…` — a page
+ * that is not DropForge at all. `pathname` is what the browser actually opened, and it
+ * is right for a published site, a local folder and a development server alike.
+ */
 export function pairingLinkFor(code: string, loc: Location | undefined = globalThis.location): string {
   const origin = loc?.origin ?? '';
-  return `${origin}/#c=${code}`;
+  const path = loc?.pathname ?? '/';
+  // A directory address ends with `/`; `…/app` or `…/index.html` would still work but
+  // would make the link longer (and a QR code denser) for nothing.
+  const page = path.endsWith('/') || path.endsWith('.html') ? path : `${path}/`;
+  return `${origin}${page}#c=${code}`;
+}
+
+/** The pairing code carried by a fragment (`#c=CODE`), when there is one. */
+export function pairingCodeFromHash(hash: string): string | undefined {
+  const fragment = hash.startsWith('#') ? hash.slice(1) : hash;
+  const code = new URLSearchParams(fragment).get('c');
+  return code && /^[A-Za-z0-9_-]{4,32}$/.test(code) ? code : undefined;
 }
 
 function pairingCodeFromLink(link: string): string | undefined {
   const hash = link.includes('#') ? link.slice(link.indexOf('#') + 1) : '';
-  const params = new URLSearchParams(hash);
-  const code = params.get('c');
-  return code && /^[A-Za-z0-9_-]{4,32}$/.test(code) ? code : undefined;
+  return pairingCodeFromHash(hash);
 }
 
 export const CONTROLLER_KEEPALIVE_MS = KEEPALIVE_INTERVAL_MS;

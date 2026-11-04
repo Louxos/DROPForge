@@ -2,7 +2,7 @@
  * Application shell: sidebar on desktop, fixed bottom bar on mobile, and the four
  * screens. It renders the controller's state; it never decides anything itself.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { RADIUS, SPACE, TYPOGRAPHY, colorsFor, resolveTheme } from '@dropforge/design-system';
 import type { AppController, AppState } from './controller.js';
@@ -12,8 +12,9 @@ import { ActivityScreen } from '../screens/activity.js';
 import { SettingsScreen } from '../screens/settings.js';
 import { BrandMark, NoticeStack } from '../components/atoms.js';
 import type { InstallWatch } from '../platform/install.js';
+import { DEFAULT_ROUTE, hashForRoute, routeFromHash, type Route } from './routes.js';
 
-export type Route = 'transfer' | 'devices' | 'activity' | 'settings';
+export type { Route } from './routes.js';
 
 /**
  * What is shown when the application cannot start at all: the local storage, the
@@ -73,8 +74,39 @@ export interface ShellProps {
 
 export function Shell({ controller, state, install }: ShellProps): React.ReactElement {
   const { t, i18n } = useTranslation();
-  const [route, setRoute] = useState<Route>('transfer');
+  // The screen comes from the fragment when the address names one (a shortcut of the
+  // installed application, a link pasted into the bar), and from the default otherwise.
+  const [route, setRoute] = useState<Route>(
+    () => routeFromHash(globalThis.location?.hash ?? '') ?? DEFAULT_ROUTE,
+  );
   const [systemDark, setSystemDark] = useState(true);
+
+  // A later fragment is honoured too: `hashchange` covers the back button, a shortcut
+  // opened while the application is already running, and a link edited in the bar.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onHashChange = (): void => {
+      const named = routeFromHash(window.location.hash);
+      if (named) setRoute(named);
+    };
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
+  /**
+   * Moves to a screen and writes its name in the fragment.
+   *
+   * `replaceState` and not `location.hash = …`: switching tab must not fill the
+   * history with entries, or the back button stops leaving the application. The
+   * fragment is still what the address shows, so a reload keeps the screen and the
+   * address can be copied.
+   */
+  const goTo = useCallback((next: Route): void => {
+    setRoute(next);
+    if (typeof window === 'undefined') return;
+    const hash = hashForRoute(next);
+    if (window.location.hash !== hash) window.history.replaceState(null, '', hash);
+  }, []);
 
   // The theme follows the system when asked to, and the window is the source of
   // truth for "system": no guessing.
@@ -182,7 +214,7 @@ export function Shell({ controller, state, install }: ShellProps): React.ReactEl
               type="button"
               className="df-nav__item"
               aria-current={route === item.route ? 'page' : undefined}
-              onClick={() => setRoute(item.route)}
+              onClick={() => goTo(item.route)}
             >
               <span aria-hidden="true" style={{ width: 18, textAlign: 'center' }}>
                 {item.glyph}
@@ -212,7 +244,7 @@ export function Shell({ controller, state, install }: ShellProps): React.ReactEl
             type="button"
             className="df-bottom-nav__item"
             aria-current={route === item.route ? 'page' : undefined}
-            onClick={() => setRoute(item.route)}
+            onClick={() => goTo(item.route)}
           >
             <span aria-hidden="true">{item.glyph}</span>
             {item.label}

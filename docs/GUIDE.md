@@ -1,5 +1,9 @@
 # Guide DropForge
 
+> **Projet archivé le 4 novembre 2026.** Le développement est arrêté : ce guide décrit
+> l'état laissé, pas une feuille de route, et plus aucune correction n'y sera apportée.
+> Le dépôt reste public, en lecture seule — voir le [README](../README.md).
+
 Tout ce qui se fait **avec** DropForge : l'installer, s'en servir, réparer, publier.
 Ce qui se passe **dedans** (architecture, sécurité, tests, état réel) est dans
 [`TECHNIQUE.md`](TECHNIQUE.md). L'historique des versions est dans
@@ -61,7 +65,7 @@ récent suffit (Chrome, Edge, Firefox, Safari), sur ordinateur comme sur télép
 
 | Vous êtes sur | Prenez | Comment |
 | --- | --- | --- |
-| Ordinateur, téléphone, tablette | **l'application web** | l'adresse publiée (Netlify ou la vôtre, voir § 10), puis « Installer l'application » (Chrome/Edge, Android) ou Partager → « Sur l'écran d'accueil » (iOS/Safari). Le détail est au § 6 |
+| Ordinateur, téléphone, tablette | **l'application web** | <https://louxos.github.io/DROPForge/app/> — puis « Installer l'application » (Chrome/Edge, Android) ou Partager → « Sur l'écran d'accueil » (iOS/Safari). Le détail est au § 6 |
 | Un réseau isolé, une clé USB | **l'archive hors ligne** | `dropforge-pwa-<version>.zip`, servie en **HTTPS** depuis n'importe quel dossier (`npx serve`, `python3 -m http.server`) : voir § 4 pour le cas « deux appareils sur le même Wi‑Fi » |
 | Deux réseaux différents | **le relais** | `dropforge-signaling-<version>.zip` : `npm install --omit=dev && npm start` |
 
@@ -121,7 +125,7 @@ Deux obstacles se cumulent dès que deux appareils ne sont pas la même machine 
    après que les deux appareils se sont trouvés.
 2. **La mise en relation.** Les deux appareils doivent se trouver. En ligne, cela passe
    par un service de signalisation, sur une adresse en HTTPS/WebSocket — or un
-   hébergement statique (Netlify, GitHub Pages) ne garde pas de WebSocket ouverte, et
+   hébergement statique (GitHub Pages) ne garde pas de WebSocket ouverte, et
    une page HTTPS n'a pas le droit d'ouvrir `ws://` vers la machine d'à côté.
 
 `npm run lan` répond aux deux : il sert l'application en HTTPS depuis une machine du
@@ -335,72 +339,128 @@ Rien de tout cela n'est envoyé où que ce soit : voir
 
 ## 10. Propriétaire du dépôt
 
-Trois choses seulement ne peuvent pas être faites par un agent : deux actions et une
-décision.
+> **État depuis le 4 novembre 2026, date de l'archivage.** GitHub Pages sert les fichiers
+> du dépôt, publiés depuis une branche : il n'y a plus rien à régler, plus rien à
+> relancer. Un dépôt archivé n'exécute plus ses workflows — la copie versionnée est donc
+> la seule publication qui survive, et c'est pour cela qu'elle est dans le dépôt. Ce qui
+> suit décrit ce qui est en place ; **rien de tout cela n'est plus à faire**.
+
+Le site est publié **uniquement sur GitHub Pages** : aucun hébergeur tiers, aucun serveur à vous :
+
+| Adresse | Contenu |
+| --- | --- |
+| <https://louxos.github.io/DROPForge/> | la page d'archive (projet arrêté, code, historique) |
+| <https://louxos.github.io/DROPForge/app/> | l'application web installable (PWA) |
+| `…/une-page-inconnue` | la page 404 du site, servie par GitHub Pages |
+
+Un seul réglage a été nécessaire, une fois. Ce tableau dit ce qu'il faudrait refaire si
+le projet reprenait — il n'y a rien à faire aujourd'hui.
 
 | # | Action | Nécessaire pour | Coût |
 | --- | --- | --- | --- |
-| 1 | **Brancher l'application web** (Netlify) | Une adresse publique pour la PWA | 0 € |
-| 2 | **Rebrancher GitHub Pages sur `main`** | Que la page publiée ne dépende plus d'une branche de travail | 0 € |
+| 1 | **Settings → Pages → Source = « Deploy from a branch »**, branche `main`, dossier `/` | Servir le site depuis les fichiers du dépôt, sans dépendre d'un workflow | 0 € |
+| 2 | *(facultatif)* une adresse de relais | Les transferts entre deux réseaux différents | 0 € |
 | 3 | **Licence du projet** | Dire ce que les autres ont le droit de faire | 0 € |
 
-**1. L'application web.** `netlify.toml` est fourni : Add new site → Import from
-GitHub → `DROPForge` (branche `main`) ; réglages appliqués automatiquement
-(`npm run build:web`, dossier `apps/web/dist`, Node 22, `DROPFORGE_BASE=/`). Ensuite :
+### 1. Publier le site — ce qui est en place, et pourquoi
 
-- Le service de signalisation ne peut pas tourner sur Netlify (pas de WebSocket). Il va
-  ailleurs (`deploy/`, Cloudflare, une machine à vous) et s'annonce à la compilation :
-  `VITE_SIGNALING_URL=wss://votre-relais.example/ws` dans les variables d'environnement
-  du site, puis « Clear cache and deploy ». Sans relais : transferts sur le réseau local
-  seulement, et l'interface le dit. L'adresse ne s'invente pas — une version publiée sans
-  `VITE_SIGNALING_URL` n'a **aucun** relais, et l'annonce à l'écran plutôt que de tenter
-  une connexion vers un hôte qui n'écoute pas.
-- **En-têtes et cache** (déjà posés par `netlify.toml`) : `nosniff`, `no-referrer`,
-  `SAMEORIGIN` sur tout le site ; `must-revalidate` sur `/sw.js`, `/registerSW.js`,
-  `/index.html` et le manifeste — sans quoi une nouvelle version n'arriverait jamais ;
-  un an `immutable` sur `/assets/*` (noms empreintés) ; 24 h sur les icônes.
-- **Aucune CSP n'est posée, et c'est volontaire.** Une CSP écrite à l'avance casserait
-  l'application en silence : le service worker, le WebSocket du relais et les
-  téléchargements `blob:` dépendent de l'adresse du relais, choisie après coup. Si vous en
-  voulez une, ajoutez-la **après** avoir testé sur un aperçu de branche, en autorisant au
-  minimum `'self'` pour les scripts et le style, `connect-src` vers l'adresse `wss://` du
-  relais, `blob:` pour les téléchargements, et `data:` pour les icônes.
+Dépôt → **Settings** → **Pages** → *Build and deployment* → **Source** :
+**« Deploy from a branch »**, branche `main`, dossier `/`. GitHub sert alors les fichiers
+du dépôt eux-mêmes : `index.html`, `404.html`, `favicon.svg`, `app/`, et `.nojekyll` qui
+empêche Jekyll de les retoucher. Rien d'autre.
 
-- **Dernière étape obligatoire** : collez l'adresse obtenue (par exemple
-  `https://dropforge.netlify.app`) dans [`site/app-url.txt`](../site/app-url.txt) sur une
-  seule ligne, lancez `npm run site:build`, puis envoyez `index.html`. C'est cette
-  constante, et elle seule, que la page d'accueil affiche en haut.
+Ces fichiers ne s'écrivent pas à la main : `npm run publish:site` les produit depuis
+`site/` et `apps/web`, et `npm run check:pages` vérifie **octet par octet** que la copie
+du dépôt est exactement le site construit. Une copie oubliée après une modification fait
+échouer la chaîne, au lieu de partir en ligne sans que personne ne le voie.
 
-**2. La page d'accueil publique** — <https://louxos.github.io/DROPForge/> — GitHub Pages
-est réglé sur **« Deploy from a branch »**, dossier `/` : Pages sert `index.html` (généré
-par `scripts/build-site.mjs` depuis [`site/`](../site)), et le README seulement s'il est
-absent. `.nojekyll` évite que Jekyll réécrive la page. La source enregistrée publie à
-chaque envoi sur **cette branche-là**, et c'est le seul réglage du projet qu'un jeton
-d'automatisation ne peut pas changer (`403 Resource not accessible by integration`) :
+> **Pourquoi plus « GitHub Actions ».** Le workflow `.github/workflows/pages.yml` a publié
+> le site jusqu'à la 0.2.0 : il construisait, vérifiait, publiait, puis relisait l'adresse
+> publique. Le dépôt étant **archivé depuis le 4 novembre 2026**, ses workflows ne
+> s'exécutent plus — un site qui n'existerait que comme artefact de workflow ne serait
+> plus reconstructible. Le fichier reste dans le dépôt comme trace de cette chaîne ; il
+> n'est plus ce qui publie.
 
-> **L'action du propriétaire :** GitHub Pages publie aujourd'hui depuis la branche de
-> travail, pas depuis `main`. `main` porte **exactement les mêmes fichiers** ; le geste
-> consiste à pointer la source dessus — Settings → Pages → *Deploy from a branch* →
-> `main` / `/` → **Save** — pour que la page ne dépende plus d'une branche de session.
-> Vérification : `gh api repos/<dépôt>/pages` doit répondre `"branch":"main"`, et la page
-> se reconstruit toute seule en une minute. Tant que la source n'est pas changée, la page
-> reste correcte : c'est la branche enregistrée qui est servie.
+> **Pourquoi ce réglage est manuel :** GitHub demande au propriétaire de choisir la
+> source de publication, et une Action ne peut pas le faire à sa place avec le jeton
+> par défaut. Tant qu'il n'est pas fait, la tâche de publication **échoue dès la
+> première étape, avec le geste exact à faire** — elle ne fait pas semblant d'avoir
+> publié. Un site de branche (« Deploy from a branch ») ne servirait que des fichiers
+> figés, pas l'application construite : c'est pour cela qu'il n'est plus utilisé.
+>
+> Le réglage fait, relancez une fois le travail — **Actions → Site (GitHub Pages) →
+> Run workflow** — ou envoyez un commit sur `main` : la publication suivante construit
+> et vérifie le site.
 
-> **Les deux réglages de Pages s'excluent :** « Deploy from a branch » publie la page
-> d'accueil ; « GitHub Actions » publierait l'application PWA à la place (c'est ce que
-> fait `pages.yml` quand on lui en donne l'autorisation). Avec l'application sur
-> Netlify, gardez « Deploy from a branch » — les fichiers publiés sont les mêmes dans
-> les deux cas.
+**Ce que la publication fait, dans l'ordre :**
 
-`npm run check:site` (inclus dans `npm run verify`) refuse une page désynchronisée de
-ses sources, et `npm run site:build` régénère `index.html`, `favicon.svg` et
-`.nojekyll`.
+1. `npm ci`, `npm run verify` — types, contrôles du site, tests ;
+2. `npm run build:pages` — l'application (Vite) + l'accueil + la page 404 dans `_site/` ;
+3. `node scripts/check-pages.mjs` — le site est servi sous son **vrai** chemin
+   (`/DROPForge/`) et chaque fichier référencé est demandé ;
+4. envoi de l'artefact et publication par GitHub Pages ;
+5. `node scripts/check-pages.mjs --url <adresse publiée>` — les mêmes contrôles, sur le
+   site réellement en ligne.
 
-**3. Publier une version** — c'est un acte définitif : `npm run verify` d'abord, la
-chaîne d'intégration verte sur le commit visé ensuite.
+**Sur une fourche, rien à modifier.** Le chemin de base est calculé à partir du nom du
+dépôt (`/<dépôt>/`, ou `/` pour un dépôt `<compte>.github.io`), et la page d'accueil
+renvoie à l'application par un chemin relatif. Deux variables de dépôt permettent de
+s'en écarter sans toucher au code (Settings → Secrets and variables → Actions →
+*Variables*) :
+
+| Variable | Effet |
+| --- | --- |
+| `DROPFORGE_PAGES_BASE` | le préfixe du site (`/`, `/mon-depot/`…). À poser à `/` si vous utilisez un domaine à la racine |
+| `DROPFORGE_SITE_URL` | l'adresse publique complète, pour les métadonnées de partage |
+| `DROPFORGE_SIGNALING_URL` | l'adresse `wss://` du relais, compilée dans l'application |
+| `DROPFORGE_ICE_URLS` | des serveurs STUN/TURN, si vous en configurez (aucun par défaut) |
+
+**Domaine personnalisé** (facultatif) : Settings → Pages → *Custom domain*, puis, si le
+domaine sert le site **à la racine**, posez la variable `DROPFORGE_PAGES_BASE=/` (et
+`DROPFORGE_SITE_URL=https://votre-domaine/`). Sans cela, les fichiers de l'application
+seraient demandés sous `/DROPForge/app/…`, un chemin qui n'existe plus sur ce domaine.
+
+### 2. Le relais, si vous voulez deux réseaux différents
+
+GitHub Pages est un hébergement **statique** : il ne garde aucune connexion WebSocket
+ouverte. Le service de mise en relation doit donc vivre ailleurs (`deploy/`,
+Cloudflare, une machine à vous), et son adresse est compilée dans l'application via
+`DROPFORGE_SIGNALING_URL`. Sans cette variable, la version publiée n'a **aucun** relais
+et le dit à l'écran : les deux appareils du même Wi-Fi fonctionnent quand même
+(`npm run lan`, § 4), et c'est le mode éprouvé de bout en bout.
+
+L'application publiée ne tente jamais de joindre un relais qui n'existe pas : elle ne
+devine plus d'adresse à partir de son propre domaine.
+
+### 3. Les liens de partage hébergés restent indisponibles
+
+Ils demandent un stockage de fichiers, que GitHub Pages ne fournit pas. Le code client
+existe et reste testé, mais aucun service n'est branché : l'écran ne propose donc pas
+une fonction qui ne marcherait pas. Voir [`TECHNIQUE.md`](TECHNIQUE.md) § 10 et 11.
+
+### 4. Vérifier et prévisualiser avant de publier
 
 ```bash
-git tag v0.1.3 && git push origin v0.1.3
+npm run verify            # types, contrôle du site construit, tests
+npm run build:pages       # construit _site/ (accueil + application + 404)
+npm run preview:pages     # sert _site/ sous /DROPForge/, comme GitHub Pages
+npm run check:pages       # construit puis vérifie le site, sous son vrai chemin
+```
+
+`npm run verify` inclut la construction et le contrôle du site : une publication ne
+part jamais d'un site que la chaîne n'a pas lu.
+
+### 5. Publier une version — c'est un acte définitif
+
+> **Plus possible depuis le 4 novembre 2026.** Le dépôt est archivé : aucun tag, aucune
+> release et aucun envoi ne peuvent plus être créés. Cette section décrit la chaîne qui a
+> servi aux versions 0.1.0 à 0.1.3 ; elle reste ici comme documentation, pas comme mode
+> d'emploi.
+
+`npm run verify` d'abord, la chaîne d'intégration verte sur le commit visé ensuite.
+
+```bash
+git tag v0.2.0 && git push origin v0.2.0
 ```
 
 `.github/workflows/release.yml` exécute alors : types et tests → paquets
@@ -408,16 +468,18 @@ git tag v0.1.3 && git push origin v0.1.3
 Release, dont les notes sont extraites de [`CHANGELOG.md`](../CHANGELOG.md) pour ce tag.
 Une version dont l'archive ne se sert pas ne devient jamais « dernière version ».
 
-Il n'y a **pas d'installateur à signer** : un certificat d'éditeur ne servait qu'à
-supprimer l'avertissement d'un exécutable, et il n'y en a plus.
+Il n'y a **pas d'installateur à signer**, et plus d'application Windows : DropForge est
+une application web installable, et rien d'autre.
 
 ## 11. Déployer soi-même
 
 | Besoin | Méthode | Commande |
 | --- | --- | --- |
-| Essayer l'application | dossier statique | `npm run build:web` puis servez `apps/web/dist` |
+| **Le site public** | **GitHub Pages** (accueil + application) | rien à faire après le réglage du § 10.1 |
+| Essayer le site en local | le même `_site/`, servi comme Pages | `npm run build:pages && npm run preview:pages` → `http://localhost:4174/DROPForge/` |
 | Transferts à distance sur un réseau | les deux conteneurs | `cd deploy && docker compose up -d --build` → `http://localhost:8080` (`/health` pour le relais) |
 | Internet, plusieurs réseaux | application + signalisation, TLS devant | reverse proxy (Caddy, Traefik, nginx) devant le conteneur `web` ; transmettez `/ws` |
+| Une archive à servir ailleurs | l'archive de la version | `dropforge-pwa-<v>.zip`, servie en HTTPS depuis n'importe quel dossier |
 
 Le conteneur `web` sert l'interface **et** relaie `/ws` vers la signalisation : une seule
 origine, donc aucune règle CORS à assouplir. Le relais ne stocke aucun fichier : il

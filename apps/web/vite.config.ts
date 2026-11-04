@@ -27,8 +27,8 @@ const fromHere = (path: string): string => fileURLToPath(new URL(path, import.me
  * The version of the product, read from the root `package.json`.
  *
  * Read here rather than written by hand: the release script can still override it with
- * `DROPFORGE_VERSION`, and a plain `npm run build:web` (what a host like Netlify runs)
- * then shows the true version too.
+ * `DROPFORGE_VERSION`, and a plain `npm run build:web` (what the GitHub Pages workflow
+ * runs) then shows the true version too.
  */
 function appVersion(): string {
   try {
@@ -61,9 +61,11 @@ const SIGNALING_ORIGIN = process.env['DROPFORGE_SIGNALING_ORIGIN'] ?? 'http://12
 /**
  * Base path the application is served from.
  *
- * `/` for a domain root or a local build; `/DROPForge/` for a GitHub Pages project
- * site. Everything the manifest refers to is written relative to it, so an
- * installed application keeps working whatever the path.
+ * `/` for a domain root or a local build; `/DROPForge/app/` for the published site
+ * (`https://louxos.github.io/DROPForge/app/`), computed by `scripts/build-pages.mjs`
+ * from the repository name. Everything the manifest, the service worker and the icons
+ * refer to is written with this prefix, so an installed application keeps working
+ * whatever the path — and a forked repository publishes itself without editing a file.
  */
 const BASE = process.env['DROPFORGE_BASE'] ?? '/';
 
@@ -176,7 +178,11 @@ export default defineConfig({
     // one bundle rather than split into lazy chunks the user would have to fetch.
     chunkSizeWarningLimit: 800,
     target: 'es2022',
-    sourcemap: true,
+    // Source maps are opt-in (`DROPFORGE_SOURCEMAP=1`). In a published build they add
+    // their own size to every download — 2.8 MB for this 600 KB bundle — and publish
+    // the sources with it. A bug report is served by the error code and the message,
+    // not by a stack trace of minified code.
+    sourcemap: process.env['DROPFORGE_SOURCEMAP'] === '1',
     outDir: 'dist',
     emptyOutDir: true,
   },

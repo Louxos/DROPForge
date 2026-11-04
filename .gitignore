@@ -20,9 +20,15 @@ out/
 deploy/.env
 dist/
 
-# Netlify (état local de `netlify dev`) : le site publié, lui, est décrit par
-# `netlify.toml`, qui est versionné.
-.netlify/
+# Site GitHub Pages assemblé par `npm run build:pages` : page d'archive, page 404 et
+# application compilée. Ce dossier est un établi, jamais publié tel quel : la copie qui
+# compte est celle de la racine (`index.html`, `404.html`, `favicon.svg`, `app/`,
+# `.nojekyll`), écrite par `npm run publish:site` et comparée octet par octet par
+# `npm run check:pages`. L'établi, lui, reste hors du dépôt.
+_site/
+# Ce que la construction a réellement produit (chemin de base, taille, version) : lu par
+# les contrôles, jamais publié.
+.pages-build.json
 
 # Test & coverage artifacts
 coverage/

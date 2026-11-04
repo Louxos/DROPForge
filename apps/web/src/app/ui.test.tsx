@@ -74,6 +74,9 @@ afterEach(async () => {
   }
   stopStartedControllers();
   document.body.innerHTML = '';
+  // The address is part of the test's state: a fragment left by one test would open
+  // the next one on the wrong screen (that is the whole point of the routing).
+  window.history.replaceState(null, '', '/');
 });
 
 /** Clicks a button by its visible label, the way a person would. */
@@ -244,7 +247,11 @@ describe('interface montée de bout en bout', () => {
     const record = rig.host.state.history.find((entry) => entry.id === transferId)!;
     const verified = record.files.every((file) => file.verified === true);
     expect(details).toContain(verified ? i18n.t('activity.verified') : i18n.t('activity.notVerified'));
-    expect(text(guest)).not.toContain(i18n.t('states.failed'));
+    // The receiver recorded the same conclusion. This read the *screen* before, and
+    // the screen always contains the word « Échec » — in the history filter — so the
+    // assertion was true whatever happened. The record is the thing to read.
+    const received = rig.guest.state.history.find((entry) => entry.id === transferId)!;
+    expect(received.state).toBe('completed');
   });
 
   it('montre un refus comme un refus, jamais comme un succès', async () => {
@@ -350,5 +357,64 @@ describe('interface montée de bout en bout', () => {
     expect(shown).toContain(i18n.t('settings.notificationsUnsupported'));
     expect(shown).toContain(i18n.t('capabilities.unavailable'));
     expect(shown).toContain(i18n.t('settings.privacyText'));
+  });
+});
+
+describe('adresse et écran, sur un hébergement statique', () => {
+  it('ouvre l’écran nommé par le fragment', async () => {
+    const rig = await makeRig();
+    await rig.host.start();
+    window.history.replaceState(null, '', '/#route=activity');
+    const container = await mount(rig.host);
+    await flush();
+
+    const current = container.querySelector('.df-nav__item[aria-current="page"]');
+    expect(current?.textContent).toContain(i18n.t('nav.activity'));
+  });
+
+  it('suit le fragment quand il change, sans rechargement', async () => {
+    const rig = await makeRig();
+    await rig.host.start();
+    const container = await mount(rig.host);
+    await flush();
+
+    await act(async () => {
+      window.history.replaceState(null, '', '/#route=settings');
+      window.dispatchEvent(new Event('hashchange'));
+    });
+    await flush();
+
+    const current = container.querySelector('.df-nav__item[aria-current="page"]');
+    expect(current?.textContent).toContain(i18n.t('nav.settings'));
+  });
+
+  it('écrit l’écran dans le fragment quand on navigue', async () => {
+    const rig = await makeRig();
+    await rig.host.start();
+    const container = await mount(rig.host);
+    await flush();
+
+    await click(container, i18n.t('nav.devices'));
+    await flush();
+
+    // The address is what survives a reload (and what the installed application's
+    // shortcuts use): it must name the screen.
+    expect(window.location.hash).toBe('#route=devices');
+    const current = container.querySelector('.df-nav__item[aria-current="page"]');
+    expect(current?.textContent).toContain(i18n.t('nav.devices'));
+  });
+
+  it('laisse intact un fragment d’appairage, qui n’est pas un écran', async () => {
+    const rig = await makeRig();
+    await rig.host.start();
+    window.history.replaceState(null, '', '/#c=abc123');
+    const container = await mount(rig.host);
+    await flush();
+
+    // The code belongs to the pairing feature (it is read at start-up, once): the
+    // routing must not overwrite it, nor read it as a screen name.
+    expect(window.location.hash).toBe('#c=abc123');
+    const current = container.querySelector('.df-nav__item[aria-current="page"]');
+    expect(current?.textContent).toContain(i18n.t('nav.transfer'));
   });
 });

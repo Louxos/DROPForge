@@ -1,6 +1,6 @@
 # Publication d'une version : c'est le moyen officiel de télécharger DropForge.
 #
-#   git tag v0.1.3 && git push origin v0.1.3
+#   git tag v0.2.0 && git push origin v0.2.0
 #
 # Ce qu'une version contient, et rien d'autre :
 #
@@ -11,6 +11,9 @@
 # DropForge est une application web installable (PWA) : il n'y a plus d'installateur à
 # compiler, donc plus de machine Windows ni de chaîne d'outils Rust ici. Cette chaîne ne
 # construit que ce qu'elle publie.
+# Depuis le 4 novembre 2026, le dépôt est archivé : ce workflow ne s'exécute plus, et
+# aucune nouvelle version ne peut être publiée. Il reste dans le dépôt comme trace de la
+# chaîne qui a produit les versions 0.1.0 à 0.1.3.
 name: Release
 
 

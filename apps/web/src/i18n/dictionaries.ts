@@ -195,6 +195,7 @@ export interface Dictionary {
     saved: string;
     about: string;
     aboutText: string;
+    archived: string;
     license: string;
     checkUpdate: string;
     installUpdate: string;
@@ -467,6 +468,8 @@ export const FR: Dictionary = {
     saved: 'Réglages enregistrés',
     about: 'À propos',
     aboutText: 'DropForge {{version}} — logiciel libre, sans compte et sans service payant.',
+    archived:
+      'Projet archivé le 4 novembre 2026 : le développement est arrêté, aucune mise à jour ni correction ne sera livrée. Le dépôt reste public, en lecture seule.',
     license: 'La licence du projet reste à définir ; les licences des composants utilisés sont listées dans docs/TECHNIQUE.md.',
     checkUpdate: 'Rechercher une mise à jour',
     installUpdate: 'Installer maintenant',
@@ -788,6 +791,8 @@ export const EN: Dictionary = {
     saved: 'Settings saved',
     about: 'About',
     aboutText: 'DropForge {{version}} — free software, no account and no paid service.',
+    archived:
+      'Project archived on 4 November 2026: development has stopped, no update or fix will ship. The repository stays public, read-only.',
     license: 'The project’s licence is still to be decided; the licences of the components it uses are listed in docs/TECHNIQUE.md.',
     checkUpdate: 'Check for an update',
     installUpdate: 'Install now',
