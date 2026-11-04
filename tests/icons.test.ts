@@ -99,5 +99,8 @@ describe('icônes de l’application web', () => {
     expect(svg).toContain('M256 112 L368 272 L144 272 Z');
     expect(svg).toContain('#7c5cff');
     expect(svg).toContain('#389cff');
+    // La bannière annonce la fermeture : elle porte le rouge et l'orange de l'archivage.
+    expect(svg).toContain('#ff5a4d');
+    expect(svg).toContain('#ff8a3d');
   });
 });

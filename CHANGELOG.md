@@ -36,6 +36,9 @@ n'est ajouté, rien n'est corrigé. Elle date la fin du projet et dit ce qui res
   dérive échoue la chaîne.
 - La page publiée devient une page d'archive ; la page 404 et l'écran « À propos »
   rappellent la date et l'arrêt du développement.
+- **La fermeture se lit en rouge et en orange** : filet en haut de page, sceau daté,
+  titre en dégradé chaud, halos rouges. Le logo garde son violet et son bleu — c'est
+  DropForge, pas une page d'erreur — et la bannière du README porte les mêmes couleurs.
 
 ### Ce qui reste en ligne
 

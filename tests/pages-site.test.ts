@@ -158,6 +158,20 @@ describe('page d’archive publiée', () => {
     expect(page).not.toMatch(/<marquee|animation-iteration-count:\s*infinite/i);
   });
 
+  it('marque la fermeture en rouge et en orange, sans perdre l’identité de DropForge', () => {
+    const page = home();
+    // Le logo garde ses couleurs — c'est DropForge, pas une page d'erreur.
+    expect(page).toContain('#7c5cff');
+    expect(page).toContain('#389cff');
+    // La fermeture a les siennes, et elles servent vraiment : filet, sceau, titre.
+    expect(page).toContain('--closed: #ff5a4d');
+    expect(page).toContain('--ember: #ff8a3d');
+    expect(page).toContain('--amber: #ffc46b');
+    expect(page).toMatch(/\.topbar::before \{[^}]*linear-gradient/);
+    expect(page).toMatch(/\.archive-hero h1 \{[^}]*background-clip: text/);
+    expect(page).toContain('class="closed"');
+  });
+
   it('ne renvoie plus à Netlify, et dit qui sert la page', () => {
     const page = home();
     expect(page.toLowerCase()).not.toContain('netlify');
