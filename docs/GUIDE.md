@@ -1,5 +1,9 @@
 # Guide DropForge
 
+> **Projet archivé le 4 novembre 2026.** Le développement est arrêté : ce guide décrit
+> l'état laissé, pas une feuille de route, et plus aucune correction n'y sera apportée.
+> Le dépôt reste public, en lecture seule — voir le [README](../README.md).
+
 Tout ce qui se fait **avec** DropForge : l'installer, s'en servir, réparer, publier.
 Ce qui se passe **dedans** (architecture, sécurité, tests, état réel) est dans
 [`TECHNIQUE.md`](TECHNIQUE.md). L'historique des versions est dans
@@ -335,6 +339,12 @@ Rien de tout cela n'est envoyé où que ce soit : voir
 
 ## 10. Propriétaire du dépôt
 
+> **Ce qui s'est passé, et ce qui ne se fera plus (4 novembre 2026).** Le site a été
+> construit, vérifié et publié par `.github/workflows/pages.yml` **avant** l'archivage du
+> dépôt. Depuis l'archivage, les workflows ne s'exécutent plus : le site reste celui du
+> dernier déploiement, figé, et rien ne se republiera tout seul. Les réglages ci-dessous
+> décrivent donc ce qu'il fallait faire ; **ils ne sont plus à faire**.
+
 Le site est publié **uniquement sur GitHub Pages** : aucun hébergeur tiers, aucun serveur à vous :
 
 | Adresse | Contenu |
@@ -429,6 +439,11 @@ npm run check:pages       # construit puis vérifie le site, sous son vrai chemi
 part jamais d'un site que la chaîne n'a pas lu.
 
 ### 5. Publier une version — c'est un acte définitif
+
+> **Plus possible depuis le 4 novembre 2026.** Le dépôt est archivé : aucun tag, aucune
+> release et aucun envoi ne peuvent plus être créés. Cette section décrit la chaîne qui a
+> servi aux versions 0.1.0 à 0.1.3 ; elle reste ici comme documentation, pas comme mode
+> d'emploi.
 
 `npm run verify` d'abord, la chaîne d'intégration verte sur le commit visé ensuite.
 

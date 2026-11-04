@@ -105,9 +105,16 @@ describe('Netlify et Tauri ont quitté le dépôt', () => {
     expect(mentions).toEqual([]);
   });
 
-  it('ne laisse aucun reste de l’application Windows', () => {
+  it('ne laisse aucun reste exécutable de l’application Windows', () => {
     expect(exists('apps/desktop')).toBe(false);
-    expect(read('README.md')).not.toContain('Tauri');
+    // Le README d'archive a le droit — et le devoir — de raconter que l'application de
+    // bureau a été abandonnée ; il n'a pas le droit de proposer un installateur.
+    const readme = read('README.md');
+    expect(readme).not.toMatch(/setup\.exe|\.msi\b|installateur Windows/i);
+    for (const line of readme.split('\n')) {
+      if (!line.includes('Tauri')) continue;
+      expect(line, 'Tauri ne peut apparaître que comme un choix abandonné').toMatch(/abandonn|retir/i);
+    }
     expect(read('docs/GUIDE.md')).not.toMatch(/installateur Windows à télécharger|\.msi/i);
   });
 });

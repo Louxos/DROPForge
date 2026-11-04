@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 280" width="1200" height="280" role="img" aria-label="DropForge — projet archivé le 4 novembre 2026">
+  <defs>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7c5cff" />
+      <stop offset="1" stop-color="#389cff" />
+    </linearGradient>
+    <radialGradient id="halo-violet" cx="0.14" cy="0.06" r="0.95">
+      <stop offset="0" stop-color="#7c5cff" stop-opacity="0.42" />
+      <stop offset="1" stop-color="#7c5cff" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="halo-blue" cx="0.98" cy="1" r="0.85">
+      <stop offset="0" stop-color="#389cff" stop-opacity="0.3" />
+      <stop offset="1" stop-color="#389cff" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <rect width="1200" height="280" fill="#08080b" />
+  <rect width="1200" height="280" fill="url(#halo-violet)" />
+  <rect width="1200" height="280" fill="url(#halo-blue)" />
+  <rect x="0" y="0" width="1200" height="2" fill="url(#accent)" />
+  <rect x="0.5" y="0.5" width="1199" height="279" fill="none" stroke="#ffffff" stroke-opacity="0.09" />
+
+  <!-- Le logo, copié à l'identique depuis apps/web/public/icons/icon.svg. -->
+  <g transform="translate(72 88) scale(0.203125)">
+    <rect width="512" height="512" rx="112" fill="#0b0b0f" />
+    <path d="M256 112 L368 272 L144 272 Z" fill="url(#accent)" />
+    <rect x="238" y="312" width="36" height="88" rx="10" fill="url(#accent)" />
+  </g>
+
+  <text x="204" y="150" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="46" font-weight="700" letter-spacing="-1.4" fill="#f4f4f8">DropForge</text>
+  <text x="206" y="186" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" fill="#85859a">Transfert de fichiers chiffré de bout en bout, sans compte</text>
+
+  <line x1="880" y1="92" x2="880" y2="192" stroke="#ffffff" stroke-opacity="0.12" />
+
+  <text x="920" y="128" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="600" letter-spacing="4" fill="#cfc3ff">PROJET ARCHIVÉ</text>
+  <text x="919" y="170" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="27" font-weight="600" letter-spacing="-0.6" fill="#f4f4f8">4 novembre 2026</text>
+  <text x="920" y="198" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" fill="#85859a">Dépôt public · lecture seule</text>
+</svg>

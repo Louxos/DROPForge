@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Génère les pages **statiques** du site GitHub Pages : la page d'accueil et la page
+ * Génère les pages **statiques** du site GitHub Pages : la page d'archive et la page
  * 404. L'application elle-même est construite par Vite (voir `scripts/build-pages.mjs`,
  * qui assemble les deux dans `_site/`).
  *
@@ -33,6 +33,15 @@ export const REPO_URL = 'https://github.com/Louxos/DROPForge';
  * Surchargée par `DROPFORGE_SITE_URL` à la construction : une fourche publie la sienne.
  */
 export const SITE_URL = 'https://louxos.github.io/DROPForge/';
+
+/**
+ * Date officielle de l'archivage du projet, en toutes lettres.
+ *
+ * Une seule source de vérité : la page publiée, la page 404, le README et les notes de
+ * version annoncent la même date. La changer ici oblige à la changer partout ailleurs,
+ * ce qui est exactement le but.
+ */
+export const ARCHIVED_ON = '4 novembre 2026';
 
 /** Où vit l'application à l'intérieur du site. Relatif, et jamais absolu. */
 export const APP_PATH = 'app/';
@@ -147,6 +156,7 @@ export function renderSite({
   return fill(withFooterMarks, {
     '{{INLINE_CSS}}': styles.trimEnd(),
     '{{VERSION}}': version,
+    '{{ARCHIVED_ON}}': ARCHIVED_ON,
     '{{REPO_URL}}': repoUrl,
     '{{SITE_URL}}': siteUrl,
     '{{WEB_APP_URL}}': appUrl,
@@ -177,6 +187,7 @@ export function renderNotFound({
   const withFooterMarks = replaceAll(withHeaderMark, '{{MARK_SVG}}', inlineMark(mark, '-footer'));
   return fill(withFooterMarks, {
     '{{INLINE_CSS}}': styles.trimEnd(),
+    '{{ARCHIVED_ON}}': ARCHIVED_ON,
     '{{BASE_URL}}': base,
     '{{APP_URL}}': effectiveApp,
     '{{REPO_URL}}': repoUrl,

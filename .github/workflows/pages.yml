@@ -2,7 +2,7 @@
 #
 # Ce que ce site contient, et rien d'autre :
 #
-#   /                 la page publique (présentation, limites, liens)
+#   /                 la page d'archive (projet arrêté, code source, historique)
 #   /app/             l'application web installable (PWA)
 #   404.html          la page servie pour toute adresse inconnue
 #
@@ -16,6 +16,10 @@
 #
 # Le chemin de base est celui du dépôt (`/NOM-DU-DEPOT/`), calculé ici : une fourche se
 # publie correctement sans modifier un seul fichier.
+#
+# Depuis le 4 novembre 2026, le dépôt est archivé : ce workflow ne s'exécute plus. Le site
+# publié reste celui du dernier déploiement, figé. Il est conservé tel quel pour que
+# l'archive montre aussi comment le site était publié.
 name: Site (GitHub Pages)
 
 on:

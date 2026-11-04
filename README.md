@@ -1,141 +1,163 @@
 <p align="center">
-  <img src="apps/web/public/icons/icon-192.png" alt="DropForge" width="96" height="96" />
+  <img src="docs/assets/archive-banner.svg" alt="DropForge — projet archivé le 4 novembre 2026" width="100%" />
 </p>
 
 # DropForge
 
-**Transférez vos fichiers simplement, rapidement, et en toute sécurité.**
+> **Projet archivé le 4 novembre 2026.**
+> Le développement est définitivement arrêté : aucune nouvelle fonctionnalité, aucun correctif,
+> aucune réponse de support. Le dépôt reste **public et en lecture seule**, conservé comme archive
+> de ce qui a été construit.
 
-DropForge envoie des fichiers entre vos appareils — Windows, Android, iOS, n'importe quel
-navigateur — sans compte obligatoire, sans service payant, et en privilégiant le transfert
-direct d'un appareil à l'autre. Quand un serveur s'en mêle, il ne voit jamais le contenu
-des fichiers.
-
-<p align="center">
-  <em>Une application web installable (PWA) : rien à télécharger, rien à installer —
-  l'interface s'installe depuis le navigateur, sur ordinateur comme sur téléphone.</em>
-</p>
-
----
-
-## Documentation — quatre documents, pas plus
-
-| Document | Contenu |
+| | |
 | --- | --- |
-| **[docs/GUIDE.md](docs/GUIDE.md)** | Installer, s'en servir, mode « même Wi‑Fi », **dépannage**, publier, déployer |
-| **[docs/TECHNIQUE.md](docs/TECHNIQUE.md)** | Architecture, comportement, données, sécurité, plateformes, tests, **état réel du projet**, annexes générées (dépendances, licences) |
-| **[CHANGELOG.md](CHANGELOG.md)** | Ce qui a changé, version par version — c'est aussi le texte des notes de version publiées |
-| **[Site public](https://louxos.github.io/DROPForge/)** | La vitrine, et **[l'application](https://louxos.github.io/DROPForge/app/)** — les deux servies par GitHub Pages |
+| **État** | Archivé — développement arrêté |
+| **Date d'archivage** | 4 novembre 2026 |
+| **Dernière version publiée** | [0.1.3](https://github.com/Louxos/DROPForge/releases/tag/v0.1.3) — 16 octobre 2026 |
+| **Dernier état du code** | 0.2.0, jamais publiée comme version (voir la [chronologie](#chronologie)) |
+| **Licence** | Aucune — le code est consultable, pas librement réutilisable |
+| **Page publique** | <https://louxos.github.io/DROPForge/> — page d'archive |
 
-## Télécharger
+## Pourquoi cette archive
 
-| Vous êtes sur | Prenez | Comment |
-| --- | --- | --- |
-| **Ordinateur, téléphone, tablette** | l'application web | <https://louxos.github.io/DROPForge/app/> — puis « Installer l'application » / « Sur l'écran d'accueil ». Hébergée par GitHub Pages, sur le même site que cette page (voir [docs/GUIDE.md](docs/GUIDE.md) § 10) |
-| **Un réseau isolé** | l'archive hors ligne | `dropforge-pwa-<version>.zip` de la dernière version, servi en **HTTPS** depuis n'importe quel dossier |
-| **Deux réseaux différents** | le serveur optionnel | `dropforge-signaling-<version>.zip` : `npm install --omit=dev && npm start` |
-| **Un serveur à vous** | les conteneurs | `cd deploy && docker compose up -d --build` → `http://localhost:8080` |
+DropForge a été mené par une seule personne, bénévolement, sur un sujet qui touche au réseau
+pair-à-pair, à la cryptographie, au stockage local et à trois moteurs de navigateurs. Chaque
+version honnête demandait une vérification complète, et cette charge est devenue
+disproportionnée face à ce que le projet apportait encore.
 
-Installation depuis le navigateur, sommes de contrôle et dépannage :
-[docs/GUIDE.md](docs/GUIDE.md) § 2 et § 7.
+Le même besoin est aujourd'hui couvert par des outils installés, financés et suivis par des
+équipes entières. Continuer aurait surtout produit une base de code de plus à maintenir seule.
 
-## État réel du projet
+Rester gratuit, enfin, était devenu un plafond : un relais public, des serveurs TURN, un
+hébergement pour les liens de partage et des essais sur de vrais téléphones ne pouvaient pas
+être tenus sérieusement sans financement. **Plutôt que de promettre ce qui ne pouvait pas être
+tenu, le projet s'arrête** — et tout ce qui a été construit reste lisible ici.
 
-DropForge n'est **pas** encore une 1.0, et il le dit. Version actuelle : **0.2.0**.
+## Ce que DropForge devait faire
 
-| Partie | Statut |
-| --- | --- |
-| Moteur de transfert (chiffrement de bout en bout, reprise, vérification SHA-256, file d'attente) | ✅ Implémenté et **testé** (470 tests automatisés, 43 fichiers) |
-| Interface partagée React/TypeScript (FR/EN, thèmes sombre et clair) | ✅ Implémentée et **testée** au niveau du contrôleur et du rendu |
-| Application web progressive (PWA) installable | ✅ Implémentée et **testée** — pas encore essayée sur un téléphone réel |
-| Site publié sur GitHub Pages (accueil, application sous `/app/`, page 404) | ✅ Construit, vérifié **avant et après** chaque publication, sans hébergeur tiers |
-| Serveur de signalisation / relais aveugle (Node) | ✅ Implémenté et **testé** |
-| Tests dans un vrai navigateur (E2E) | ✅ **Exécutés à chaque envoi** : Chromium, Firefox, WebKit (iPhone), transfert réel avec octets reçus hachés et comparés |
-| Tests sur appareils mobiles réels | ❌ Non exécutés — l'émulation est couverte, pas un vrai iPhone/Android |
-| Liens de partage hébergés | ⚠️ Code client implémenté et testé ; nécessite un hébergement (optionnel) |
+Envoyer un fichier d'un appareil à l'autre — Windows, Android, iOS, n'importe quel
+navigateur — **sans compte obligatoire, sans service payant, et en direct dès que le réseau le
+permet**. Quand un serveur s'en mêlait, il ne devait jamais voir le contenu des fichiers.
 
-Le détail exigence par exigence, avec ce qui manque pour une 1.0 :
-[docs/TECHNIQUE.md](docs/TECHNIQUE.md) § 10.
+L'ordre des méthodes, et la première qui fonctionne réellement :
 
-## Comment DropForge se connecte
-
-Dans l'ordre, **la première méthode qui fonctionne réellement** :
-
-1. **Réseau local** — les deux appareils sont sur le même réseau : le transfert ne sort
-   jamais du réseau local.
-2. **Direct (WebRTC)** — réseaux différents : un canal chiffré de bout en bout est négocié
-   avec l'aide d'un serveur de signalisation qui ne voit passer que de la négociation.
+1. **Réseau local** — les deux appareils sont sur le même Wi‑Fi : le transfert ne sort pas du
+   réseau local.
+2. **Direct (WebRTC)** — un canal chiffré de bout en bout est négocié avec l'aide d'un serveur
+   de signalisation qui ne voit passer que la négociation.
 3. **Relais aveugle** — quand la connexion directe est impossible : le serveur relaie des
    octets déjà chiffrés qu'il ne peut pas lire.
 
-Si aucune méthode ne fonctionne, DropForge le dit clairement et propose une alternative.
-**Il n'affirme jamais qu'un réseau autorise la connexion directe.**
+Si aucune méthode ne fonctionnait, l'application le disait clairement. Elle n'affirmait jamais
+qu'un réseau autorisait la connexion directe.
 
-## Démarrage rapide (développement)
+## État réel au moment de l'arrêt
 
-Prérequis : **Node 22+** et npm. Rien d'autre : ni Rust, ni machine Windows.
+Aucune 1.0 n'a jamais été publiée, et ce dépôt ne prétend pas le contraire. Voici ce qui
+existait, ce qui était testé, et ce qui manquait — sans arrondi.
+
+| Partie | État à l'arrêt |
+| --- | --- |
+| Moteur de transfert (chiffrement de bout en bout, reprise, vérification SHA‑256, file d'attente) | ✅ Implémenté et testé |
+| Interface React/TypeScript partagée (FR/EN, thèmes sombre et clair) | ✅ Implémentée et testée au niveau du contrôleur et du rendu |
+| Application web progressive (PWA) installable | ✅ Construite et servie ; **jamais essayée sur un téléphone réel** |
+| Publication du site (page, application, page 404) sur GitHub Pages | ✅ Vérifiée avant et après publication, sans hébergeur tiers |
+| Serveur de signalisation et relais aveugle (Node, WebSocket) | ✅ Implémenté et testé, **sans adresse publique retenue** |
+| Tests automatisés (unitaires et d'intégration) | ✅ 475 tests, 43 fichiers, exécutés à chaque contrôle |
+| Tests de bout en bout dans de vrais navigateurs (Chromium, Firefox, WebKit) | ⚠️ Écrits et versionnés ; **non rejoués dans cet environnement**, qui n'a pas de navigateurs |
+| Essais sur appareils mobiles réels | ❌ Jamais faits — seule l'émulation est couverte |
+| Liens de partage hébergés (fichier stocké, expirable) | ⚠️ Code client écrit et testé ; **aucun hébergement retenu**, donc indisponible |
+| Deux appareils sur des réseaux différents | ❌ Non promis — il aurait fallu une adresse de relais publique |
+| Licence | ❌ Aucune — décision jamais prise |
+
+Le détail exigence par exigence, y compris ce qui manquait pour une 1.0 :
+[docs/TECHNIQUE.md](docs/TECHNIQUE.md) § 10.
+
+## Technologies
+
+| Domaine | Choix |
+| --- | --- |
+| Langage et outillage | Node 22, npm workspaces, TypeScript strict, Vite |
+| Interface | React, design system maison (charbon, violet et bleu électrique) |
+| Application installable | PWA, service worker Workbox, manifeste, mode hors ligne |
+| Transport | WebRTC (négociation et canal de données), WebSocket pour la signalisation |
+| Cryptographie | WebCrypto et `@noble/hashes` — AES‑256‑GCM, X25519 et Ed25519, aucun algorithme maison |
+| Qualité | Vitest (unitaire et intégration), Playwright (bout en bout), contrôles du site publié |
+| Publication | GitHub Pages, sans hébergeur tiers, sans service payant |
+| Abandonné en cours de route | Application de bureau Rust/Tauri, retirée en 0.1.3 au profit de la seule application web |
+
+## Explorer le code
+
+Rien n'est cassé volontairement, mais **rien n'est maintenu** : ce qui suit décrit l'état
+laissé, pas une promesse de fonctionnement sur une machine d'aujourd'hui.
 
 ```bash
-npm install
-
-npm run dev            # application web + signalisation (une seule commande)
-npm run dev:web        # application web seule → http://localhost:5173
-npm run dev:signaling  # signalisation seule → http://localhost:8787
-
-npm run verify         # ce que la chaîne exige : types, contrôle du site, 470 tests
-npm test               # 43 fichiers, 470 tests
-npm run test:e2e       # navigateurs réels (Chromium, Firefox, WebKit) — à installer une fois :
-npm run test:e2e:install
-
-npm run build          # application web + serveur
-npm run package        # archives web + serveur et sommes de contrôle dans release/
-
-npm run build:pages    # le site publié : accueil + application + page 404, dans _site/
-npm run preview:pages  # ce site, servi sous /DROPForge/ comme sur GitHub Pages
-npm run check:pages    # construit et vérifie le site sous son vrai chemin
+npm ci                 # dépendances (Node 22+)
+npm test               # la suite automatisée
+npm run dev:web        # l'application seule → http://localhost:5173
+npm run lan            # deux appareils du même Wi‑Fi, voir docs/GUIDE.md § 4
+npm run build:pages    # le site publié, tel qu'il est servi aujourd'hui
 ```
-
-Pour utiliser DropForge entre deux appareils, ouvrez l'application sur les deux. Le serveur
-de signalisation n'est nécessaire que pour les transferts **distants** : sur le même réseau
-local, l'application fonctionne sans lui.
-
-## Structure du dépôt
 
 | Emplacement | Contenu |
 | --- | --- |
 | `packages/*` | Le métier, sans React ni DOM : `protocol`, `security`, `app-core`, `transfer-engine`, `connection-manager`, `device-manager`, `history`, `settings`, `sharing`, `notifications`, `design-system` |
-| `apps/web` | Application web progressive (React + Vite) — l'interface partagée |
-| `apps/signaling` | Serveur de signalisation / relais aveugle (Node, WebSocket) |
-| `deploy/` | nginx, Dockerfiles et `docker-compose.yml` : tout sur une seule origine |
-| `site/` | Gabarits de la page publique et de la page 404, avec leur feuille de style |
-| `_site/` | Le site assemblé par `npm run build:pages` (jamais versionné) : accueil, 404, application sous `app/` |
+| `apps/web` | Application web progressive (React + Vite) |
+| `apps/signaling` | Serveur de signalisation et relais aveugle (Node, WebSocket) |
+| `site/` | Gabarits de la page d'archive et de la page 404, avec leur feuille de style |
+| `scripts/` | Construction du site, vérification avant et après publication, paquets et sommes de contrôle |
 | `e2e/` | Tests de bout en bout dans de vrais navigateurs |
-| `scripts/` | Outils : icônes, paquets, page publiée, inventaire des dépendances, fichiers d'aide du navigateur |
+| `docs/` | [Guide](docs/GUIDE.md), [documentation technique](docs/TECHNIQUE.md), bannière d'archive |
 
-## Sécurité et confidentialité
+## Documentation
 
-Aucun compte obligatoire, aucune télémétrie — ni par défaut ni en option. Le contenu est
-chiffré de bout en bout (WebCrypto et `@noble/hashes`, aucun algorithme maison), les clés
-privées ne quittent pas l'appareil, et les journaux ne contiennent ni secret ni contenu de
-fichier. Ce qui **n'est pas** protégé est écrit noir sur blanc :
-[docs/TECHNIQUE.md](docs/TECHNIQUE.md) § 5 et § 6.
+| Document | Contenu |
+| --- | --- |
+| **[docs/GUIDE.md](docs/GUIDE.md)** | Installer, utiliser, mode « même Wi‑Fi », dépannage, publication |
+| **[docs/TECHNIQUE.md](docs/TECHNIQUE.md)** | Architecture, données, sécurité, plateformes, tests, état réel, annexes générées |
+| **[CHANGELOG.md](CHANGELOG.md)** | Ce qui a changé, version par version, et l'arrêt du projet |
+| **[Site public](https://louxos.github.io/DROPForge/)** | La page d'archive, et [l'application](https://louxos.github.io/DROPForge/app/) telle qu'elle a été laissée |
 
-## Contributions
+Ces documents décrivent le projet **tel qu'il était**, pas ce qu'il serait devenu.
 
-Les contributions, idées et retours sont bienvenus. Avant de proposer une modification,
-vérifiez l'état réel dans [docs/TECHNIQUE.md](docs/TECHNIQUE.md) § 10 : une fonctionnalité
-marquée « partiel » ou « non testé » ne doit pas être présentée comme terminée.
+## Ce qui reste accessible
+
+- **Le code source** : l'intégralité du dépôt, tel qu'il a été laissé.
+- **L'historique** : chaque commit, depuis le premier — rien n'a été réécrit.
+- **Les versions publiées** : [0.1.0 à 0.1.3](https://github.com/Louxos/DROPForge/releases),
+  avec leurs archives et leurs sommes de contrôle.
+- **L'application** : toujours servie à
+  <https://louxos.github.io/DROPForge/app/>, **sans maintenance**. Elle reste utilisable
+  entre deux appareils du **même réseau local** ; les transferts entre réseaux différents et
+  les liens hébergés n'ont jamais eu l'infrastructure pour fonctionner.
+- **Les tags de version** : `v0.1.0` à `v0.1.3`, plus le tag `archived-2026-11-04` qui marque
+  la fermeture.
+
+## Chronologie
+
+| Date | Événement |
+| --- | --- |
+| 13 octobre 2026 | `v0.1.0` — première version publiée |
+| 14 octobre 2026 | `v0.1.1` |
+| 16 octobre 2026 | `v0.1.2`, puis `v0.1.3` : l'application Windows quitte le projet, la web reste seule |
+| 2 novembre 2026 | Publication du site sur GitHub Pages, fin de tout hébergeur tiers (`0.2.0`) |
+| 4 novembre 2026 | **Arrêt définitif et archivage du dépôt** (`archived-2026-11-04`) |
+
+La version `0.2.0` est le dernier état du code. Elle a été construite, contrôlée et publiée sur
+GitHub Pages, mais **n'a jamais reçu de version publiée** : l'arrêt du projet est intervenu
+avant.
 
 ## Licence
 
-La licence du projet reste **à définir**. Tant qu'aucun fichier `LICENSE` n'est présent, le
-code n'est pas automatiquement réutilisable, modifiable ni redistribuable. Les licences des
-dépendances (toutes permissives) sont dans
-[docs/TECHNIQUE.md](docs/TECHNIQUE.md) § 13.
+Le projet n'a **jamais reçu de licence**, et l'archivage ne permet plus d'en ajouter une. Sans
+fichier `LICENSE`, le code est consultable mais **pas librement réutilisable, modifiable ni
+redistribuable** : le droit d'auteur s'applique par défaut. Les licences des dépendances
+(toutes permissives) sont listées dans [docs/TECHNIQUE.md](docs/TECHNIQUE.md) § 13.
 
-## Soutenir le projet
+## Contributions et support
 
-En suivant son évolution, en partageant vos idées, en signalant les problèmes et en
-contribuant à son amélioration.
+**Aucun support n'est assuré.** Les issues et les pull requests sont figées par l'archivage du
+dépôt : elles restent lisibles, mais plus personne ne les traitera. Aucune reprise du projet
+n'est prévue.
 
-Merci de votre intérêt pour DropForge.
+Merci à celles et ceux qui ont suivi, testé ou commenté DropForge.

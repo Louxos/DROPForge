@@ -7,7 +7,7 @@
     <meta name="robots" content="noindex" />
     <meta
       name="description"
-      content="Cette adresse ne correspond à aucun fichier du site DropForge. L'application est juste à côté."
+      content="Cette adresse ne correspond à aucun fichier du site archivistique DropForge. La page d'archive et l'application sont juste à côté."
     />
     <meta name="theme-color" content="#08080b" />
     <meta name="color-scheme" content="dark" />
@@ -19,7 +19,7 @@
   <body class="notfound">
     <header class="topbar">
       <div class="wrap">
-        <a class="brand" href="{{BASE_URL}}" aria-label="DropForge — page d'accueil">
+        <a class="brand" href="{{BASE_URL}}" aria-label="DropForge — page d'archive">
           {{MARK_SVG}}
           <span>DropForge</span>
         </a>
@@ -45,7 +45,7 @@
         </p>
         <div class="actions">
           <a class="btn btn-primary" href="{{APP_URL}}" data-app>Ouvrir l'application</a>
-          <a class="btn btn-ghost" href="{{BASE_URL}}">Page d'accueil</a>
+          <a class="btn btn-ghost" href="{{BASE_URL}}">Retour à la page d'archive</a>
         </div>
       </div>
 
@@ -59,6 +59,7 @@
     <footer>
       <div class="wrap">
         <span class="brand">{{MARK_SVG}}<span>DropForge</span></span>
+        <span>Archivé le {{ARCHIVED_ON}}</span>
         <span class="spacer"></span>
         <a href="{{REPO_URL}}">Code source</a>
         <a href="{{REPO_URL}}/blob/main/docs/GUIDE.md">Guide</a>

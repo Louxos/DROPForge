@@ -1,5 +1,5 @@
 /**
- * La page publique du site GitHub Pages : l'accueil et la page 404.
+ * La page publique du site GitHub Pages : la page d'archive et la page 404.
  *
  * Ces tests protègent trois choses qui, sans surveillance, se cassent en silence :
  *
@@ -9,7 +9,10 @@
  *  2. l'application est un **chemin relatif** (`app/`), et rien d'autre : le même site
  *     fonctionne sur `https://louxos.github.io/DROPForge/`, sur une fourche et dans un
  *     dossier local, sans qu'aucune adresse absolue n'ait à être tenue à jour ;
- *  3. la page 404 parle de l'adresse demandée, renvoie à l'application, et ne redirige
+ *  3. la page d'archive annonce l'archivage, sa date, l'arrêt définitif, et donne accès
+ *     au code, à l'historique et aux versions — sans jamais se lire comme une page
+ *     temporaire ni comme une promesse de reprise ;
+ *  4. la page 404 parle de l'adresse demandée, renvoie à l'application, et ne redirige
  *     que lorsqu'un fragment de l'application est présent.
  *
  * Tout est vérifié sur le contenu **réellement rendu** par le générateur : ce qui passe
@@ -22,6 +25,7 @@ import { fileURLToPath } from 'node:url';
 
 import {
   APP_PATH,
+  ARCHIVED_ON,
   OUTPUTS,
   REPO_URL,
   SOURCES,
@@ -46,7 +50,7 @@ const home = (): string => renderSite({ template, styles, mark, version }) as st
 const notFoundPage = (base = '/DROPForge/'): string =>
   renderNotFound({ template: notFound, styles, mark, base, appUrl: `${base}app/` }) as string;
 
-describe('page d’accueil publiée', () => {
+describe('page d’archive publiée', () => {
   it('est autonome : aucune ressource distante à charger', () => {
     const page = home();
     // Pas de feuille de style externe, pas de script externe, pas de police distante.
@@ -67,50 +71,94 @@ describe('page d’accueil publiée', () => {
   it('ne publie aucun gabarit non remplacé', () => {
     const page = home();
     expect(page).not.toMatch(/{{[A-Z_]+}}/);
-    expect(page).toContain(`Version ${version}`);
-    expect(page).toContain(`dropforge-pwa-${version}.zip`);
+    // La date d'archivage vient du générateur, pas d'une phrase recopiée à la main.
+    expect(page).toContain(ARCHIVED_ON);
+    expect(page).not.toContain('{{ARCHIVED_ON}}');
   });
 
-  it('place l’application avant tout le reste du contenu', () => {
+  it('annonce l’archivage avant tout le reste, et nulle part ailleurs', () => {
     const page = home();
-    const app = page.indexOf('id="application"');
-    const features = page.indexOf('id="transfers"');
-    const security = page.indexOf('id="security"');
-    expect(app).toBeGreaterThan(-1);
-    expect(app).toBeLessThan(features);
-    expect(app).toBeLessThan(security);
-    expect(app).toBeLessThan(page.indexOf('<section'));
+    const announcement = page.indexOf('Ce projet est désormais archivé.');
+    expect(announcement).toBeGreaterThan(-1);
+    // Le titre arrive avant le rappel de l'objectif, avant les raisons, avant le code.
+    for (const later of ['id="objectif"', 'id="raisons"', 'id="acces"']) {
+      expect(announcement, `${later} doit venir après le titre`).toBeLessThan(page.indexOf(later));
+    }
+    // La date officielle est annoncée dans la page elle-même.
+    expect(page).toContain(ARCHIVED_ON);
+  });
+
+  it('dit clairement que le développement est arrêté et qu’il n’y aura rien', () => {
+    const page = home();
+    expect(page).toMatch(/Développement arrêté/i);
+    expect(page).toMatch(/aucune nouvelle fonctionnalité/i);
+    expect(page).toMatch(/aucun correctif/i);
+    // Aucune formulation de page temporaire : ce n'est ni une maintenance ni un « bientôt ».
+    expect(page).not.toMatch(/bientôt|maintenance en cours|reviens|de retour prochainement/i);
+    // Aucune invitation à revenir suivre un développement qui n'existe plus.
+    expect(page).not.toMatch(/rejoignez|newsletter|abonnez-vous/i);
+  });
+
+  it('donne accès au code source, à l’historique et aux versions', () => {
+    const page = home();
+    expect(page).toContain(`href="${REPO_URL}"`);
+    expect(page).toContain(`${REPO_URL}/commits/main`);
+    expect(page).toContain(`${REPO_URL}/releases`);
+    // Et l'état du dépôt, écrit noir sur blanc : public, en lecture seule.
+    expect(page).toMatch(/public/i);
+    expect(page).toMatch(/lecture seule/i);
+  });
+
+  it('rappelle l’objectif initial et les raisons de l’arrêt', () => {
+    const page = home();
+    expect(page).toMatch(/Ce que DropForge devait être/);
+    expect(page).toMatch(/chiffré de bout en bout/i);
+    expect(page).toMatch(/sans compte/i);
+    expect(page).toMatch(/Pourquoi le développement s.arrête/);
+  });
+
+  it('ne prétend pas qu’une version stable a été publiée', () => {
+    const page = home();
+    // La dernière version publiée est 0.1.3, et la page le dit ; la 0.2.0 n'a jamais été
+    // publiée comme version, et la page ne la présente pas comme telle.
+    expect(page).toContain('0.1.3');
+    expect(page).not.toMatch(/\bDropForge 1\.0\b|version 1\.0\b/i);
+    expect(page).not.toMatch(/version stable/i);
+    // Aucun bouton de téléchargement : il n'y a rien à installer, rien à promettre.
+    expect(page).not.toMatch(/Télécharger/i);
+    expect(page).not.toMatch(/class="btn/);
+  });
+
+  it('dit ce qui n’a jamais été couvert, au lieu de le laisser croire', () => {
+    const page = home();
+    // Le relais public n'a jamais existé : la page le dit, au lieu de promettre deux
+    // réseaux différents.
+    expect(page).toMatch(/faute de relais public/i);
+    // La licence n'a jamais été choisie : la page le dit, pour que personne ne réutilise
+    // le code en croyant qu'il est libre.
+    expect(page).toMatch(/n’a jamais reçu de licence|n'a jamais reçu de licence/);
   });
 
   it('pointe vers l’application par un chemin relatif, sans jamais écrire de domaine', () => {
     const page = home();
-    expect(page).toContain('href="app/"');
-    // Le chemin est aussi la valeur de repli affichée sans JavaScript, et celle que le
-    // script résout en adresse absolue à l'ouverture.
-    expect(page).toContain(`data-path="${APP_PATH}"`);
+    expect(page).toContain(`href="${APP_PATH}"`);
     expect(page).not.toMatch(/href="https?:\/\/louxos\.github\.io/);
     // Aucun lien mort : l'adresse n'est jamais vide.
     expect(page).not.toMatch(/href="\s*"/);
   });
 
-  it('rappelle les limites réelles du projet, sans les embellir', () => {
+  it('reste une page soignée sur téléphone, et discrète en animation', () => {
     const page = home();
-    expect(page).toMatch(/pas encore été essayée sur un téléphone réel/);
-    expect(page).toMatch(/nécessite un hébergement/);
-    expect(page).not.toMatch(/setup\.exe/);
-    expect(page).not.toContain('.msi');
-    expect(page).not.toContain('Tauri');
-    expect(page).toMatch(/restent téléchargeables mais ne sont plus\s+maintenus/);
-    // La documentation tient en quatre fichiers : la page ne renvoie qu'à ceux-là.
-    expect(page).toContain(`${REPO_URL}/blob/main/docs/TECHNIQUE.md`);
-    expect(page).toContain(`${REPO_URL}/blob/main/docs/GUIDE.md`);
-    expect(page).toContain(`${REPO_URL}/blob/main/CHANGELOG.md`);
-    for (const gone of ['SPEC-AUDIT', 'PLATFORM-MATRIX', 'TROUBLESHOOTING', 'THREAT-MODEL', 'ARCHITECTURE.md']) {
-      expect(page, `${gone} ne doit plus être référencé`).not.toContain(gone);
-    }
+    // Mise en page adaptative : au moins un point de rupture explicite.
+    expect(page).toMatch(/@media \(max-width: 620px\)/);
+    expect(page).toMatch(/@media \(max-width: 860px\)/);
+    // Les animations existent, mais elles respectent le réglage système.
+    expect(page).toMatch(/prefers-reduced-motion: reduce/);
+    // Rien de clignotant, rien de clignotant simulé en JavaScript.
+    expect(page).not.toMatch(/<marquee|animation-iteration-count:\s*infinite/i);
   });
 
-  it('ne renvoie plus à Netlify, ni à un hébergement tiers', () => {
+  it('ne renvoie plus à Netlify, et dit qui sert la page', () => {
     const page = home();
     expect(page.toLowerCase()).not.toContain('netlify');
     expect(page).toMatch(/GitHub Pages/);
@@ -134,6 +182,7 @@ describe('page 404', () => {
     // (`/DROPForge/une/autre/page`), où un `app/` relatif pointerait dans le vide.
     expect(page).toContain('href="/DROPForge/app/"');
     expect(page).toContain('href="/DROPForge/"');
+    expect(page).toContain(`Archivé le ${ARCHIVED_ON}`);
     expect(page).not.toMatch(/{{[A-Z_]+}}/);
   });
 

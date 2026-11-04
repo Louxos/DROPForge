@@ -13,7 +13,49 @@ suivent le [versionnage sémantique](https://semver.org/lang/fr/) une fois la 1.
 > `.msi` décrivent un produit qui n'existe plus dans ce dépôt. La suite du projet est
 > l'application web installable, et rien d'autre.
 
+## [Archivé] — 4 novembre 2026
+
+**Le développement de DropForge s'arrête ici.** Cette entrée n'est pas une version : rien
+n'est ajouté, rien n'est corrigé. Elle date la fin du projet et dit ce qui reste en ligne.
+
+### Ce qui s'arrête
+
+- plus de fonctionnalités, plus de correctifs, plus de réponses de support ;
+- plus de versions publiées : la dernière reste la **0.1.3** du 16 octobre 2026. Le code
+  contenait une évolution `0.2.0` (publication sur GitHub Pages) qui n'a jamais reçu
+  d'étiquette ni de version publiée ;
+- le dépôt GitHub passe en **lecture seule**, avec l'étiquette `archived-2026-11-04`.
+
+### Ce qui reste en ligne
+
+- le code source et l'historique complet des commits, inchangés ;
+- les versions `v0.1.0` à `v0.1.3` et leurs archives, avec leurs sommes de contrôle ;
+- l'application, toujours servie à `https://louxos.github.io/DROPForge/app/`, **sans
+  maintenance** ;
+- la page du site, devenue une page d'archive, et cette documentation telle qu'elle était.
+
+### Pourquoi
+
+Un seul développeur, bénévole, pour un produit qui touche au réseau pair-à-pair, à la
+cryptographie, au stockage local et à trois moteurs de navigateurs : la maintenance est
+devenue disproportionnée. Le besoin est couvert par des outils installés et suivis par des
+équipes entières. Et rester gratuit était un plafond — relais public, serveurs TURN,
+hébergement des liens de partage et essais sur de vrais téléphones ne pouvaient pas être
+tenus sérieusement sans financement. **Plutôt que de promettre ce qui ne pouvait pas être
+tenu, le projet s'arrête.**
+
+### Non couvert, et assumé jusqu'au bout
+
+Aucune version stable (1.0) n'a jamais été publiée. Les transferts entre appareils de
+**réseaux différents**, les **liens de partage hébergés** et les **essais sur téléphones
+réels** n'ont jamais été livrés. Le dépôt n'a jamais reçu de licence : le code est
+consultable, pas librement réutilisable.
+
 ## [0.2.0]
+
+> **Version jamais publiée.** L'évolution ci-dessous a été écrite, testée et publiée sur
+> GitHub Pages, mais le projet s'est arrêté avant qu'elle ne reçoive une étiquette et des
+> notes de version. Elle est le dernier état du code, pas une release.
 
 **DropForge est publié par GitHub Pages, et par rien d'autre.** Un dépôt, un site, un
 artefact : `npm run build:pages` assemble l'accueil, la page 404 et l'application dans

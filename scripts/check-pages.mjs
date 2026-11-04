@@ -15,7 +15,10 @@
  *
  * What is checked is what actually breaks on a static host, and nothing else:
  *
- *   - the home page loads, links to the application, and carries no external resource;
+ *   - the home page is the **archive page**: it says the project is archived, gives the
+ *     archiving date, and points at the source code, the commit history and the releases;
+ *     it carries no external resource and does not read like a temporary page;
+ *   - the application is still served for consultation, and is linked relatively;
  *   - the application page, its script, its stylesheet, its icons and its manifest are
  *     all reachable **through the base path** (`/NOM-DU-DEPOT/app/…`): a missing prefix
  *     is the classic failure, and it is invisible locally where the base is `/`;
@@ -30,6 +33,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ARCHIVED_ON } from './build-site.mjs';
 import { startStaticServer } from './lib/static-server.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
@@ -71,21 +75,38 @@ async function runChecks(siteUrl, { local }) {
   const appUrl = `${siteUrl}app/`;
   console.log(`\n[pages] ${siteUrl}`);
 
-  /* --- the home page -------------------------------------------------- */
+  /* --- the archive page ------------------------------------------------ */
   const home = await fetch(siteUrl);
   const homeHtml = await home.text();
-  check(home.status === 200, 'la page d’accueil répond', `HTTP ${home.status}`);
+  check(home.status === 200, 'la page d’archive répond', `HTTP ${home.status}`);
   check(
     (home.headers.get('content-type') ?? '').startsWith('text/html'),
-    'la page d’accueil est servie en HTML',
+    'la page d’archive est servie en HTML',
     home.headers.get('content-type') ?? 'sans type',
   );
-  check(homeHtml.includes('Ouvrir l’application web') || homeHtml.includes("Ouvrir l'application web"), 'le lien vers l’application est présent');
-  check(homeHtml.includes('href="app/"'), 'le lien vers l’application est relatif (aucun domaine écrit en dur)');
+  // What makes it an archive page, and not a 404 or a placeholder: the sentence, the
+  // date, and the fact that development is over.
+  check(
+    homeHtml.includes('Ce projet est désormais archivé.'),
+    'la page annonce l’archivage en clair',
+  );
+  check(homeHtml.includes(ARCHIVED_ON), 'la page porte la date d’archivage', ARCHIVED_ON);
+  check(
+    /développement (est )?(définitivement )?arrêté/i.test(homeHtml),
+    'la page dit que le développement est arrêté',
+  );
+  check(!/arrive bientôt|reviens bientôt|temporaire/i.test(homeHtml), 'la page ne se lit pas comme une page temporaire');
+  // Access to the code, its history and its releases: the three things a closed project
+  // must still offer.
+  check(homeHtml.includes('https://github.com/Louxos/DROPForge'), 'la page renvoie au code source');
+  check(homeHtml.includes('/commits/main'), 'la page renvoie à l’historique des commits');
+  check(homeHtml.includes('/releases'), 'la page renvoie aux versions publiées');
+  check(homeHtml.includes('href="app/"'), 'l’application restée en ligne est liée en relatif (aucun domaine écrit en dur)');
+  check(!/\{\{[A-Z_]+\}\}/.test(homeHtml), 'aucun jeton de gabarit non remplacé');
   // Nothing is loaded from anywhere else: the pages work offline, from a folder, and
   // without a third party seeing who reads them.
   const external = references(homeHtml).filter((value) => /^(https?:)?\/\//.test(value) && !value.startsWith('https://github.com/'));
-  check(external.length === 0, 'aucune ressource distante sur l’accueil', external.join(', ') || 'aucune');
+  check(external.length === 0, 'aucune ressource distante sur la page d’archive', external.join(', ') || 'aucune');
   check(!/netlify/i.test(homeHtml), 'la page ne mentionne plus Netlify');
 
   /* --- the application ------------------------------------------------ */
@@ -177,6 +198,7 @@ async function runChecks(siteUrl, { local }) {
     'la page 404 renvoie à l’application par son chemin absolu',
     appPath,
   );
+  check(missingBody.includes(ARCHIVED_ON), 'la page 404 rappelle la date d’archivage', ARCHIVED_ON);
 
   /* --- what must never be published ----------------------------------- */
   const map = await fetch(new URL('assets/index.js.map', appUrl));

@@ -1,5 +1,10 @@
 # DropForge — documentation technique
 
+> **Projet archivé le 4 novembre 2026.** Ce document décrit l'état du code au moment de
+> l'arrêt. Il n'est plus mis à jour et ne décrit aucune intention future : la feuille de
+> route qui figure au § 10 est celle qui existait alors, elle n'a pas été suivie. Le dépôt
+> reste public, en lecture seule — voir le [README](../README.md).
+
 Ce document décrit **ce qui existe réellement dans le dépôt** : architecture,
 comportement, données, sécurité, plateformes, tests, et l'état honnête du projet
 exigence par exigence. Chaque affirmation correspond à du code présent et testé ; quand
@@ -425,7 +430,7 @@ sans lui.
 
 | Domaine | État | Précision |
 | --- | --- | --- |
-| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** | 470 tests automatisés, 43 fichiers (§ 9) |
+| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** | 475 tests automatisés, 43 fichiers (§ 9) |
 | Interface React/TypeScript partagée (FR/EN, thèmes) | ✅ Implémentée et **testée** au niveau du contrôleur et du rendu | `apps/web/src/entry.test.tsx`, `ui.test.tsx` |
 | Écran d'entrée « Envoyer / Recevoir », moins d'options visibles | ✅ Implémenté et **testé** | `apps/web/src/screens/transfer.tsx`, cas « ouvre sur le choix » dans `ui.test.tsx` |
 | Adresse du relais : un seul endroit décide, un réglage la change | ✅ Implémenté et **testé** | `apps/web/src/platform/signaling.ts` + `signaling.test.ts`, `packages/settings` (schéma 4) |
@@ -450,7 +455,7 @@ Le pas-à-pas détaillé, avec ce qu'il faut observer à chaque étape, est dans
 
 ```bash
 npm run verify           # tout ce que la chaîne exécute : types, contrôle du site, tests
-npm test                 # 43 fichiers, 470 tests
+npm test                 # 43 fichiers, 475 tests
 npm run test:unit        # paquets métier, sans DOM
 npm run test:integration # transferts réels en mémoire, sécurité, reprise
 npm run build:pages      # assemble le site publié dans _site/ (accueil + 404 + app)
@@ -465,9 +470,10 @@ npm i --no-save werift   # facultatif : une pile WebRTC en TypeScript, sans bina
 npm run check:direct     # vérifie le chemin direct avec du vrai WebRTC (hors verify)
 ```
 
-Total vérifié le 2 novembre 2026 : **470 tests, 43 fichiers**, tous au vert. La chaîne
-d'intégration rejoue exactement cette suite (`npm run verify`), plus la compilation des
-deux cibles et la vérification des icônes ; les navigateurs réels ont leur propre tâche.
+Total vérifié le 4 novembre 2026, dernier jour du projet : **475 tests, 43 fichiers**,
+tous au vert. La chaîne d'intégration rejoue exactement cette suite (`npm run verify`),
+plus la compilation des deux cibles et la vérification des icônes ; les navigateurs réels
+ont leur propre tâche.
 
 ### Ce qui est couvert, et par quoi
 
@@ -514,7 +520,7 @@ l'écran.
 
 **DropForge n'est pas encore une 1.0, et ce document ne prétend pas le contraire.**
 Version actuelle : **0.2.0** — application web installable **publiée sur GitHub Pages**,
-serveur de signalisation optionnel, 470 tests automatiques et une suite navigateur réelle.
+serveur de signalisation optionnel, 475 tests automatiques et une suite navigateur réelle.
 
 | Exigence du cahier des charges | État | Où le vérifier |
 | --- | --- | --- |

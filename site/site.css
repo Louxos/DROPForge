@@ -701,3 +701,269 @@ footer a:hover {
     padding-top: 52px;
   }
 }
+
+/* ------------------------------------------------------------------ *
+ * Page d'archive
+ *
+ * Même charte que l'ancienne page d'accueil, mais une seule intention :
+ * dire clairement que le projet est terminé, et où trouver le code.
+ * Rien à installer, rien à essayer, aucune promesse.
+ * ------------------------------------------------------------------ */
+
+.archive {
+  --wrap: 1080px;
+}
+
+.archive-hero {
+  padding: 92px 0 34px;
+  border-top: 0;
+  text-align: center;
+}
+
+.archive-hero h1 {
+  max-width: 22ch;
+  margin: 24px auto 0;
+  font-size: clamp(2.2rem, 5.8vw, 3.95rem);
+  line-height: 1.02;
+  letter-spacing: -0.042em;
+}
+
+.archive-hero .lede {
+  max-width: 64ch;
+  margin-top: 24px;
+  font-size: clamp(1rem, 2.1vw, 1.13rem);
+}
+
+.pill .dot {
+  background: var(--violet);
+  box-shadow: 0 0 0 4px rgba(124, 92, 255, 0.18);
+}
+
+.status-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 28px 0 0;
+  padding: 9px 18px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.28);
+  color: var(--ink-soft);
+  font-size: 0.89rem;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink-dim);
+  flex: none;
+}
+
+.section-label {
+  margin: 0 0 18px;
+  font-size: 0.74rem;
+  font-weight: 620;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.facts-wrap {
+  padding: 10px 24px 44px;
+  border-top: 0;
+}
+
+.facts {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+}
+
+.fact {
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+}
+
+.fact dt {
+  margin: 0 0 6px;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.fact dd {
+  margin: 0;
+  font-size: 0.97rem;
+  font-weight: 560;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.note {
+  margin: 22px 0 0;
+  max-width: 72ch;
+  color: var(--ink-dim);
+  font-size: 0.89rem;
+}
+
+.note strong {
+  color: var(--ink-soft);
+  font-weight: 620;
+}
+
+.quote {
+  margin: 0 0 30px;
+  padding: 24px 28px;
+  border: 1px solid var(--line-strong);
+  border-left: 2px solid var(--violet);
+  border-radius: 4px var(--radius) var(--radius) 4px;
+  background:
+    linear-gradient(100deg, rgba(124, 92, 255, 0.11), rgba(56, 156, 255, 0.04) 60%, transparent),
+    var(--panel);
+  font-size: clamp(1.02rem, 2.2vw, 1.18rem);
+  line-height: 1.55;
+  letter-spacing: -0.012em;
+  color: #e9e6ff;
+}
+
+.archive-links {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.archive-links a {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 4px 22px;
+  padding: 19px 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+}
+
+.archive-links a:hover {
+  border-color: var(--line-strong);
+  background: var(--panel-strong);
+  transform: translateX(2px);
+}
+
+.archive-links .label {
+  font-weight: 600;
+  letter-spacing: -0.012em;
+}
+
+.archive-links .detail {
+  grid-column: 1 / 2;
+  color: var(--ink-dim);
+  font-size: 0.9rem;
+}
+
+.archive-links .arrow {
+  grid-row: 1 / span 2;
+  grid-column: 2 / 3;
+  color: var(--ink-dim);
+  font-size: 1.05rem;
+  transition: color 0.18s ease, transform 0.18s ease;
+}
+
+.archive-links a:hover .arrow {
+  color: var(--ink);
+  transform: translateX(3px);
+}
+
+.closing {
+  padding-bottom: 74px;
+}
+
+.closing .sub {
+  margin-bottom: 0;
+}
+
+.signature {
+  margin: 34px 0 0;
+  color: var(--ink-dim);
+  font-size: 0.86rem;
+  letter-spacing: 0.01em;
+}
+
+/* Entrée discrète : le contenu se pose, il ne « flashe » pas. */
+@keyframes df-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.archive-hero .wrap > * {
+  animation: df-rise 0.62s cubic-bezier(0.22, 0.72, 0.2, 1) both;
+}
+
+.archive-hero .wrap > *:nth-child(2) {
+  animation-delay: 0.06s;
+}
+
+.archive-hero .wrap > *:nth-child(3) {
+  animation-delay: 0.14s;
+}
+
+.archive-hero .wrap > *:nth-child(4) {
+  animation-delay: 0.22s;
+}
+
+@media (max-width: 860px) {
+  .facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .archive-hero {
+    padding: 60px 0 28px;
+  }
+
+  .facts {
+    grid-template-columns: 1fr;
+  }
+
+  .quote {
+    padding: 20px 20px;
+  }
+
+  .archive-links a {
+    grid-template-columns: 1fr;
+    padding: 17px 18px;
+  }
+
+  .archive-links .arrow {
+    display: none;
+  }
+
+  .note {
+    font-size: 0.86rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .archive-hero .wrap > * {
+    animation: none;
+  }
+
+  .archive-links a,
+  .archive-links .arrow {
+    transition: none;
+  }
+}

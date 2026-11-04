@@ -10,6 +10,9 @@
 export declare const REPO_URL: string;
 export declare const SITE_URL: string;
 
+/** Date officielle de l'archivage, en toutes lettres (« 4 novembre 2026 »). */
+export declare const ARCHIVED_ON: string;
+
 /** Où vit l'application à l'intérieur du site (`app/`), toujours relatif. */
 export declare const APP_PATH: string;
 
