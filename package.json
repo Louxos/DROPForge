@@ -30,6 +30,7 @@
     "icons": "node scripts/generate-icons.mjs",
     "licences": "node scripts/list-licences.mjs",
     "build:pages": "node scripts/build-pages.mjs",
+    "publish:site": "node scripts/build-pages.mjs && node scripts/publish-site.mjs",
     "check:pages": "node scripts/build-pages.mjs && node scripts/check-pages.mjs",
     "check:deployed": "node scripts/check-pages.mjs",
     "preview:pages": "node scripts/serve-pages.mjs",

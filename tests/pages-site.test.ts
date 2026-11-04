@@ -19,7 +19,7 @@
  * ici est ce que GitHub Pages sert.
  */
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -247,11 +247,27 @@ describe('fichiers produits pour la publication', () => {
     expect(files.get(OUTPUTS.favicon)).toBe(mark);
   });
 
-  it('n’est plus versionné à la racine du dépôt', () => {
-    // Le site publié est reconstruit à chaque envoi : aucun fichier généré ne doit
-    // rester dans le dépôt, sinon il dérive de ses sources sans que personne ne le voie.
-    for (const file of Object.values(OUTPUTS)) {
-      expect(() => read(file), `${file} ne doit plus être versionné`).toThrow();
+  it('est publié depuis la branche, donc versionné à la racine — et identique au générateur', async () => {
+    // Le dépôt est archivé : ses workflows ne s'exécutent plus. Un site qui ne vivrait que
+    // comme artefact de workflow ne serait plus reconstructible. GitHub Pages sert donc
+    // les fichiers de la branche, et cette copie doit être exactement ce que le générateur
+    // produit — sinon elle dérive en silence.
+    // `index.html` et le favicon ne dépendent pas du chemin du dépôt : leur comparaison
+    // est exacte. La page 404, elle, écrit des liens absolus préfixés ; son identité
+    // octet par octet est vérifiée par `npm run check:pages`, qui connaît ce préfixe.
+    const files = (await buildSiteFiles({ root })) as Map<string, string>;
+    for (const name of [OUTPUTS.page, OUTPUTS.favicon]) {
+      expect(read(name), `${name} a dérivé : lancez « npm run publish:site »`).toBe(files.get(name));
+    }
+    expect(read(OUTPUTS.notFound)).not.toMatch(/{{[A-Z_]+}}/);
+    expect(existsSync(join(root, '.nojekyll')), '.nojekyll manquant : Jekyll servirait autre chose').toBe(true);
+  });
+
+  it('publie l’application à côté de la page d’archive, dans le dépôt', () => {
+    // Sans les workflows, c'est ce dossier `app/` que GitHub Pages sert : s'il manque,
+    // le lien « l'application telle qu'elle a été laissée » mène à une 404.
+    for (const file of ['app/index.html', 'app/manifest.webmanifest', 'app/sw.js', 'favicon.svg']) {
+      expect(existsSync(join(root, file)), `${file} manquant : lancez « npm run publish:site »`).toBe(true);
     }
   });
 });

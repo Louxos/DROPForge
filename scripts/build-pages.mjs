@@ -21,6 +21,11 @@
  *
  * Nothing is published that has not been produced here: this script owns `_site/`
  * entirely and refuses to leave a source map or an oversized file behind.
+ *
+ * `_site/` is a workbench, not the published site: since the repository is archived, the
+ * files GitHub Pages serves are the ones **committed at the repository root**, written by
+ * `scripts/publish-site.mjs` (`npm run publish:site`) and compared byte for byte by
+ * `scripts/check-pages.mjs`.
  */
 import { execFileSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';

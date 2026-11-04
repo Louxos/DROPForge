@@ -225,6 +225,38 @@ async function runChecks(siteUrl, { local }) {
     const total = files.reduce((sum, file) => sum + statSync(join(OUT, file)).size, 0);
     check(total < 4 * 1024 * 1024, 'taille du site sous le budget', `${(total / 1024).toFixed(0)} Kio`);
     check(files.every((file) => !file.endsWith('.map')), 'aucun fichier .map dans _site');
+
+    /* --- la copie publiée depuis la branche ------------------------------ */
+    // GitHub Pages sert ce dépôt **depuis une branche** : ce que les visiteurs reçoivent,
+    // ce sont les fichiers du dépôt lui-même. Un dépôt archivé n'exécute plus ses
+    // workflows : le site ne peut donc plus être un artefact, il doit être là. La copie
+    // est comparée octet par octet, sinon elle dérive sans que personne ne le voie.
+    check(existsSync(join(root, '.nojekyll')), '.nojekyll présent à la racine (Jekyll désactivé)');
+    const missingAtRoot = files.filter((file) => !existsSync(join(root, file)));
+    check(
+      missingAtRoot.length === 0,
+      'chaque fichier publié existe à la racine du dépôt',
+      missingAtRoot.join(', ') || `${files.length} fichiers`,
+    );
+    const drifted = files.filter(
+      (file) => existsSync(join(root, file)) && !readFileSync(join(OUT, file)).equals(readFileSync(join(root, file))),
+    );
+    check(
+      drifted.length === 0,
+      'la copie de la racine est identique au site construit',
+      drifted.join(', ') || 'aucune dérive',
+    );
+    const committedApp = [];
+    const walkApp = (directory, prefix) => {
+      for (const entry of readdirSync(directory, { withFileTypes: true })) {
+        const path = `${prefix}/${entry.name}`;
+        if (entry.isDirectory()) walkApp(join(directory, entry.name), path);
+        else committedApp.push(path);
+      }
+    };
+    if (existsSync(join(root, 'app'))) walkApp(join(root, 'app'), 'app');
+    const stale = committedApp.filter((file) => !files.includes(file));
+    check(stale.length === 0, 'aucun fichier abandonné ne traîne à la racine', stale.join(', ') || `${committedApp.length} fichiers`);
   }
 
   return appUrl;

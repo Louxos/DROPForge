@@ -26,6 +26,17 @@ n'est ajouté, rien n'est corrigé. Elle date la fin du projet et dit ce qui res
   d'étiquette ni de version publiée ;
 - le dépôt GitHub passe en **lecture seule**, avec l'étiquette `archived-2026-11-04`.
 
+### Changé
+
+- **Le site publié est désormais dans le dépôt.** GitHub Pages sert les fichiers de la
+  branche (`index.html`, `404.html`, `favicon.svg`, `app/`, `.nojekyll`) au lieu d'un
+  artefact de workflow : un dépôt archivé n'exécute plus ses workflows, un site qui
+  n'existerait que là ne serait plus reconstructible. `npm run publish:site` écrit cette
+  copie, et `npm run check:pages` la compare **octet par octet** au site construit — une
+  dérive échoue la chaîne.
+- La page publiée devient une page d'archive ; la page 404 et l'écran « À propos »
+  rappellent la date et l'arrêt du développement.
+
 ### Ce qui reste en ligne
 
 - le code source et l'historique complet des commits, inchangés ;

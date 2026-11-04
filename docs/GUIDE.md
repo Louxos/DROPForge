@@ -339,35 +339,47 @@ Rien de tout cela n'est envoyé où que ce soit : voir
 
 ## 10. Propriétaire du dépôt
 
-> **Ce qui s'est passé, et ce qui ne se fera plus (4 novembre 2026).** Le site a été
-> construit, vérifié et publié par `.github/workflows/pages.yml` **avant** l'archivage du
-> dépôt. Depuis l'archivage, les workflows ne s'exécutent plus : le site reste celui du
-> dernier déploiement, figé, et rien ne se republiera tout seul. Les réglages ci-dessous
-> décrivent donc ce qu'il fallait faire ; **ils ne sont plus à faire**.
+> **État depuis le 4 novembre 2026, date de l'archivage.** GitHub Pages sert les fichiers
+> du dépôt, publiés depuis une branche : il n'y a plus rien à régler, plus rien à
+> relancer. Un dépôt archivé n'exécute plus ses workflows — la copie versionnée est donc
+> la seule publication qui survive, et c'est pour cela qu'elle est dans le dépôt. Ce qui
+> suit décrit ce qui est en place ; **rien de tout cela n'est plus à faire**.
 
 Le site est publié **uniquement sur GitHub Pages** : aucun hébergeur tiers, aucun serveur à vous :
 
 | Adresse | Contenu |
 | --- | --- |
-| <https://louxos.github.io/DROPForge/> | la page publique (présentation, limites, liens) |
+| <https://louxos.github.io/DROPForge/> | la page d'archive (projet arrêté, code, historique) |
 | <https://louxos.github.io/DROPForge/app/> | l'application web installable (PWA) |
 | `…/une-page-inconnue` | la page 404 du site, servie par GitHub Pages |
 
-Une seule action est indispensable, et une seule fois. Le reste est automatique.
+Un seul réglage a été nécessaire, une fois. Ce tableau dit ce qu'il faudrait refaire si
+le projet reprenait — il n'y a rien à faire aujourd'hui.
 
 | # | Action | Nécessaire pour | Coût |
 | --- | --- | --- | --- |
-| 1 | **Settings → Pages → Source = « GitHub Actions »** | Que le site (accueil + application) se publie à chaque envoi sur `main` | 0 € |
+| 1 | **Settings → Pages → Source = « Deploy from a branch »**, branche `main`, dossier `/` | Servir le site depuis les fichiers du dépôt, sans dépendre d'un workflow | 0 € |
 | 2 | *(facultatif)* une adresse de relais | Les transferts entre deux réseaux différents | 0 € |
 | 3 | **Licence du projet** | Dire ce que les autres ont le droit de faire | 0 € |
 
-### 1. Publier le site — le seul réglage à faire
+### 1. Publier le site — ce qui est en place, et pourquoi
 
-Dépôt → **Settings** → **Pages** → *Build and deployment* → **Source** : choisissez
-**« GitHub Actions »**, puis **Save**. C'est tout : à chaque envoi sur `main`,
-`.github/workflows/pages.yml` construit le site, le vérifie, le publie, **puis vérifie
-le site en ligne** depuis son adresse publique. Un envoi n'est annoncé réussi
-qu'après cette lecture.
+Dépôt → **Settings** → **Pages** → *Build and deployment* → **Source** :
+**« Deploy from a branch »**, branche `main`, dossier `/`. GitHub sert alors les fichiers
+du dépôt eux-mêmes : `index.html`, `404.html`, `favicon.svg`, `app/`, et `.nojekyll` qui
+empêche Jekyll de les retoucher. Rien d'autre.
+
+Ces fichiers ne s'écrivent pas à la main : `npm run publish:site` les produit depuis
+`site/` et `apps/web`, et `npm run check:pages` vérifie **octet par octet** que la copie
+du dépôt est exactement le site construit. Une copie oubliée après une modification fait
+échouer la chaîne, au lieu de partir en ligne sans que personne ne le voie.
+
+> **Pourquoi plus « GitHub Actions ».** Le workflow `.github/workflows/pages.yml` a publié
+> le site jusqu'à la 0.2.0 : il construisait, vérifiait, publiait, puis relisait l'adresse
+> publique. Le dépôt étant **archivé depuis le 4 novembre 2026**, ses workflows ne
+> s'exécutent plus — un site qui n'existerait que comme artefact de workflow ne serait
+> plus reconstructible. Le fichier reste dans le dépôt comme trace de cette chaîne ; il
+> n'est plus ce qui publie.
 
 > **Pourquoi ce réglage est manuel :** GitHub demande au propriétaire de choisir la
 > source de publication, et une Action ne peut pas le faire à sa place avec le jeton

@@ -6,20 +6,20 @@
 #   /app/             l'application web installable (PWA)
 #   404.html          la page servie pour toute adresse inconnue
 #
-# Tout est reconstruit ici, à chaque envoi sur `main`, à partir des sources du dépôt.
-# Rien n'est produit sur une machine : aucun fichier publié n'est versionné, donc le
-# site ne peut pas dériver de ce qu'il affiche.
-#
-# Prérequis, une seule fois : dépôt → Settings → Pages → Source = « GitHub Actions ».
-# Sans ce réglage, la tâche de publication échoue avec un message explicite — plutôt
-# que de faire croire à un déploiement qui n'a pas eu lieu.
+# Ce workflow a construit, vérifié et publié ce site jusqu'à la 0.2.0, à chaque envoi sur
+# `main`, puis relu l'adresse publique. Prérequis, une seule fois : dépôt → Settings →
+# Pages → Source = « GitHub Actions » ; sans ce réglage, la tâche échoue avec le geste
+# exact plutôt que de faire croire à un déploiement qui n'a pas eu lieu.
 #
 # Le chemin de base est celui du dépôt (`/NOM-DU-DEPOT/`), calculé ici : une fourche se
 # publie correctement sans modifier un seul fichier.
 #
-# Depuis le 4 novembre 2026, le dépôt est archivé : ce workflow ne s'exécute plus. Le site
-# publié reste celui du dernier déploiement, figé. Il est conservé tel quel pour que
-# l'archive montre aussi comment le site était publié.
+# **Depuis le 4 novembre 2026, il ne publie plus rien** : le projet est archivé, et un
+# dépôt archivé n'exécute plus ses workflows. GitHub Pages sert désormais les fichiers
+# versionnés à la racine de la branche (`index.html`, `404.html`, `favicon.svg`, `app/`,
+# `.nojekyll`), écrits par `npm run publish:site` et comparés octet par octet par
+# `npm run check:pages`. Ce fichier reste dans le dépôt comme trace de la chaîne
+# précédente.
 name: Site (GitHub Pages)
 
 on:

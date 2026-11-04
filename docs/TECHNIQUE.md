@@ -430,7 +430,7 @@ sans lui.
 
 | Domaine | État | Précision |
 | --- | --- | --- |
-| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** | 475 tests automatisés, 43 fichiers (§ 9) |
+| Moteur de transfert (chiffrement, reprise, vérification, file d'attente) | ✅ Implémenté et **testé** | 476 tests automatisés, 43 fichiers (§ 9) |
 | Interface React/TypeScript partagée (FR/EN, thèmes) | ✅ Implémentée et **testée** au niveau du contrôleur et du rendu | `apps/web/src/entry.test.tsx`, `ui.test.tsx` |
 | Écran d'entrée « Envoyer / Recevoir », moins d'options visibles | ✅ Implémenté et **testé** | `apps/web/src/screens/transfer.tsx`, cas « ouvre sur le choix » dans `ui.test.tsx` |
 | Adresse du relais : un seul endroit décide, un réglage la change | ✅ Implémenté et **testé** | `apps/web/src/platform/signaling.ts` + `signaling.test.ts`, `packages/settings` (schéma 4) |
@@ -455,7 +455,7 @@ Le pas-à-pas détaillé, avec ce qu'il faut observer à chaque étape, est dans
 
 ```bash
 npm run verify           # tout ce que la chaîne exécute : types, contrôle du site, tests
-npm test                 # 43 fichiers, 475 tests
+npm test                 # 43 fichiers, 476 tests
 npm run test:unit        # paquets métier, sans DOM
 npm run test:integration # transferts réels en mémoire, sécurité, reprise
 npm run build:pages      # assemble le site publié dans _site/ (accueil + 404 + app)
@@ -470,7 +470,7 @@ npm i --no-save werift   # facultatif : une pile WebRTC en TypeScript, sans bina
 npm run check:direct     # vérifie le chemin direct avec du vrai WebRTC (hors verify)
 ```
 
-Total vérifié le 4 novembre 2026, dernier jour du projet : **475 tests, 43 fichiers**,
+Total vérifié le 4 novembre 2026, dernier jour du projet : **476 tests, 43 fichiers**,
 tous au vert. La chaîne d'intégration rejoue exactement cette suite (`npm run verify`),
 plus la compilation des deux cibles et la vérification des icônes ; les navigateurs réels
 ont leur propre tâche.
@@ -520,7 +520,7 @@ l'écran.
 
 **DropForge n'est pas encore une 1.0, et ce document ne prétend pas le contraire.**
 Version actuelle : **0.2.0** — application web installable **publiée sur GitHub Pages**,
-serveur de signalisation optionnel, 475 tests automatiques et une suite navigateur réelle.
+serveur de signalisation optionnel, 476 tests automatiques et une suite navigateur réelle.
 
 | Exigence du cahier des charges | État | Où le vérifier |
 | --- | --- | --- |
@@ -625,22 +625,36 @@ alors à ses utilisateurs.
 
 ## 12. Publication du site (GitHub Pages)
 
-**Un dépôt, un site, un artefact.** `npm run build:pages` assemble `_site/` :
+**Un dépôt, un site, des fichiers dans la branche.** `npm run build:pages` assemble
+`_site/`, puis `npm run publish:site` en copie la surface publique à la racine du dépôt :
 
 ```
-_site/
-  index.html     la page publique (générée depuis site/index.html + site/site.css)
+_site/                    (établi de construction, jamais versionné)
+  index.html     la page d'archive (générée depuis site/index.html + site/site.css)
   404.html       la page que GitHub Pages sert pour toute adresse inconnue
   favicon.svg    l'icône de l'application, copiée telle quelle
   app/           l'application compilée par Vite : index.html, assets/, icons/,
                  manifest.webmanifest, sw.js, registerSW.js, workbox-*.js
+
+(racine du dépôt, ce que GitHub Pages sert réellement)
+  index.html, 404.html, favicon.svg, app/…, .nojekyll
 ```
 
 Le site vit à `https://<compte>.github.io/<dépôt>/`, l'application à `…/app/`, sur la
 **même origine** : c'est ce qui rend le service worker, le manifeste et l'invite
-d'installation possibles sans second hébergement. Rien de `_site/` n'est versionné : le
-site est reconstruit à chaque envoi sur `main`, il ne peut donc pas dériver de ses
-sources.
+d'installation possibles sans second hébergement.
+
+**Pourquoi la copie est versionnée.** Jusqu'à la 0.2.0, le site n'existait que comme
+artefact de `.github/workflows/pages.yml`. Le dépôt étant **archivé** depuis le
+4 novembre 2026, ses workflows ne s'exécutent plus : un tel site ne serait plus
+reconstructible. GitHub Pages sert donc les fichiers de la branche, qui n'ont besoin de
+rien — ni Action, ni jeton, ni machine. `.nojekyll` empêche Jekyll de retoucher ces
+fichiers.
+
+Cette copie ne peut pas dériver en silence : `npm run check:pages` reconstruit `_site/`
+et compare **octet par octet** chaque fichier publié avec celui du dépôt, dans les deux
+sens (rien de manquant, rien d'abandonné). Une dérive échoue la chaîne au lieu de partir
+en ligne.
 
 ### Chemins
 
@@ -690,6 +704,7 @@ il serait perdu pour une faute de frappe dans le chemin.
 ### Vérification, avant et après la publication
 
 ```bash
+npm run publish:site       # construit _site/ puis met la racine du dépôt à jour
 npm run check:pages        # construit _site/, le sert sous /<dépôt>/ comme Pages, vérifie
 npm run preview:pages      # sert le même _site/ pour cliquer dedans
 npm run check:deployed -- --url https://louxos.github.io/DROPForge/
@@ -702,9 +717,9 @@ s'enregistre-t-il au bon endroit, et **tous** les fichiers qu'il précache sont-
 joignables ? Une adresse inconnue répond-elle 404 avec la page du site ? Aucune carte de
 sources n'est-elle publiée ?
 
-La chaîne de publication (`.github/workflows/pages.yml`) exécute ces contrôles **avant**
-d'envoyer l'artefact, puis à nouveau **après** la publication, sur l'adresse publique :
-un envoi n'est annoncé réussi qu'après avoir été lu depuis Internet.
+`npm run verify` exécute `check:pages`, donc aucun envoi ne part d'un site qui n'a pas été
+lu — **ni d'une copie qui aurait dérivé**. Le workflow `.github/workflows/pages.yml` reste
+dans le dépôt comme trace de la chaîne précédente : un dépôt archivé ne l'exécute plus.
 
 ## 13. Annexes générées
 

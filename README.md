@@ -63,7 +63,7 @@ existait, ce qui était testé, et ce qui manquait — sans arrondi.
 | Application web progressive (PWA) installable | ✅ Construite et servie ; **jamais essayée sur un téléphone réel** |
 | Publication du site (page, application, page 404) sur GitHub Pages | ✅ Vérifiée avant et après publication, sans hébergeur tiers |
 | Serveur de signalisation et relais aveugle (Node, WebSocket) | ✅ Implémenté et testé, **sans adresse publique retenue** |
-| Tests automatisés (unitaires et d'intégration) | ✅ 475 tests, 43 fichiers, exécutés à chaque contrôle |
+| Tests automatisés (unitaires et d'intégration) | ✅ 476 tests, 43 fichiers, exécutés à chaque contrôle |
 | Tests de bout en bout dans de vrais navigateurs (Chromium, Firefox, WebKit) | ⚠️ Écrits et versionnés ; **non rejoués dans cet environnement**, qui n'a pas de navigateurs |
 | Essais sur appareils mobiles réels | ❌ Jamais faits — seule l'émulation est couverte |
 | Liens de partage hébergés (fichier stocké, expirable) | ⚠️ Code client écrit et testé ; **aucun hébergement retenu**, donc indisponible |
@@ -96,7 +96,9 @@ npm ci                 # dépendances (Node 22+)
 npm test               # la suite automatisée
 npm run dev:web        # l'application seule → http://localhost:5173
 npm run lan            # deux appareils du même Wi‑Fi, voir docs/GUIDE.md § 4
-npm run build:pages    # le site publié, tel qu'il est servi aujourd'hui
+npm run build:pages    # construit le site dans _site/
+npm run publish:site   # met la copie publiée à la racine du dépôt
+npm run check:pages    # vérifie le site et sa copie, sous leur vrai chemin
 ```
 
 | Emplacement | Contenu |
@@ -105,6 +107,7 @@ npm run build:pages    # le site publié, tel qu'il est servi aujourd'hui
 | `apps/web` | Application web progressive (React + Vite) |
 | `apps/signaling` | Serveur de signalisation et relais aveugle (Node, WebSocket) |
 | `site/` | Gabarits de la page d'archive et de la page 404, avec leur feuille de style |
+| `index.html`, `404.html`, `app/`, `favicon.svg`, `.nojekyll` | **Le site publié**, écrit par `npm run publish:site` : GitHub Pages sert ces fichiers-là, et `npm run check:pages` vérifie qu'ils sont identiques à ce que construisent `site/` et `apps/web` |
 | `scripts/` | Construction du site, vérification avant et après publication, paquets et sommes de contrôle |
 | `e2e/` | Tests de bout en bout dans de vrais navigateurs |
 | `docs/` | [Guide](docs/GUIDE.md), [documentation technique](docs/TECHNIQUE.md), bannière d'archive |
