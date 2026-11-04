@@ -4,19 +4,23 @@
 
 # DropForge
 
-> **Projet archivé le 4 novembre 2026.**
+> 🛑 **Projet archivé le 4 novembre 2026.**
 > Le développement est définitivement arrêté : aucune nouvelle fonctionnalité, aucun correctif,
 > aucune réponse de support. Le dépôt reste **public et en lecture seule**, conservé comme archive
 > de ce qui a été construit.
 
 | | |
 | --- | --- |
-| **État** | Archivé — développement arrêté |
+| **État** | 🔴 Archivé — développement arrêté |
 | **Date d'archivage** | 4 novembre 2026 |
 | **Dernière version publiée** | [0.1.3](https://github.com/Louxos/DROPForge/releases/tag/v0.1.3) — 16 octobre 2026 |
 | **Dernier état du code** | 0.2.0, jamais publiée comme version (voir la [chronologie](#chronologie)) |
 | **Licence** | Aucune — le code est consultable, pas librement réutilisable |
 | **Page publique** | <https://louxos.github.io/DROPForge/> — page d'archive |
+
+<p align="center">
+  <img src="docs/assets/archive-rule.svg" alt="" width="100%" />
+</p>
 
 ## Pourquoi cette archive
 
@@ -63,7 +67,7 @@ existait, ce qui était testé, et ce qui manquait — sans arrondi.
 | Application web progressive (PWA) installable | ✅ Construite et servie ; **jamais essayée sur un téléphone réel** |
 | Publication du site (page, application, page 404) sur GitHub Pages | ✅ Vérifiée avant et après publication, sans hébergeur tiers |
 | Serveur de signalisation et relais aveugle (Node, WebSocket) | ✅ Implémenté et testé, **sans adresse publique retenue** |
-| Tests automatisés (unitaires et d'intégration) | ✅ 476 tests, 43 fichiers, exécutés à chaque contrôle |
+| Tests automatisés (unitaires et d'intégration) | ✅ 477 tests, 43 fichiers, exécutés à chaque contrôle |
 | Tests de bout en bout dans de vrais navigateurs (Chromium, Firefox, WebKit) | ⚠️ Écrits et versionnés ; **non rejoués dans cet environnement**, qui n'a pas de navigateurs |
 | Essais sur appareils mobiles réels | ❌ Jamais faits — seule l'émulation est couverte |
 | Liens de partage hébergés (fichier stocké, expirable) | ⚠️ Code client écrit et testé ; **aucun hébergement retenu**, donc indisponible |
@@ -156,6 +160,10 @@ Le projet n'a **jamais reçu de licence**, et l'archivage ne permet plus d'en aj
 fichier `LICENSE`, le code est consultable mais **pas librement réutilisable, modifiable ni
 redistribuable** : le droit d'auteur s'applique par défaut. Les licences des dépendances
 (toutes permissives) sont listées dans [docs/TECHNIQUE.md](docs/TECHNIQUE.md) § 13.
+
+<p align="center">
+  <img src="docs/assets/archive-rule.svg" alt="" width="100%" />
+</p>
 
 ## Contributions et support
 

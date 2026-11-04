@@ -982,6 +982,183 @@ footer a:hover {
     transition: none;
   }
 }
+
+/* ------------------------------------------------------------------ *
+ * Fermeture
+ *
+ * Le projet est arrêté : la page le dit en rouge et en orange. Ces
+ * couleurs ne remplacent pas celles de DropForge (le logo garde son
+ * violet et son bleu) : elles marquent l'état, comme un sceau posé sur
+ * une page. Elles restent rares — un filet, un titre, trois détails —
+ * pour que la page reste une archive soignée, pas une alerte.
+ * ------------------------------------------------------------------ */
+
+:root {
+  --closed: #ff5a4d;
+  --ember: #ff8a3d;
+  --amber: #ffc46b;
+  --closed-soft: rgba(255, 90, 77, 0.12);
+  --closed-line: rgba(255, 90, 77, 0.42);
+  --closed-ink: #ffd8cd;
+  --closed-gradient: linear-gradient(100deg, #ffe0b0 0%, var(--amber) 18%, var(--ember) 48%, var(--closed) 82%, #ff4d6d 100%);
+}
+
+/* Un filet chaud en haut de page : la première chose qu'on voit. */
+.topbar {
+  position: sticky;
+}
+
+.topbar::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: linear-gradient(90deg, #ff4d6d, var(--closed) 30%, var(--ember) 68%, var(--amber));
+  opacity: 0.92;
+}
+
+/* Le halo du héros vire au rouge : la page est « éteinte », pas « en panne ». */
+.archive-hero {
+  position: relative;
+}
+
+.archive-hero::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: -180px;
+  left: 50%;
+  width: 820px;
+  height: 520px;
+  margin-left: -410px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255, 90, 77, 0.2), transparent 66%);
+  filter: blur(30px);
+  pointer-events: none;
+}
+
+.archive .pill {
+  border-color: var(--closed-line);
+  background: var(--closed-soft);
+  color: var(--closed-ink);
+}
+
+.archive .pill .dot {
+  background: var(--closed);
+  box-shadow: 0 0 0 4px rgba(255, 90, 77, 0.2);
+  animation: df-pulse 3.6s ease-in-out infinite;
+}
+
+@keyframes df-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 4px rgba(255, 90, 77, 0.18);
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgba(255, 90, 77, 0.06);
+  }
+}
+
+/* Le titre : le seul endroit où le dégradé chaud est pleinement assumé. */
+.archive-hero h1 {
+  background: var(--closed-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  /* Repli lisible si le dégradé de texte n'est pas pris en charge. */
+  -webkit-text-fill-color: transparent;
+}
+
+@supports not ((-webkit-background-clip: text) or (background-clip: text)) {
+  .archive-hero h1 {
+    background: none;
+    color: var(--closed-ink);
+    -webkit-text-fill-color: currentColor;
+  }
+}
+
+.archive .status-line {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: linear-gradient(100deg, rgba(255, 90, 77, 0.12), rgba(255, 138, 61, 0.04));
+  color: var(--closed-ink);
+}
+
+.archive .status-dot {
+  background: var(--ember);
+  box-shadow: 0 0 8px rgba(255, 138, 61, 0.55);
+}
+
+/* L'état, en tête du tableau des faits : la date d'archivage est un fait chaud. */
+.archive #etat .section-label {
+  color: var(--ember);
+}
+
+.archive .facts .fact:first-child {
+  border-color: var(--closed-line);
+  background: linear-gradient(160deg, var(--closed-soft), transparent 70%), var(--panel);
+}
+
+.archive .facts .fact:first-child dd {
+  color: var(--closed-ink);
+}
+
+/* Les raisons de l'arrêt : un trait chaud, rien de plus. */
+.archive #raisons h2.section::after {
+  content: "";
+  display: block;
+  width: 58px;
+  height: 2px;
+  margin-top: 14px;
+  border-radius: 2px;
+  background: var(--closed-gradient);
+}
+
+/* Fin de page : la signature prend la couleur de la décision. */
+.archive .closing .signature {
+  color: var(--closed-ink);
+}
+
+.archive .closing .signature::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 9px;
+  border-radius: 50%;
+  background: var(--ember);
+  vertical-align: 1px;
+}
+
+.archive footer .closed {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  border: 1px solid var(--closed-line);
+  border-radius: 999px;
+  background: var(--closed-soft);
+  color: var(--closed-ink);
+  font-size: 0.82rem;
+}
+
+.archive footer .closed::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--closed);
+}
+
+/* La page 404 rappelle la fermeture, discrètement. */
+.notfound footer .closed {
+  color: var(--closed-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .archive .pill .dot {
+    animation: none;
+  }
+}
     </style>
   </head>
   <body class="notfound">
@@ -1049,7 +1226,7 @@ footer a:hover {
   <rect x="238" y="312" width="36" height="88" rx="10" fill="url(#df-footer)" />
 </svg>
 <span>DropForge</span></span>
-        <span>Archivé le 4 novembre 2026</span>
+        <span class="closed">Archivé le 4 novembre 2026</span>
         <span class="spacer"></span>
         <a href="https://github.com/Louxos/DROPForge">Code source</a>
         <a href="https://github.com/Louxos/DROPForge/blob/main/docs/GUIDE.md">Guide</a>
